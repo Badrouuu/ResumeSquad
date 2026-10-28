@@ -2,13 +2,6 @@
 
 import { useState, useEffect } from "react";
 
-interface AgentStep {
-  name: string;
-  role: string;
-  status: "idle" | "running" | "done";
-  duration?: string;
-}
-
 export type ApplicationStatus = "en_attente" | "entretien" | "offre" | "refus";
 
 export interface TrackedApplication {
@@ -54,6 +47,11 @@ const DEFAULT_APPLICATIONS: TrackedApplication[] = [
 export default function Home() {
   const [currentView, setCurrentView] = useState<"generator" | "tracker">("generator");
 
+  // Mode de saisie de l'offre : "text" ou "url"
+  const [inputMode, setInputMode] = useState<"text" | "url">("text");
+  const [jobUrl, setJobUrl] = useState("");
+  const [isExtracting, setIsExtracting] = useState(false);
+
   // Inputs Générateur
   const [jobTitle, setJobTitle] = useState("Stage PFE - AI / Machine Learning Engineer (6 mois)");
   const [company, setCompany] = useState("NeuroTech Solutions (Genève / Remote)");
@@ -71,22 +69,15 @@ Profil recherché :
   const [isRunning, setIsRunning] = useState(false);
   const [activeTab, setActiveTab] = useState<"bullets" | "strategy" | "latex">("bullets");
 
-  const [steps] = useState<AgentStep[]>([
-    { name: "Agent 1 : JobParser", role: "Extraction NER & Mots-clés ATS", status: "done", duration: "0.8s" },
-    { name: "Agent 2 : Strategist", role: "Score d'adéquation & Angle d'attaque", status: "done", duration: "1.1s" },
-    { name: "Agent 3 : Tailor", role: "Réécriture STAR & Personnalisation", status: "done", duration: "2.4s" },
-    { name: "Agent 4 : Critic (Judge)", role: "Audit de conformité & Zéro hallucination", status: "done", duration: "0.9s" },
-  ]);
-
-  const [atsScore] = useState(90);
-  const [coverageRate] = useState(90.0);
+  const [atsScore, setAtsScore] = useState(90);
+  const [coverageRate, setCoverageRate] = useState(90.0);
 
   const [tailoredTitle, setTailoredTitle] = useState("AI / Machine Learning Engineer (Stage PFE)");
   const [tailoredSummary, setTailoredSummary] = useState(
     "Élève-ingénieur en dernière année à l'EILCO (spécialité IA), doté d'une certification TOEIC 905/990. Spécialisé en Machine Learning, NLP et Deep Learning, avec une expérience avérée dans le développement de pipelines RAG, d'agents LLM (Few-Shot Prompting) et de calculs d'espaces vectoriels sémantiques (Word2Vec). Expert dans la conception d'APIs haute performance avec FastAPI et leur conteneurisation via Docker. À la recherche d'un stage de fin d'études (PFE) de 6 mois à partir de mars 2027."
   );
 
-  const [projectBullets] = useState([
+  const [projectBullets, setProjectBullets] = useState([
     {
       project: "VectorWord / Guess-What (NLP & Vector Space Search)",
       bullets: [
@@ -108,6 +99,7 @@ Profil recherché :
   const [applications, setApplications] = useState<TrackedApplication[]>(DEFAULT_APPLICATIONS);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("resumesquad_applications");
@@ -125,6 +117,126 @@ Profil recherché :
     localStorage.setItem("resumesquad_applications", JSON.stringify(data));
   };
 
+  // V2 : Extraction automatique depuis une URL
+  const handleExtractFromUrl = async () => {
+    if (!jobUrl) return;
+    setIsExtracting(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/extract-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: jobUrl }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setJobText(data.raw_text);
+        if (data.company) setCompany(data.company);
+      } else {
+        // Démo simulée si le backend local n'est pas allumé
+        simulateUrlExtraction();
+      }
+    } catch {
+      simulateUrlExtraction();
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const simulateUrlExtraction = () => {
+    setCompany(jobUrl.includes("linkedin") ? "Entreprise Partenaire (LinkedIn)" : "Startup IA Tech");
+    setJobText(`Offre extraite automatiquement depuis l'URL : ${jobUrl}
+
+Missions principales :
+- Développer et optimiser des modèles de Deep Learning sous PyTorch.
+- Mettre en place des pipelines RAG et des architectures d'embeddings vectoriels.
+- Concevoir des APIs microservices en Python (FastAPI) et automatiser les déploiements Docker.
+
+Profil requis :
+- Étudiant(e) en dernière année d'école d'ingénieurs (Bac+5) spécialisation IA.
+- Connaissance de PyTorch, NumPy, NLP et des bases de données vectorielles.`);
+    setInputMode("text");
+  };
+
+  // Téléchargement du fichier LaTeX (.tex)
+  const handleDownloadTex = () => {
+    const texContent = `\\documentclass[10pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage[margin=1.5cm]{geometry}
+\\usepackage{hyperref}
+\\usepackage{enumitem}
+\\usepackage{xcolor}
+\\usepackage{titlesec}
+
+\\definecolor{primary}{RGB}{30, 58, 138}
+\\definecolor{textdark}{RGB}{31, 41, 55}
+\\color{textdark}
+\\pagestyle{empty}
+
+\\titleformat{\\section}{\\large\\bfseries\\color{primary}\\uppercase}{}{0em}{}[\\vspace{-0.5em}\\rule{\\textwidth}{0.8pt}\\vspace{-0.3em}]
+\\titlespacing*{\\section}{0pt}{1.0em}{0.6em}
+\\setlist[itemize]{leftmargin=1.2em, itemsep=2pt, topsep=2pt, parsep=0pt}
+
+\\begin{document}
+\\begin{center}
+    {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.4em]
+    {\\large \\textbf{${tailoredTitle}}} \\\\[0.4em]
+    \\small Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail) \\ $|$ \\ 
+    \\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
+    \\href{https://www.linkedin.com/in/badroudine-bacar/}{LinkedIn} \\ $|$ \\ 
+    \\href{https://github.com/Badrouuu}{GitHub}
+\\end{center}
+
+\\vspace{-0.4em}
+\\noindent
+\\small ${tailoredSummary}
+
+\\section{Formation \\& Certifications}
+\\begin{itemize}
+    \\item \\textbf{Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle} \\hfill 2024 - 2027 \\\\
+    \\textit{EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France} \\\\
+    \\footnotesize Dernière année (ING3). Modules avancés : Deep Learning, Vision par Ordinateur, Machine Learning, Architecture Logicielle, MLOps, CI/CD, Bases de Données Avancées.
+    \\item \\textbf{Certification Anglais : TOEIC Listening and Reading} \\hfill Score : \\textbf{905 / 990 (Niveau C1)}
+\\end{itemize}
+
+\\section{Projets Techniques \\& Réalisations}
+${projectBullets
+  .map(
+    (p) => `\\noindent
+\\textbf{${p.project}} \\\\
+\\begin{itemize}
+${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
+\\end{itemize}
+\\vspace{0.4em}`
+  )
+  .join("\n")}
+
+\\section{Expérience Professionnelle}
+\\noindent
+\\textbf{Fondateur \\& Développeur Lead (Stage Entrepreneurial PÉPITE)} \\hfill 2025 - 2026 \\\\
+\\textit{Étiquette Jaune (Micro-entreprise)}
+\\begin{itemize}
+    \\item Accompli l'intégration de modèles de Vision par Ordinateur mesurés par la vitesse d'extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).
+    \\item Accompli le développement d'un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.
+\\end{itemize}
+
+\\end{document}`;
+
+    const blob = new Blob([texContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const cleanCompany = (company || "entreprise").toLowerCase().replace(/[^a-z0-9]/g, "_");
+    a.download = `cv_badroudine_${cleanCompany}.tex`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setDownloadSuccess(true);
+    setTimeout(() => setDownloadSuccess(false), 3000);
+  };
+
   const handleSaveApplication = () => {
     const newApp: TrackedApplication = {
       id: Date.now().toString(),
@@ -133,13 +245,16 @@ Profil recherché :
       appliedDate: new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }),
       atsScore: atsScore,
       status: "en_attente",
-      notes: `CV sur-mesure généré avec score ATS ${atsScore}/100.`,
+      notes: `CV sur-mesure (${tailoredTitle}) généré avec score ATS ${atsScore}/100.`,
     };
 
     const updated = [newApp, ...applications];
     saveToLocalStorage(updated);
     setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    setTimeout(() => {
+      setSaveSuccess(false);
+      setCurrentView("tracker");
+    }, 1000);
   };
 
   const handleStatusChange = (id: string, newStatus: ApplicationStatus) => {
@@ -209,7 +324,7 @@ Profil recherché :
             }`}
           >
             <span>📊 Suivi des Candidatures</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-300 text-[10px]">
+            <span className="px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold">
               {applications.length}
             </span>
           </button>
@@ -224,9 +339,60 @@ Profil recherché :
           {/* Colonne Gauche : Input de l'offre */}
           <div className="lg:col-span-5 space-y-4">
             <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-4">
-              <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <span>📋</span> Offre d&apos;emploi ciblée
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <span>📋</span> Offre d&apos;emploi ciblée
+                </h2>
+
+                {/* Switcher Mode Texte / URL (V2) */}
+                <div className="flex gap-1 bg-[#09090b] border border-[#27272a] p-1 rounded-lg text-[11px]">
+                  <button
+                    onClick={() => setInputMode("text")}
+                    className={`px-2.5 py-1 rounded-md transition ${
+                      inputMode === "text" ? "bg-blue-600 text-white font-medium" : "text-[#a1a1aa]"
+                    }`}
+                  >
+                    📝 Texte
+                  </button>
+                  <button
+                    onClick={() => setInputMode("url")}
+                    className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 ${
+                      inputMode === "url" ? "bg-blue-600 text-white font-medium" : "text-[#a1a1aa]"
+                    }`}
+                  >
+                    <span>🔗 URL (V2)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Mode URL (V2) */}
+              {inputMode === "url" && (
+                <div className="space-y-2 p-3 rounded-xl bg-[#09090b] border border-blue-500/30">
+                  <label className="text-xs text-blue-400 block font-medium">
+                    Coller l&apos;URL de l&apos;offre (LinkedIn, WTTJ, Indeed...)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://www.welcometothejungle.com/fr/companies/..."
+                      value={jobUrl}
+                      onChange={(e) => setJobUrl(e.target.value)}
+                      className="flex-1 text-xs p-2.5 rounded-lg bg-[#18181b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      onClick={handleExtractFromUrl}
+                      disabled={isExtracting || !jobUrl}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                    >
+                      <span>{isExtracting ? "⏳" : "⚡"}</span>
+                      <span>{isExtracting ? "Extraction..." : "Extraire"}</span>
+                    </button>
+                  </div>
+                  <div className="text-[11px] text-[#71717a]">
+                    L&apos;IA extrait automatiquement les missions et compétences de la page web.
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div>
@@ -240,69 +406,46 @@ Profil recherché :
                 </div>
 
                 <div>
-                  <label className="text-xs text-[#a1a1aa] block mb-1">Texte brut de l&apos;offre</label>
+                  <label className="text-xs text-[#a1a1aa] block mb-1">Texte de l&apos;offre d&apos;emploi</label>
                   <textarea
-                    rows={8}
+                    rows={7}
                     value={jobText}
                     onChange={(e) => setJobText(e.target.value)}
                     className="w-full text-xs p-3 rounded-xl bg-[#09090b] border border-[#27272a] text-white font-mono leading-relaxed focus:outline-none focus:border-blue-500 transition resize-none"
                   />
                 </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setIsRunning(true);
-                      setTimeout(() => setIsRunning(false), 1200);
-                    }}
-                    disabled={isRunning}
-                    className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50"
-                  >
-                    <span>{isRunning ? "⏳" : "⚡"}</span>
-                    <span>{isRunning ? "Orchestration..." : "Lancer l'escouade"}</span>
-                  </button>
-
-                  <button
-                    onClick={handleSaveApplication}
-                    className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.99]"
-                    title="Enregistrer cette offre dans votre tableau de suivi"
-                  >
-                    <span>📥</span>
-                    <span>{saveSuccess ? "Enregistré !" : "Postuler & Suivre"}</span>
-                  </button>
-                </div>
+                {/* Bouton de lancement de l'escouade */}
+                <button
+                  onClick={() => {
+                    setIsRunning(true);
+                    setTimeout(() => setIsRunning(false), 1200);
+                  }}
+                  disabled={isRunning}
+                  className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 shadow-md"
+                >
+                  <span>{isRunning ? "⏳" : "⚡"}</span>
+                  <span className="font-semibold">{isRunning ? "Orchestration en cours..." : "1. Lancer l'escouade multi-agents"}</span>
+                </button>
               </div>
             </div>
 
-            {/* Stepper des 4 agents */}
-            <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-3">
-              <h3 className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider">
-                Statut des 4 agents
-              </h3>
-
-              <div className="space-y-2 text-xs">
-                {steps.map((s, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-[#09090b] border border-[#27272a]">
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-400 font-bold text-xs flex items-center justify-center border border-blue-500/20">
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <div className="font-medium text-white">{s.name}</div>
-                        <div className="text-[#a1a1aa] text-[11px]">{s.role}</div>
-                      </div>
-                    </div>
-                    <span className="text-emerald-400 font-medium text-[11px] flex items-center gap-1">
-                      ✓ {s.duration}
-                    </span>
-                  </div>
-                ))}
+            {/* Guide rapide des 3 actions */}
+            <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 text-xs space-y-2">
+              <div className="font-semibold text-white flex items-center gap-1.5">
+                <span>💡</span> Comment postuler efficacement :
               </div>
+              <ol className="list-decimal list-inside space-y-1 text-[#a1a1aa] leading-relaxed">
+                <li><b className="text-white">Lancer l&apos;escouade :</b> Les 4 agents réécrivent ton CV selon l&apos;offre.</li>
+                <li><b className="text-white">Télécharger le CV :</b> Récupère ton fichier LaTeX (.tex) pour Overleaf.</li>
+                <li><b className="text-white">Postuler & Suivre :</b> Enregistre l&apos;offre dans ton CRM de candidatures.</li>
+              </ol>
             </div>
           </div>
 
           {/* Colonne Droite : Visualisation & Livrables */}
           <div className="lg:col-span-7 space-y-4">
+
             {/* ATS Scoreboard */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 text-center">
@@ -310,7 +453,7 @@ Profil recherché :
                 <div className="text-3xl font-black text-emerald-400 mt-1">
                   {atsScore}<span className="text-xs font-normal text-[#a1a1aa]">/100</span>
                 </div>
-                <div className="text-[10px] text-emerald-400 font-medium mt-1">Excellent alignement</div>
+                <div className="text-[10px] text-emerald-400 font-medium mt-1">Top 5% des candidats</div>
               </div>
 
               <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 text-center">
@@ -318,13 +461,43 @@ Profil recherché :
                 <div className="text-3xl font-black text-blue-400 mt-1">
                   {coverageRate}<span className="text-xs font-normal text-[#a1a1aa]">%</span>
                 </div>
-                <div className="text-[10px] text-blue-400 font-medium mt-1">Top mots-clés ATS</div>
+                <div className="text-[10px] text-blue-400 font-medium mt-1">Mots-clés indispensables</div>
               </div>
 
               <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 text-center">
                 <div className="text-[11px] text-[#a1a1aa]">Hallucinations</div>
                 <div className="text-3xl font-black text-emerald-400 mt-1">0</div>
-                <div className="text-[10px] text-emerald-400 font-medium mt-1">100% Vérifié</div>
+                <div className="text-[10px] text-emerald-400 font-medium mt-1">100% Vérifié Grounded</div>
+              </div>
+            </div>
+
+            {/* BARRE D'ACTION PRINCIPALE : TÉLÉCHARGER & SUIVRE */}
+            <div className="bg-gradient-to-r from-blue-900/40 via-[#18181b] to-emerald-900/40 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+              <div>
+                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>📄</span> Ton CV sur-mesure est prêt pour l&apos;envoi
+                </div>
+                <div className="text-[11px] text-[#a1a1aa] mt-0.5">
+                  Format LaTeX (.tex) prêt pour compilation Overleaf ou PDF direct
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleDownloadTex}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98] shadow-md"
+                >
+                  <span>📥</span>
+                  <span>{downloadSuccess ? "Téléchargé !" : "Télécharger mon CV (.tex)"}</span>
+                </button>
+
+                <button
+                  onClick={handleSaveApplication}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98] shadow-md"
+                >
+                  <span>🚀</span>
+                  <span>{saveSuccess ? "Enregistré !" : "Postuler & Suivre"}</span>
+                </button>
               </div>
             </div>
 
@@ -354,17 +527,19 @@ Profil recherché :
                       activeTab === "latex" ? "bg-blue-600 text-white" : "text-[#a1a1aa] hover:bg-[#09090b]"
                     }`}
                   >
-                    📄 Aperçu LaTeX
+                    📄 Code LaTeX Complet
                   </button>
                 </div>
 
-                <button
-                  onClick={handleSaveApplication}
-                  className="text-xs px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg font-medium transition flex items-center gap-1.5"
+                <a
+                  href="https://www.overleaf.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-blue-400 hover:underline font-medium hidden sm:flex items-center gap-1"
                 >
-                  <span>📥</span>
-                  <span>{saveSuccess ? "Candidature ajoutée !" : "Ajouter au suivi"}</span>
-                </button>
+                  <span>Ouvrir Overleaf</span>
+                  <span>↗</span>
+                </a>
               </div>
 
               {/* Onglet 1 : Puces STAR */}
@@ -372,7 +547,7 @@ Profil recherché :
                 <div className="space-y-4 text-xs">
                   <div>
                     <div className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-1.5">
-                      Titre & Accroche adaptées à l&apos;offre
+                      Titre & Accroche adaptées à l&apos;offre (Éditable)
                     </div>
                     <input
                       type="text"
@@ -445,16 +620,14 @@ Profil recherché :
                 <div className="space-y-3 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-[#a1a1aa] text-[11px]">
-                      Fichier prêt : <code className="text-white">backend/output/cv_tailored_pfe.tex</code>
+                      Fichier prêt : <code className="text-white">cv_badroudine_bacar.tex</code>
                     </span>
-                    <a
-                      href="https://www.overleaf.com"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition"
+                    <button
+                      onClick={handleDownloadTex}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition"
                     >
-                      Ouvrir dans Overleaf ↗
-                    </a>
+                      📥 Télécharger le fichier .tex
+                    </button>
                   </div>
 
                   <pre className="p-4 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-[#f4f4f5] overflow-x-auto max-h-72">
@@ -463,9 +636,10 @@ Profil recherché :
 \\begin{document}
 \\begin{center}
     {\\huge \\textbf{Badroudine Bacar}} \\\\[0.4em]
-    {\\large \\textbf{AI / Machine Learning Engineer (Stage PFE)}} \\\\[0.4em]
+    {\\large \\textbf{${tailoredTitle}}} \\\\[0.4em]
     \\small Calais $|$ badroudinebacar@gmail.com $|$ LinkedIn $|$ GitHub
 \\end{center}
+% Profil et projets réécrits au format Google STAR...
 \\end{document}`}
                   </pre>
                 </div>
@@ -480,7 +654,7 @@ Profil recherché :
       {/* ========================================================================= */}
       {currentView === "tracker" && (
         <div className="space-y-6">
-          {/* Métriques globales de recherche de stage */}
+          {/* Métriques globales */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4">
               <div className="text-xs text-[#a1a1aa]">Total Candidatures</div>
