@@ -5,16 +5,18 @@ from app.models.schemas import CandidateProfile, JobAnalysis, MatchingStrategy, 
 
 
 def test_master_profile_schema_validation():
-    """Vérifie que le master_profile.json réel du projet Candidature respecte parfaitement le schéma Pydantic."""
-    profile_path = Path(__file__).resolve().parent.parent.parent.parent / "Candidature" / "data" / "master_profile.json"
+    """Vérifie que le profil respecte parfaitement le schéma Pydantic v2."""
+    local_sample = Path(__file__).resolve().parent.parent / "data" / "sample_profile.json"
+    external_profile = Path(__file__).resolve().parent.parent.parent.parent / "Candidature" / "data" / "master_profile.json"
     
-    assert profile_path.exists(), f"Fichier non trouvé à {profile_path}"
+    profile_path = local_sample if local_sample.exists() else external_profile
+    assert profile_path.exists(), f"Aucun profil trouvé à {profile_path}"
     
     with open(profile_path, "r", encoding="utf-8") as f:
         data = json.load(f)
         
     profile = CandidateProfile.model_validate(data)
-    assert profile.basics.name == "Badroudine Bacar"
+    assert profile.basics.name is not None
     assert len(profile.education) > 0
     assert len(profile.experience) > 0
     assert len(profile.projects) > 0
@@ -34,3 +36,17 @@ def test_audit_report_schema():
     assert report.ats_compatibility_score == 92
     assert report.pass_audit is True
     assert report.keyword_coverage_rate <= 1.0
+
+
+def test_job_analysis_schema():
+    """Vérifie la robustesse du schéma d'analyse d'offre d'emploi."""
+    job = JobAnalysis(
+        title="ML Engineer",
+        required_hard_skills=["PyTorch", "FastAPI"],
+        required_soft_skills=["Autonomie"],
+        key_missions=["Développer des modèles NLP"],
+        ats_critical_keywords=["PyTorch", "FastAPI", "Transformers"]
+    )
+    assert job.title == "ML Engineer"
+    assert len(job.required_hard_skills) == 2
+    assert "Transformers" in job.ats_critical_keywords

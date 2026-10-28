@@ -73,3 +73,19 @@ async def run_full_pipeline(
     except Exception as e:
         logger.error(f"Erreur exécution pipeline: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class URLExtractRequest(BaseModel):
+    url: str
+
+
+@app.post("/api/extract-url")
+async def extract_url(req: URLExtractRequest):
+    """Télécharge une offre via son URL et extrait le texte brut pour le JobParserAgent."""
+    from app.services.scraper_service import extract_job_from_url
+    try:
+        return await extract_job_from_url(req.url)
+    except Exception as e:
+        logger.error(f"Erreur scraping URL {req.url}: {e}")
+        raise HTTPException(status_code=400, detail=f"Impossible d'extraire l'offre : {e}")
+

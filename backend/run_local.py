@@ -55,10 +55,13 @@ async def main():
     print("🤖 BIENVENUE SUR RESUME SQUAD (MULTI-AGENT COPILOT)")
     print("=" * 70)
 
-    # 1. Chargement du profil réel
-    profile_path = BASE_DIR.parent.parent / "Candidature" / "data" / "master_profile.json"
+    # 1. Chargement du profil (avec fallback autonome)
+    local_sample = BASE_DIR / "data" / "sample_profile.json"
+    external_profile = BASE_DIR.parent.parent / "Candidature" / "data" / "master_profile.json"
+    profile_path = external_profile if external_profile.exists() else local_sample
+
     if not profile_path.exists():
-        print(f"❌ Profil introuvable à : {profile_path}")
+        print(f"❌ Profil introuvable. Veuillez vérifier {local_sample} ou {external_profile}")
         return
 
     with open(profile_path, "r", encoding="utf-8") as f:

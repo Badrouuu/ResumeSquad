@@ -1,0 +1,114 @@
+{
+  "basics": {
+    "name": "Badroudine Bacar",
+    "title": "Élève-Ingénieur en Informatique — Parcours Intelligence Artificielle",
+    "target_roles": [
+      "AI / Machine Learning Engineer Intern",
+      "Data Scientist Intern",
+      "Computer Vision / NLP Intern",
+      "Software Engineer Intern (Python / AI / Backend)"
+    ],
+    "email": "badroudinebacar@gmail.com",
+    "phone": "+33 6 00 00 00 00",
+    "location": "France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail)",
+    "github": "https://github.com/Badrouuu",
+    "linkedin": "https://www.linkedin.com/in/badroudine-bacar/",
+    "summary": "Élève-ingénieur en dernière année à l'EILCO (spécialité Informatique & IA), issu de CPGE TSI, doté d'une certification TOEIC 905/990 (Niveau C1). Passionné par le Machine Learning, le NLP et la vision par ordinateur, avec une expérience concrète en déploiement d'APIs FastAPI, d'espaces vectoriels sémantiques (Word2Vec) et d'architectures multi-agents LLM. À la recherche d'un stage de fin d'études (PFE) de 6 mois."
+  },
+  "education": [
+    {
+      "institution": "EILCO (École d'Ingénieurs du Littoral Côte d'Opale)",
+      "location": "Calais, France",
+      "degree": "Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle",
+      "period": "2024 - 2027",
+      "details": "Dernière année (ING3). Modules avancés : Deep Learning, Vision par Ordinateur, Machine Learning, Architecture Logicielle, MLOps, CI/CD, Bases de Données Avancées."
+    },
+    {
+      "institution": "Lycée Antonin Artaud",
+      "location": "Marseille, France",
+      "degree": "CPGE TSI (Classe Préparatoire aux Grandes Écoles)",
+      "period": "2022 - 2024",
+      "details": "Formation intensive pluridisciplinaire : Mathématiques fondamentales, Physique appliquée, Sciences de l'Ingénieur et Algorithmique."
+    }
+  ],
+  "experience": [
+    {
+      "role": "Fondateur & Développeur Lead (Stage Entrepreneurial PÉPITE)",
+      "company": "Étiquette Jaune",
+      "location": "France",
+      "period": "2025 - 2026",
+      "description": "Conception et développement complet d'une application mobile d'optimisation de consommation et détection de promotions.",
+      "highlights": [
+        "Intégration de modèles de Vision par Ordinateur embarqués (Google ML Kit Text Recognition / OCR) pour l'extraction automatique d'informations sur tickets et étiquettes.",
+        "Développement d'un backend serverless sur Google Cloud Firestore et Cloud Functions (TypeScript) assurant la synchronisation des données en temps réel.",
+        "Mise en place de l'authentification multi-fournisseurs (Firebase Auth) et du module de paiement sécurisé via l'API Stripe.",
+        "Gestion du projet en autonomie complète : de la modélisation à l'intégration continue, labellisé par le pôle d'entrepreneuriat étudiant PÉPITE."
+      ],
+      "technologies": ["Flutter", "Dart", "Google ML Kit (OCR)", "Firebase", "Cloud Functions (TypeScript)", "Stripe API", "Git"]
+    }
+  ],
+  "projects": [
+    {
+      "name": "VectorWord / Guess-What (NLP & Vector Space Search)",
+      "role": "Développeur Fullstack & ML",
+      "period": "2026",
+      "link": "https://github.com/Badrouuu/Guess-What",
+      "description": "Application interactive d'exploration sémantique basée sur les plongements lexicaux (Word Embeddings).",
+      "highlights": [
+        "Conception d'une API haute performance avec FastAPI et Uvicorn, servant des calculs de similarité cosinus sur des vecteurs de mots multilingues (FR/EN) via Gensim et NumPy.",
+        "Architecture conteneurisée avec Docker et déploiement automatisé sur Railway.",
+        "Frontend réactif développé sous Next.js 15, TypeScript et Tailwind CSS avec gestion d'état et challenges quotidiens synchronisés via Supabase (PostgreSQL)."
+      ],
+      "technologies": ["Python", "FastAPI", "Gensim (Word2Vec)", "NumPy", "Docker", "Supabase", "Next.js 15", "TypeScript"]
+    },
+    {
+      "name": "ResumeSquad AI (Multi-Agent Copilot)",
+      "role": "Lead AI Engineer",
+      "period": "2026",
+      "link": "https://github.com/Badrouuu/ResumeSquad",
+      "description": "Système multi-agents de tailoring de CV et audit anti-hallucination propulsé par Gemini 2.5 Flash et Pydantic v2.",
+      "highlights": [
+        "Orchestration asynchrone de 4 agents (JobParser, Strategist, Tailor, Critic) avec boucle de feedback Self-Refining.",
+        "Garantie de non-hallucination et vérification stricte des types via Constrained Decoding et Pydantic v2.",
+        "Génération automatique de CV au format LaTeX typographié selon les standards des cabinets de recrutement internationaux."
+      ],
+      "technologies": ["Python", "FastAPI", "Gemini 2.5 Flash", "Pydantic v2", "LaTeX", "Next.js 15", "Docker"]
+    }
+  ],
+  "skills": {
+    "machine_learning_ai": [
+      "PyTorch",
+      "Scikit-Learn",
+      "Gensim (Word Embeddings)",
+      "Google ML Kit (OCR / Vision)",
+      "OpenCV",
+      "RAG & LLM Prompting",
+      "NumPy",
+      "Pandas"
+    ],
+    "languages": [
+      "Python",
+      "TypeScript",
+      "JavaScript",
+      "SQL",
+      "C",
+      "Java",
+      "Dart",
+      "Bash"
+    ],
+    "backend_cloud_devops": [
+      "FastAPI",
+      "Docker",
+      "Linux",
+      "Git & GitHub",
+      "Supabase (PostgreSQL)",
+      "Firebase Cloud Functions",
+      "CI/CD basics",
+      "RESTful APIs"
+    ],
+    "spoken_languages": [
+      "Français (Langue maternelle)",
+      "Anglais (Niveau C1 certifié — TOEIC 905/990)"
+    ]
+  }
+}
