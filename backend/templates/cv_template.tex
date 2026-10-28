@@ -1,0 +1,103 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+
+% Palette de couleurs sobre et professionnelle
+\definecolor{primary}{RGB}{30, 58, 138}    % Bleu marine élégant
+\definecolor{textdark}{RGB}{31, 41, 55}   % Gris très foncé (plus doux que noir pur)
+\definecolor{linegray}{RGB}{209, 213, 219}
+
+\color{textdark}
+\pagestyle{empty}
+
+% Configuration des liens hypertexte
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary,
+    pdftitle={CV - (( basics.name ))},
+    pdfauthor={(( basics.name ))}
+}
+
+% Configuration des titres de sections (compatible ATS)
+\titleformat{\section}
+  {\large\bfseries\color{primary}\uppercase}
+  {}{0em}{}[\vspace{-0.5em}\rule{\textwidth}{0.8pt}\vspace{-0.3em}]
+
+\titlespacing*{\section}{0pt}{1.0em}{0.6em}
+
+\setlist[itemize]{leftmargin=1.2em, itemsep=2pt, topsep=2pt, parsep=0pt}
+
+\begin{document}
+
+% --- EN-TÊTE ---
+\begin{center}
+    {\huge \textbf{\color{primary} (( basics.name ))}} \\[0.4em]
+    {\large \textbf{(( basics.title ))}} \\[0.4em]
+    \small
+    (( basics.location )) \ $|$ \ 
+    \href{mailto:(( basics.email ))}{(( basics.email ))} \ $|$ \ 
+    \href{(( basics.linkedin ))}{LinkedIn} \ $|$ \ 
+    \href{(( basics.github ))}{GitHub}
+\end{center}
+
+\vspace{-0.4em}
+\noindent
+\small (( basics.summary ))
+
+% --- FORMATION ---
+\section{Formation \& Certifications}
+\begin{itemize}
+((* for edu in education *))
+    \item \textbf{(( edu.degree ))} \hfill (( edu.period )) \\
+    \textit{(( edu.institution )), (( edu.location ))} \\
+    \footnotesize (( edu.details ))
+((* endfor *))
+    \item \textbf{Certification Anglais : TOEIC Listening and Reading} \hfill Score : \textbf{905 / 990 (Niveau C1)}
+\end{itemize}
+
+% --- COMPÉTENCES TECHNIQUES ---
+\section{Compétences Techniques}
+\begin{itemize}
+    \item \textbf{Intelligence Artificielle \& Data :} (( skills.machine_learning_ai | join(', ') ))
+    \item \textbf{Langages de Programmation :} (( skills.languages | join(', ') ))
+    \item \textbf{Backend, Cloud \& DevOps :} (( skills.backend_cloud_devops | join(', ') ))
+    \item \textbf{Langues :} (( skills.spoken_languages | join(' $|$ ') ))
+\end{itemize}
+
+% --- EXPÉRIENCE PROFESSIONNELLE ---
+\section{Expérience Professionnelle}
+((* for exp in experience *))
+\noindent
+\textbf{(( exp.role ))} \hfill (( exp.period )) \\
+\textit{(( exp.company )) \ --- \ (( exp.location ))}
+\begin{itemize}
+((* for h in exp.highlights *))
+    \item (( h ))
+((* endfor *))
+    \item \textbf{Technologies :} (( exp.technologies | join(', ') ))
+\end{itemize}
+\vspace{0.4em}
+((* endfor *))
+
+% --- PROJETS CLÉS ---
+\section{Projets Techniques \& Réalisations}
+((* for proj in projects *))
+\noindent
+\textbf{(( proj.name ))} \hfill (( proj.period )) \\
+\textit{(( proj.role ))}
+\begin{itemize}
+((* for h in proj.highlights *))
+    \item (( h ))
+((* endfor *))
+    \item \textbf{Technologies :} (( proj.technologies | join(', ') ))
+\end{itemize}
+\vspace{0.4em}
+((* endfor *))
+
+\end{document}
