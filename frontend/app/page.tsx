@@ -34,6 +34,9 @@ export default function Home() {
   // Filtres et recherche pour le Radar d'offres
   const [radarCountryFilter, setRadarCountryFilter] = useState<string>("all");
   const [radarSearch, setRadarSearch] = useState<string>("");
+  const [liveOffers, setLiveOffers] = useState<RadarJobOffer[]>([]);
+  const [isScanningLive, setIsScanningLive] = useState(false);
+  const [lastScanMessage, setLastScanMessage] = useState<string | null>(null);
 
   // Mode de saisie de l'offre : "text" ou "url"
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
@@ -92,6 +95,15 @@ export default function Home() {
         setApplications(JSON.parse(saved));
       } catch (e) {
         console.error("Erreur chargement localStorage", e);
+      }
+    }
+
+    const savedLive = localStorage.getItem("resumesquad_live_offers");
+    if (savedLive) {
+      try {
+        setLiveOffers(JSON.parse(savedLive));
+      } catch (e) {
+        console.error("Erreur chargement live offers localStorage", e);
       }
     }
   }, []);
@@ -434,8 +446,10 @@ ${interestsSection}
 
   const filteredApps = filterStatus === "all" ? applications : applications.filter((a) => a.status === filterStatus);
 
-  // Filtrage dynamique des offres du Radar
-  const filteredRadarOffers = RADAR_JOB_OFFERS.filter((offer) => {
+  const allRadarOffers = [...liveOffers, ...RADAR_JOB_OFFERS];
+
+  // Filtrage dynamique des offres du Radar (offres vérifiées + flux scanné en direct)
+  const filteredRadarOffers = allRadarOffers.filter((offer) => {
     const matchesCountry =
       radarCountryFilter === "all" || offer.country === radarCountryFilter;
     const query = radarSearch.toLowerCase().trim();
@@ -448,6 +462,34 @@ ${interestsSection}
       offer.description.toLowerCase().includes(query);
     return matchesCountry && matchesSearch;
   });
+
+  // Scanner en direct les offres sur les marchés suisse et européen (SwissDevJobs & GermanTechJobs)
+  const handleScanLiveOffers = async () => {
+    setIsScanningLive(true);
+    setLastScanMessage(null);
+    try {
+      const res = await fetch("/api/radar/live-fetch");
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.offers)) {
+        setLiveOffers(data.offers);
+        try {
+          localStorage.setItem("resumesquad_live_offers", JSON.stringify(data.offers));
+        } catch (e) {
+          console.warn("Erreur sauvegarde localStorage:", e);
+        }
+        setLastScanMessage(
+          `🔥 ${data.offers.length} opportunités fraîches scannées en direct sur les marchés suisse et européen !`
+        );
+      } else {
+        throw new Error(data.error || "Erreur lors du scan en direct");
+      }
+    } catch (err: any) {
+      console.warn("Erreur scan live:", err);
+      setLastScanMessage("⚠️ Impossible de joindre les flux en direct pour le moment.");
+    } finally {
+      setIsScanningLive(false);
+    }
+  };
 
   // Action d'importation 1-clic depuis le Radar vers le Générateur avec lancement immédiat
   const handleImportRadarOffer = (offer: RadarJobOffer) => {
@@ -524,7 +566,7 @@ ${interestsSection}
           >
             <span>🔍 Radar d&apos;Offres PFE</span>
             <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
-              {RADAR_JOB_OFFERS.length}
+              {allRadarOffers.length}
             </span>
           </button>
           <button
@@ -1121,35 +1163,63 @@ ${interestsSection}
                 </p>
               </div>
 
-              {/* Filtre de recherche texte */}
-              <div className="relative w-full md:w-72">
-                <input
-                  type="text"
-                  value={radarSearch}
-                  onChange={(e) => setRadarSearch(e.target.value)}
-                  placeholder="Filtrer (ex: PyTorch, Genève, RAG)..."
-                  className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-3 py-2 text-xs text-white placeholder-[#71717a] focus:outline-none focus:border-blue-500"
-                />
-                {radarSearch && (
-                  <button
-                    onClick={() => setRadarSearch("")}
-                    className="absolute right-2.5 top-2 text-xs text-[#71717a] hover:text-white"
-                  >
-                    ✕
-                  </button>
-                )}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {/* Bouton de scan temps réel */}
+                <button
+                  onClick={handleScanLiveOffers}
+                  disabled={isScanningLive}
+                  className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
+                  title="Interroge en direct les APIs de jobs tech en Suisse et en Allemagne"
+                >
+                  <span className={isScanningLive ? "animate-spin" : ""}>🔄</span>
+                  <span>
+                    {isScanningLive ? "Scan du marché suisse & européen..." : "Scanner en direct (Temps Réel)"}
+                  </span>
+                </button>
+
+                {/* Filtre de recherche texte */}
+                <div className="relative w-full sm:w-64">
+                  <input
+                    type="text"
+                    value={radarSearch}
+                    onChange={(e) => setRadarSearch(e.target.value)}
+                    placeholder="Filtrer (ex: PyTorch, Genève)..."
+                    className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-3 py-2 text-xs text-white placeholder-[#71717a] focus:outline-none focus:border-blue-500"
+                  />
+                  {radarSearch && (
+                    <button
+                      onClick={() => setRadarSearch("")}
+                      className="absolute right-2.5 top-2 text-xs text-[#71717a] hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Notification de résultat de scan en direct */}
+            {lastScanMessage && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between shadow-sm">
+                <span className="font-medium">{lastScanMessage}</span>
+                <button
+                  onClick={() => setLastScanMessage(null)}
+                  className="text-xs text-emerald-400 hover:text-white font-bold ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
             {/* Filtres par pays */}
             <div className="flex flex-wrap gap-2">
               {[
-                { key: "all", label: `Tous (${RADAR_JOB_OFFERS.length})` },
-                { key: "Suisse", label: `🇨🇭 Suisse (${RADAR_JOB_OFFERS.filter((o) => o.country === "Suisse").length})` },
-                { key: "Luxembourg", label: `🇱🇺 Luxembourg (${RADAR_JOB_OFFERS.filter((o) => o.country === "Luxembourg").length})` },
-                { key: "Belgique", label: `🇧🇪 Belgique (${RADAR_JOB_OFFERS.filter((o) => o.country === "Belgique").length})` },
-                { key: "Allemagne", label: `🇩🇪 Allemagne (${RADAR_JOB_OFFERS.filter((o) => o.country === "Allemagne").length})` },
-                { key: "International", label: `🌐 Big Tech / UK (${RADAR_JOB_OFFERS.filter((o) => o.country === "International").length})` },
+                { key: "all", label: `Tous (${allRadarOffers.length})` },
+                { key: "Suisse", label: `🇨🇭 Suisse (${allRadarOffers.filter((o) => o.country === "Suisse").length})` },
+                { key: "Luxembourg", label: `🇱🇺 Luxembourg (${allRadarOffers.filter((o) => o.country === "Luxembourg").length})` },
+                { key: "Belgique", label: `🇧🇪 Belgique (${allRadarOffers.filter((o) => o.country === "Belgique").length})` },
+                { key: "Allemagne", label: `🇩🇪 Allemagne (${allRadarOffers.filter((o) => o.country === "Allemagne").length})` },
+                { key: "International", label: `🌐 Big Tech / UK (${allRadarOffers.filter((o) => o.country === "International").length})` },
               ].map((pill) => (
                 <button
                   key={pill.key}
@@ -1193,6 +1263,12 @@ ${interestsSection}
 
                         {/* Badges rémunération & workplace */}
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                          {offer.id.startsWith("live-") && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1 shadow-sm">
+                              <span>🔥</span>
+                              <span>En Direct (Live Feed)</span>
+                            </span>
+                          )}
                           <span
                             className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
                               offer.workplace === "Présentiel"
