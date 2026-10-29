@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { RADAR_JOB_OFFERS, DEEP_SEARCH_PORTALS, RadarJobOffer } from "./data/radarOffers";
 
 export type ApplicationStatus = "en_attente" | "entretien" | "offre" | "refus";
 
@@ -28,7 +29,11 @@ Profil recherché :
 - Connaissance des technologies d'embeddings (Word2Vec, Sentence-Transformers) appréciée.`;
 
 export default function Home() {
-  const [currentView, setCurrentView] = useState<"generator" | "tracker">("generator");
+  const [currentView, setCurrentView] = useState<"generator" | "radar" | "tracker">("generator");
+
+  // Filtres et recherche pour le Radar d'offres
+  const [radarCountryFilter, setRadarCountryFilter] = useState<string>("all");
+  const [radarSearch, setRadarSearch] = useState<string>("");
 
   // Mode de saisie de l'offre : "text" ou "url"
   const [inputMode, setInputMode] = useState<"text" | "url">("text");
@@ -165,16 +170,16 @@ Profil requis :
   };
 
   // Exécution réelle de l'escouade multi-agents avec Gemini
-  const handleRunPipeline = async () => {
+  const handleRunPipeline = async (override?: { jobText?: string; jobTitle?: string; company?: string }) => {
     setIsRunning(true);
     setExtractMessage(null);
 
-    let activeText = jobText;
-    let activeTitle = jobTitle;
-    let activeCompany = company;
+    let activeText = override?.jobText ?? jobText;
+    let activeTitle = override?.jobTitle ?? jobTitle;
+    let activeCompany = override?.company ?? company;
 
-    // Si l'utilisateur est en mode URL et n'a pas encore cliqué sur extraire
-    if (inputMode === "url" && jobUrl && (!jobText || jobText === DEFAULT_JOB_TEXT)) {
+    // Si l'utilisateur est en mode URL et n'a pas encore cliqué sur extraire (sans override manuel)
+    if (!override && inputMode === "url" && jobUrl && (!jobText || jobText === DEFAULT_JOB_TEXT)) {
       try {
         const extRes = await fetch("/api/extract-url", {
           method: "POST",
@@ -412,6 +417,40 @@ ${interestsSection}
 
   const filteredApps = filterStatus === "all" ? applications : applications.filter((a) => a.status === filterStatus);
 
+  // Filtrage dynamique des offres du Radar
+  const filteredRadarOffers = RADAR_JOB_OFFERS.filter((offer) => {
+    const matchesCountry =
+      radarCountryFilter === "all" || offer.country === radarCountryFilter;
+    const query = radarSearch.toLowerCase().trim();
+    const matchesSearch =
+      !query ||
+      offer.title.toLowerCase().includes(query) ||
+      offer.company.toLowerCase().includes(query) ||
+      offer.location.toLowerCase().includes(query) ||
+      offer.skills.some((s) => s.toLowerCase().includes(query)) ||
+      offer.description.toLowerCase().includes(query);
+    return matchesCountry && matchesSearch;
+  });
+
+  // Action d'importation 1-clic depuis le Radar vers le Générateur avec lancement immédiat
+  const handleImportRadarOffer = (offer: RadarJobOffer) => {
+    setCompany(offer.company);
+    setJobTitle(offer.title);
+    setJobText(offer.description);
+    setJobUrl(offer.url);
+    setInputMode("text");
+    setCurrentView("generator");
+    setExtractMessage({
+      type: "success",
+      text: `🎯 Offre "${offer.company} - ${offer.title}" importée depuis le Radar ! L'escouade d'agents IA adapte votre CV...`,
+    });
+    handleRunPipeline({
+      jobText: offer.description,
+      jobTitle: offer.title,
+      company: offer.company,
+    });
+  };
+
   const getStatusBadge = (status: ApplicationStatus) => {
     switch (status) {
       case "en_attente":
@@ -447,7 +486,7 @@ ${interestsSection}
         </div>
 
         {/* Sélecteur de vue principal */}
-        <div className="flex items-center gap-2 bg-[#18181b] border border-[#27272a] p-1.5 rounded-xl">
+        <div className="flex flex-wrap items-center gap-2 bg-[#18181b] border border-[#27272a] p-1.5 rounded-xl">
           <button
             onClick={() => setCurrentView("generator")}
             className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
@@ -457,6 +496,19 @@ ${interestsSection}
             }`}
           >
             ⚡ Générateur Multi-Agents
+          </button>
+          <button
+            onClick={() => setCurrentView("radar")}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+              currentView === "radar"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-[#a1a1aa] hover:text-white hover:bg-[#27272a]"
+            }`}
+          >
+            <span>🔍 Radar d&apos;Offres PFE</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+              {RADAR_JOB_OFFERS.length}
+            </span>
           </button>
           <button
             onClick={() => setCurrentView("tracker")}
@@ -605,7 +657,7 @@ ${interestsSection}
 
                 {/* Bouton de lancement de l'escouade */}
                 <button
-                  onClick={handleRunPipeline}
+                  onClick={() => handleRunPipeline()}
                   disabled={isRunning || isExtracting}
                   className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 shadow-md"
                 >
@@ -924,7 +976,243 @@ ${interestsSection}
       )}
 
       {/* ========================================================================= */}
-      {/* VUE 2 : TABLEAU DE BORD DE SUIVI DES CANDIDATURES (CRM)                    */}
+      {/* VUE 2 : RADAR D'OFFRES PFE & DISCOVERY HUB                                */}
+      {/* ========================================================================= */}
+      {currentView === "radar" && (
+        <div className="space-y-8">
+          {/* Bannière Hero Radar */}
+          <div className="bg-gradient-to-r from-blue-900/40 via-[#18181b] to-indigo-950/40 border border-blue-500/30 rounded-2xl p-6 md:p-8 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔍</span>
+                  <h2 className="text-xl md:text-2xl font-bold text-white">Radar d&apos;Offres PFE 2027</h2>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
+                    IA & Machine Learning
+                  </span>
+                </div>
+                <p className="text-xs md:text-sm text-[#a1a1aa] mt-1 max-w-2xl">
+                  Centralisation et détection intelligente des opportunités de stage Bac+5 (Suisse, Luxembourg, Belgique, France).
+                  Ne perdez plus de temps à chercher manuellement : importez n&apos;importe quelle offre en 1 clic pour générer votre CV sur-mesure.
+                </p>
+              </div>
+
+              {/* Badges de conformité EILCO */}
+              <div className="flex flex-wrap md:flex-col gap-2 items-start md:items-end">
+                <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1.5">
+                  <span>🛡️</span>
+                  <span>Convention EILCO : Présentiel & Hybride (0% Full Remote)</span>
+                </span>
+                <span className="text-xs px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium flex items-center gap-1.5">
+                  <span>🎓</span>
+                  <span>PFE 6 mois (Mars - Sept 2027)</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 1 : Portails de Chasse Directe */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>🌐</span>
+                  <span>Portails de Chasse Directe (Filtres Booléens Pré-configurés)</span>
+                </h3>
+                <p className="text-xs text-[#a1a1aa]">
+                  Accès direct aux requêtes ultra-ciblées sur les sites de recrutement en Suisse, Luxembourg, et Belgique.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {DEEP_SEARCH_PORTALS.map((portal, idx) => (
+                <div
+                  key={idx}
+                  className="bg-[#18181b] border border-[#27272a] rounded-xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition hover:bg-[#1f1f23] group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs px-2 py-0.5 rounded-md bg-[#27272a] text-[#f4f4f5] font-medium flex items-center gap-1">
+                        <span>{portal.countryFlag}</span>
+                        <span>{portal.country}</span>
+                      </span>
+                      <span className="text-[10px] text-[#71717a] uppercase tracking-wider font-semibold">
+                        {portal.category}
+                      </span>
+                    </div>
+                    <div className="font-semibold text-white text-sm group-hover:text-blue-400 transition">
+                      {portal.name}
+                    </div>
+                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                      {portal.description}
+                    </p>
+                  </div>
+
+                  <a
+                    href={portal.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#27272a] hover:bg-blue-600 hover:text-white text-xs font-semibold text-[#f4f4f5] rounded-lg transition"
+                  >
+                    <span>Lancer la recherche</span>
+                    <span>↗</span>
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Section 2 : Offres Vérifiées & Prêtes à Importer */}
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>⚡</span>
+                  <span>Offres PFE 2027 Détectées ({filteredRadarOffers.length})</span>
+                </h3>
+                <p className="text-xs text-[#a1a1aa]">
+                  Sélectionnées pour correspondre à votre spécialité IA/ML et vos critères de mobilité internationale.
+                </p>
+              </div>
+
+              {/* Filtre de recherche texte */}
+              <div className="relative w-full md:w-72">
+                <input
+                  type="text"
+                  value={radarSearch}
+                  onChange={(e) => setRadarSearch(e.target.value)}
+                  placeholder="Filtrer (ex: PyTorch, Genève, RAG)..."
+                  className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-3 py-2 text-xs text-white placeholder-[#71717a] focus:outline-none focus:border-blue-500"
+                />
+                {radarSearch && (
+                  <button
+                    onClick={() => setRadarSearch("")}
+                    className="absolute right-2.5 top-2 text-xs text-[#71717a] hover:text-white"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Filtres par pays */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: "all", label: `Tous (${RADAR_JOB_OFFERS.length})` },
+                { key: "Suisse", label: `🇨🇭 Suisse (${RADAR_JOB_OFFERS.filter((o) => o.country === "Suisse").length})` },
+                { key: "Luxembourg", label: `🇱🇺 Luxembourg (${RADAR_JOB_OFFERS.filter((o) => o.country === "Luxembourg").length})` },
+                { key: "Belgique", label: `🇧🇪 Belgique (${RADAR_JOB_OFFERS.filter((o) => o.country === "Belgique").length})` },
+                { key: "France", label: `🇫🇷 France (${RADAR_JOB_OFFERS.filter((o) => o.country === "France").length})` },
+                { key: "International", label: `🌐 Big Tech (${RADAR_JOB_OFFERS.filter((o) => o.country === "International").length})` },
+              ].map((pill) => (
+                <button
+                  key={pill.key}
+                  onClick={() => setRadarCountryFilter(pill.key)}
+                  className={`text-xs px-3.5 py-1.5 rounded-xl font-medium transition ${
+                    radarCountryFilter === pill.key
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-[#18181b] text-[#a1a1aa] border border-[#27272a] hover:text-white hover:bg-[#27272a]"
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Grille des offres du Radar */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {filteredRadarOffers.length === 0 ? (
+                <div className="lg:col-span-2 p-12 text-center bg-[#18181b] border border-[#27272a] rounded-2xl text-sm text-[#a1a1aa]">
+                  Aucune offre ne correspond à vos filtres actuels. Réinitialisez la recherche pour voir toutes les opportunités.
+                </div>
+              ) : (
+                filteredRadarOffers.map((offer) => (
+                  <div
+                    key={offer.id}
+                    className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 flex flex-col justify-between hover:border-blue-500/40 transition hover:bg-[#1a1a1e] space-y-4"
+                  >
+                    <div className="space-y-3">
+                      {/* Entête de carte */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-base">{offer.company}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-md bg-[#27272a] text-[#f4f4f5] font-medium flex items-center gap-1">
+                              <span>{offer.countryFlag}</span>
+                              <span>{offer.location}</span>
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-semibold text-blue-400 mt-1">{offer.title}</h4>
+                        </div>
+
+                        {/* Badges rémunération & workplace */}
+                        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                              offer.workplace === "Présentiel"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                            }`}
+                          >
+                            📍 {offer.workplace}
+                          </span>
+                          {offer.compensation && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
+                              💰 {offer.compensation}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Stack technique */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {offer.skills.map((skill, sIdx) => (
+                          <span
+                            key={sIdx}
+                            className="text-[10px] px-2 py-0.5 rounded-md bg-[#09090b] text-[#a1a1aa] border border-[#27272a] font-mono"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Aperçu du texte */}
+                      <p className="text-xs text-[#a1a1aa] line-clamp-3 bg-[#09090b] p-2.5 rounded-xl border border-[#27272a] font-mono leading-relaxed">
+                        {offer.description}
+                      </p>
+                    </div>
+
+                    {/* Boutons d'action */}
+                    <div className="flex items-center gap-3 pt-2 border-t border-[#27272a]">
+                      <button
+                        onClick={() => handleImportRadarOffer(offer)}
+                        className="flex-1 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-2"
+                      >
+                        <span>⚡ Importer & Adapter ce CV (1-Clic)</span>
+                      </button>
+
+                      <a
+                        href={offer.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
+                        title="Voir l'annonce officielle sur le site de l'entreprise"
+                      >
+                        <span>Offre</span>
+                        <span>↗</span>
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VUE 3 : TABLEAU DE BORD DE SUIVI DES CANDIDATURES (CRM)                    */}
       {/* ========================================================================= */}
       {currentView === "tracker" && (
         <div className="space-y-6">
