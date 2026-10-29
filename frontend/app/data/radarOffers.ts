@@ -83,7 +83,7 @@ export const RADAR_JOB_OFFERS: RadarJobOffer[] = [
     workplace: "Hybride",
     compensation: "£65,000 / an (pro-rata)",
     skills: ["Python", "C++", "Distributed Systems", "TensorFlow/Jax", "Autonomous Driving", "Sim-Realism"],
-    url: "https://careers.withwaymo.com/jobs/2027-summer-intern-ms-phd-sim-realism-ml-infrastructure-london-england-united-kingdom?gh_jid=8205680",
+    url: "https://careers.withwaymo.com/jobs?department=Research%20%26%20Machine%20Learning",
     description: `Waymo is an autonomous driving technology company with the mission to be the world's most trusted driver.
 Role: 2027 Summer Intern, MS/PhD, Sim-Realism ML Infrastructure.
 
@@ -137,7 +137,7 @@ Profil requis :
     workplace: "Hybride",
     compensation: "3,500 CHF / mois",
     skills: ["Computer Vision", "PyTorch", "Embedded ML", "C++", "FastAPI", "OpenCV"],
-    url: "https://jobs.jobvite.com/logitech",
+    url: "https://jobs.jobvite.com/logitech/search?q=Intern",
     description: `Logitech - EPFL Innovation Park, Lausanne, Switzerland.
 Role: AI & Edge Machine Learning Intern (6 months PFE).
 
@@ -162,7 +162,7 @@ Requirements:
     workplace: "Hybride",
     compensation: "4,200 CHF / mois",
     skills: ["Python", "LLMs", "RAG", "FastAPI", "Docker", "NLP", "Time-Series"],
-    url: "https://www.pictet.com/ch/fr/carrieres",
+    url: "https://www.pictet.com/ch/fr/carrieres/offres-emploi",
     description: `Banque Pictet & Cie - Genève, Suisse.
 Poste : Stage de Fin d'Études (6 mois) - Recherche Quantitative & Intelligence Artificielle Générative.
 
@@ -186,7 +186,7 @@ Profil recherché :
     workplace: "Hybride",
     compensation: "3,800 CHF / mois",
     skills: ["Python", "FastAPI", "NLP", "Vector Databases", "Docker", "REST APIs"],
-    url: "https://www.swisscom.ch/fr/about/carrieres.html",
+    url: "https://jobs.swisscom.ch/search/?q=AI",
     description: `Swisscom Enterprise - Zurich, Switzerland.
 Role: AI & NLP Platform Engineering Intern (6 months PFE).
 
@@ -210,7 +210,7 @@ Qualifications:
     workplace: "Hybride",
     compensation: "2,200 € / mois + tickets restaurant",
     skills: ["Python", "Computer Vision", "LLMs", "Docker", "SQL", "Cloud Services"],
-    url: "https://www.ferrerocareers.com",
+    url: "https://www.ferrerocareers.com/global/en/search-jobs?k=Intern+Luxembourg",
     description: `Ferrero Global Headquarters - Luxembourg.
 Role: Data Science & Generative AI Intern (PFE 6 months).
 
@@ -234,7 +234,7 @@ Profil:
     workplace: "Présentiel",
     compensation: "1,850 € / mois + transport",
     skills: ["PyTorch", "Computer Vision", "C++", "ROS", "Simulation", "Linux"],
-    url: "https://www.toyota-europe.com/careers",
+    url: "https://www.toyota-europe.com/careers/students-and-graduates",
     description: `Toyota Motor Europe R&D - Brussels, Belgium.
 Position: Autonomous Driving & Computer Vision Intern (6 months PFE).
 

@@ -76,6 +76,9 @@ ${jobText.slice(0, 4000)}
 2. Résumé percutant : Rédige une accroche de 3-4 phrases soulignant les compétences réelles de Badroudine qui correspondent directement aux exigences de l'offre (ex: Python, C++, Deep Learning, FastAPI, Docker, anglais C1).
 3. Adaptation des projets : Réécris les puces des 2 projets principaux ("VectorWord" et "Pipeline RAG") selon la formule STAR (Accompli [X] mesuré par [Y] en faisant appel à [Z] / Accomplished [X] as measured by [Y] by doing [Z]) en insistant sur les compétences clés de l'annonce.
 4. Score ATS & Couverture : Évalue de manière réaliste le score ATS (entre 80 et 96) et le taux de couverture des mots-clés selon l'adéquation.
+5. Lettre de Motivation (Cover Letter) ciblée : Rédige une lettre de motivation complète (300-400 mots) personnalisée pour l'entreprise et l'intitulé du poste.
+- Structure : En-tête (Badroudine Bacar, Élève-Ingénieur EILCO, IA / Machine Learning, badroudinebacar@gmail.com, 07 67 56 07 86, Entreprise), Objet précis (Candidature : Stage de fin d'études PFE 6 mois), Accroche motivée sur l'entreprise, Corps valorisant la stack technique (PyTorch, FastAPI, Docker, NLP, CPGE TSI, TOEIC 905 C1) et les projets concrets (VectorWord, RAG), Disponibilité pour 6 mois dès mars 2027 à l'étranger (Suisse, Luxembourg, etc.), et formule de politesse.
+- Rédige en ANGLAIS si language="en", ou en FRANÇAIS si language="fr". Renseigne "coverLetter": "string".
 
 Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 {
@@ -93,6 +96,7 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
       "bullets": ["string", "string"]
     }
   ],
+  "coverLetter": "string",
   "atsScore": 92,
   "coverageRate": 89.5,
   "strategyNote": "string"

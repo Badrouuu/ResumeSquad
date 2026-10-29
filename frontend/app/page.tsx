@@ -28,6 +28,30 @@ Profil recherché :
 - Solides compétences en Python, PyTorch, calcul vectoriel (NumPy) et APIs REST (FastAPI).
 - Connaissance des technologies d'embeddings (Word2Vec, Sentence-Transformers) appréciée.`;
 
+const DEFAULT_COVER_LETTER = `Badroudine Bacar
+Élève-Ingénieur en Informatique — Spécialité Intelligence Artificielle (Bac+5 / ING3)
+EILCO (École d'Ingénieurs du Littoral Côte d'Opale)
+Email : badroudinebacar@gmail.com | Tél : +33 7 67 56 07 86
+LinkedIn : linkedin.com/in/badroudine-bacar | GitHub : github.com/Badrouuu
+Mobilité : Suisse, Luxembourg, Belgique, Allemagne, UK (Présentiel / Hybride)
+
+À l'attention de l'équipe Recrutement Tech
+NeuroTech Solutions
+
+Objet : Candidature — Stage de fin d'études PFE (6 mois) : Ingénieur AI / Machine Learning (dès Mars 2027)
+
+Madame, Monsieur,
+
+Actuellement en dernière année de cycle ingénieur à l'EILCO (spécialisation Intelligence Artificielle & Data Science) après un parcours exigeant en Classes Préparatoires aux Grandes Écoles (CPGE TSI), je vous présente ma candidature pour un stage de fin d'études de 6 mois en tant qu'Ingénieur AI / Machine Learning, disponible à partir de mars 2027.
+
+Votre positionnement technologique et vos challenges en IA appliquée correspondent parfaitement à mon profil et à mes réalisations. Passionné par l'industrialisation des modèles de Machine Learning et le NLP, j'ai notamment conçu et déployé VectorWord / Guess-What, un moteur sémantique temps réel exploitant des embeddings Word2Vec (Gensim, NumPy) et exposé via une API haute performance sous FastAPI et conteneurisé avec Docker. De plus, j'ai mis au point des pipelines agentiques RAG (Retrieval-Augmented Generation) combinant Few-Shot Prompting et matching sémantique pour automatiser des workflows complexes avec une fiabilité totale sans hallucinations.
+
+Rigoureux, autonome et certifié au niveau C1 en anglais professionnel (TOEIC 905/990), je suis particulièrement enthousiaste à l'idée d'intégrer vos équipes sur site ou en format hybride, afin de concevoir et déployer des solutions d'IA robustes et scalables.
+
+Dans l'attente d'un prochain échange au cours duquel je pourrai vous présenter plus en détail mes réalisations techniques, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+Badroudine Bacar`;
+
 export default function Home() {
   const [currentView, setCurrentView] = useState<"generator" | "radar" | "tracker">("generator");
 
@@ -49,7 +73,9 @@ export default function Home() {
   const [jobText, setJobText] = useState(DEFAULT_JOB_TEXT);
 
   const [isRunning, setIsRunning] = useState(false);
-  const [activeTab, setActiveTab] = useState<"bullets" | "strategy" | "latex">("bullets");
+  const [activeTab, setActiveTab] = useState<"bullets" | "strategy" | "cover_letter" | "latex">("bullets");
+  const [coverLetter, setCoverLetter] = useState<string>(DEFAULT_COVER_LETTER);
+  const [copyLetterSuccess, setCopyLetterSuccess] = useState(false);
 
   const [atsScore, setAtsScore] = useState(90);
   const [coverageRate, setCoverageRate] = useState(90.0);
@@ -237,6 +263,7 @@ Profil requis :
         if (data.tailoredTitle) setTailoredTitle(data.tailoredTitle);
         if (data.tailoredSummary) setTailoredSummary(data.tailoredSummary);
         if (data.projectBullets && data.projectBullets.length > 0) setProjectBullets(data.projectBullets);
+        if (data.coverLetter) setCoverLetter(data.coverLetter);
         if (data.atsScore) setAtsScore(data.atsScore);
         if (data.coverageRate) setCoverageRate(data.coverageRate);
 
@@ -288,8 +315,8 @@ Profil requis :
     }
   };
 
-  // Téléchargement du fichier LaTeX (.tex) bilingue FR/EN
-  const handleDownloadTex = () => {
+  // Helper de génération du code source LaTeX (.tex) bilingue FR/EN
+  const getTexContent = (): string => {
     const isEn = cvLanguage === "en";
 
     const locationText = isEn
@@ -302,6 +329,9 @@ Profil requis :
     \\item \\textbf{Master of Science in Computer Engineering — Major in Artificial Intelligence} \\hfill 2024 - 2027 \\\\
     \\textit{EILCO Graduate School of Engineering, Calais, France} \\\\
     \\footnotesize Final year (MSc / ING3). Advanced coursework: Deep Learning, Computer Vision, Machine Learning, Software Architecture, MLOps, CI/CD, Advanced Databases.
+    \\item \\textbf{Preparatory Classes for Grandes Écoles (CPGE TSI)} \\hfill 2022 - 2024 \\\\
+    \\textit{Lycée César Baggio, Lille, France} \\\\
+    \\footnotesize Intensive 2-year preparation in Advanced Mathematics, Physics, and Engineering Sciences.
     \\item \\textbf{English Proficiency: TOEIC Listening and Reading} \\hfill Score: \\textbf{905 / 990 (CEFR C1 Level - Fluent)}
 \\end{itemize}`
       : `\\section{Formation \\& Certifications}
@@ -309,6 +339,9 @@ Profil requis :
     \\item \\textbf{Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle} \\hfill 2024 - 2027 \\\\
     \\textit{EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France} \\\\
     \\footnotesize Dernière année (ING3). Modules avancés : Deep Learning, Vision par Ordinateur, Machine Learning, Architecture Logicielle, MLOps, CI/CD, Bases de Données Avancées.
+    \\item \\textbf{Classes Préparatoires aux Grandes Écoles (CPGE TSI)} \\hfill 2022 - 2024 \\\\
+    \\textit{Lycée César Baggio, Lille, France} \\\\
+    \\footnotesize Mathématiques Supérieures et Spéciales, Physique, Sciences de l'Ingénieur.
     \\item \\textbf{Certification Anglais : TOEIC Listening and Reading} \\hfill Score : \\textbf{905 / 990 (Niveau C1)}
 \\end{itemize}`;
 
@@ -346,7 +379,7 @@ Profil requis :
     \\item \\textbf{Jeux de Stratégie \\& TCG Compétitif :} Pratique active de jeux de stratégie et participation à des tournois One Piece TCG (théorie des jeux, optimisation tactique, calculs de probabilités).
 \\end{itemize}`;
 
-    const texContent = `\\documentclass[10pt,a4paper]{article}
+    return `\\documentclass[10pt,a4paper]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}
 \\usepackage[margin=1.5cm]{geometry}
@@ -398,7 +431,11 @@ ${experienceSection}
 ${interestsSection}
 
 \\end{document}`;
+  };
 
+  // Téléchargement du fichier LaTeX (.tex) bilingue FR/EN
+  const handleDownloadTex = () => {
+    const texContent = getTexContent();
     const blob = new Blob([texContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -412,6 +449,55 @@ ${interestsSection}
 
     setDownloadSuccess(true);
     setTimeout(() => setDownloadSuccess(false), 3000);
+  };
+
+  // Ouverture et compilation 1-clic sur Overleaf
+  const handleOpenOverleaf = () => {
+    const texContent = getTexContent();
+    const form = document.createElement("form");
+    form.action = "https://www.overleaf.com/docs";
+    form.method = "POST";
+    form.target = "_blank";
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "snip";
+    input.value = texContent;
+
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  };
+
+  // Export direct en PDF conforme ATS via le moteur d'impression navigateur
+  const handlePrintPdf = () => {
+    window.print();
+  };
+
+  // Copie de la lettre de motivation dans le presse-papier
+  const handleCopyCoverLetter = async () => {
+    try {
+      await navigator.clipboard.writeText(coverLetter);
+      setCopyLetterSuccess(true);
+      setTimeout(() => setCopyLetterSuccess(false), 2500);
+    } catch (e) {
+      console.error("Erreur copie presse-papier:", e);
+    }
+  };
+
+  // Téléchargement de la lettre de motivation (.txt)
+  const handleDownloadCoverLetter = () => {
+    const blob = new Blob([coverLetter], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const cleanCompany = (company || "entreprise").toLowerCase().replace(/[^a-z0-9]/g, "_");
+    a.download = `lettre_motivation_badroudine_${cleanCompany}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleSaveApplication = () => {
@@ -525,7 +611,8 @@ ${interestsSection}
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
-      {/* Header avec Navigation Principale */}
+      <div className="no-print space-y-6">
+        {/* Header avec Navigation Principale */}
       <header className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-[#27272a] gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-xl">
@@ -822,31 +909,51 @@ ${interestsSection}
             )}
 
             {/* BARRE D'ACTION PRINCIPALE : TÉLÉCHARGER & SUIVRE */}
-            <div className="bg-gradient-to-r from-blue-900/40 via-[#18181b] to-emerald-900/40 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+            <div className="bg-gradient-to-r from-blue-900/40 via-[#18181b] to-emerald-900/40 border border-blue-500/30 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-lg">
               <div>
                 <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <span>📄</span> Ton CV sur-mesure est prêt pour l&apos;envoi
+                  <span>📄</span> Ton dossier de candidature est prêt pour l&apos;envoi
                 </div>
                 <div className="text-[11px] text-[#a1a1aa] mt-0.5">
-                  Format LaTeX (.tex) prêt pour compilation Overleaf ou PDF direct
+                  Export PDF ATS Direct, compilation cloud Overleaf, code LaTeX (.tex) et lettre de motivation
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button
+                  onClick={handlePrintPdf}
+                  className="flex-1 md:flex-none px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98] shadow-md"
+                  title="Télécharger directement en PDF A4 conforme ATS"
+                >
+                  <span>📑</span>
+                  <span>Télécharger en PDF (ATS Direct)</span>
+                </button>
+
+                <button
+                  onClick={handleOpenOverleaf}
+                  className="flex-1 md:flex-none px-3.5 py-2.5 rounded-xl bg-[#27272a] hover:bg-[#3f3f46] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98] shadow-md border border-[#3f3f46]"
+                  title="Ouvrir et compiler instantanément dans Overleaf"
+                >
+                  <span>🚀</span>
+                  <span>Overleaf (1-Clic)</span>
+                </button>
+
                 <button
                   onClick={handleDownloadTex}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98] shadow-md"
+                  className="flex-1 md:flex-none px-3 py-2.5 rounded-xl bg-[#18181b] hover:bg-[#27272a] text-[#a1a1aa] hover:text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98] border border-[#27272a]"
+                  title="Télécharger le fichier source .tex"
                 >
                   <span>📥</span>
-                  <span>{downloadSuccess ? "Téléchargé !" : "Télécharger mon CV (.tex)"}</span>
+                  <span>{downloadSuccess ? "Téléchargé !" : ".tex"}</span>
                 </button>
 
                 <button
                   onClick={handleSaveApplication}
-                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98] shadow-md"
+                  className="flex-1 md:flex-none px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98] shadow-md"
+                  title="Enregistrer cette candidature dans le tracker CRM"
                 >
-                  <span>🚀</span>
-                  <span>{saveSuccess ? "Enregistré !" : "Postuler & Suivre"}</span>
+                  <span>💼</span>
+                  <span>{saveSuccess ? "Enregistré !" : "Suivre"}</span>
                 </button>
               </div>
             </div>
@@ -854,7 +961,7 @@ ${interestsSection}
             {/* Tabs Container */}
             <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-[#27272a] pb-3">
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setActiveTab("bullets")}
                     className={`text-xs px-3.5 py-1.5 rounded-lg font-medium transition ${
@@ -870,6 +977,14 @@ ${interestsSection}
                     }`}
                   >
                     🎯 Stratégie & Mots-clés
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("cover_letter")}
+                    className={`text-xs px-3.5 py-1.5 rounded-lg font-medium transition ${
+                      activeTab === "cover_letter" ? "bg-blue-600 text-white" : "text-[#a1a1aa] hover:bg-[#09090b]"
+                    }`}
+                  >
+                    ✉️ Lettre de Motivation
                   </button>
                   <button
                     onClick={() => setActiveTab("latex")}
@@ -1024,32 +1139,80 @@ ${interestsSection}
                 </div>
               )}
 
-              {/* Onglet 3 : LaTeX */}
+              {/* Onglet 3 : Lettre de Motivation */}
+              {activeTab === "cover_letter" && (
+                <div className="space-y-4 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-2">
+                        <span>✉️</span>
+                        <span>Lettre de Motivation Personnalisée</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
+                          {cvLanguage === "en" ? "🇬🇧 Rédigée en Anglais" : "🇫🇷 Rédigée en Français"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[#a1a1aa] mt-0.5">
+                        Ciblée pour <b>{company}</b> et le poste <b>{jobTitle}</b>. Vous pouvez modifier le texte ci-dessous à votre guise.
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={handleCopyCoverLetter}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition flex items-center gap-1 shadow-sm"
+                      >
+                        <span>{copyLetterSuccess ? "✓" : "📋"}</span>
+                        <span>{copyLetterSuccess ? "Copié !" : "Copier la lettre"}</span>
+                      </button>
+                      <button
+                        onClick={handleDownloadCoverLetter}
+                        className="px-3 py-1.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-lg text-xs font-medium transition flex items-center gap-1 border border-[#3f3f46]"
+                      >
+                        <span>📥</span>
+                        <span>Télécharger (.txt)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <textarea
+                      rows={14}
+                      value={coverLetter}
+                      onChange={(e) => setCoverLetter(e.target.value)}
+                      className="w-full text-xs p-4 rounded-xl bg-[#09090b] border border-[#27272a] text-[#f4f4f5] font-sans leading-relaxed focus:outline-none focus:border-blue-500 transition resize-y"
+                      placeholder="Lettre de motivation générée automatiquement..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Onglet 4 : LaTeX */}
               {activeTab === "latex" && (
                 <div className="space-y-3 text-xs">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-[#a1a1aa] text-[11px]">
                       Fichier prêt : <code className="text-white">cv_badroudine_bacar.tex</code>
                     </span>
-                    <button
-                      onClick={handleDownloadTex}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition"
-                    >
-                      📥 Télécharger le fichier .tex
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleOpenOverleaf}
+                        className="px-3 py-1.5 bg-[#27272a] hover:bg-[#3f3f46] text-white rounded-lg text-xs font-medium transition flex items-center gap-1 border border-[#3f3f46]"
+                      >
+                        <span>🚀</span>
+                        <span>Compiler sur Overleaf (1-Clic)</span>
+                      </button>
+                      <button
+                        onClick={handleDownloadTex}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition flex items-center gap-1"
+                      >
+                        <span>📥</span>
+                        <span>Télécharger .tex</span>
+                      </button>
+                    </div>
                   </div>
 
                   <pre className="p-4 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-[#f4f4f5] overflow-x-auto max-h-72">
-{`\\documentclass[10pt,a4paper]{article}
-\\usepackage{hyperref}
-\\begin{document}
-\\begin{center}
-    {\\huge \\textbf{Badroudine Bacar}} \\\\[0.4em]
-    {\\large \\textbf{${tailoredTitle}}} \\\\[0.4em]
-    \\small Calais $|$ badroudinebacar@gmail.com $|$ LinkedIn $|$ GitHub
-\\end{center}
-% Profil et projets réécrits au format Google STAR...
-\\end{document}`}
+{getTexContent()}
                   </pre>
                 </div>
               )}
@@ -1235,6 +1398,14 @@ ${interestsSection}
               ))}
             </div>
 
+            {/* Conseil anti-404 pour les annonces */}
+            <div className="p-3 bg-blue-950/30 border border-blue-500/20 rounded-xl text-xs text-[#a1a1aa] flex items-center gap-2">
+              <span>💡</span>
+              <span>
+                <b>Astuce liens actifs :</b> Les offres d&apos;emploi tech peuvent être archivées ou renouvelées régulièrement par les entreprises. Si un lien direct affiche &quot;Page non trouvée&quot;, cliquez sur <b>🔎 Google ↗</b> pour trouver immédiatement l&apos;offre active ou les postes équivalents chez le recruteur.
+              </span>
+            </div>
+
             {/* Grille des offres du Radar */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {filteredRadarOffers.length === 0 ? (
@@ -1305,12 +1476,12 @@ ${interestsSection}
                     </div>
 
                     {/* Boutons d'action */}
-                    <div className="flex items-center gap-3 pt-2 border-t border-[#27272a]">
+                    <div className="flex items-center gap-2 pt-2 border-t border-[#27272a]">
                       <button
                         onClick={() => handleImportRadarOffer(offer)}
-                        className="flex-1 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-2"
+                        className="flex-1 py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-1.5"
                       >
-                        <span>⚡ Importer & Adapter ce CV (1-Clic)</span>
+                        <span>⚡ Importer & Adapter (1-Clic)</span>
                       </button>
 
                       <a
@@ -1318,9 +1489,20 @@ ${interestsSection}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-2.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
-                        title="Voir l'annonce officielle sur le site de l'entreprise"
+                        title="Lien direct vers l'offre officielle"
                       >
                         <span>Offre</span>
+                        <span>↗</span>
+                      </a>
+
+                      <a
+                        href={`https://www.google.com/search?q=${encodeURIComponent(`${offer.company} ${offer.title} ${offer.location} careers`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-2.5 bg-[#27272a] hover:bg-blue-600/30 hover:text-blue-300 text-[#a1a1aa] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
+                        title="Rechercher sur Google Careers si le lien direct a expiré ou retourne une erreur 404"
+                      >
+                        <span>🔎 Google</span>
                         <span>↗</span>
                       </a>
                     </div>
@@ -1476,6 +1658,138 @@ ${interestsSection}
           </div>
         </div>
       )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* ZONE D'EXPORTATION PDF / IMPRESSION ATS (A4)                                */}
+      {/* Masqué à l'écran, visible et vectorisé à 100% lors du window.print()       */}
+      {/* ========================================================================= */}
+      <div id="cv-print-area" className="hidden print:block text-black bg-white font-sans text-xs p-2 space-y-3">
+        {/* En-tête */}
+        <div className="text-center space-y-1 pb-2 border-b border-gray-400">
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 uppercase">Badroudine Bacar</h1>
+          <div className="text-sm font-semibold text-gray-800">{tailoredTitle}</div>
+          <div className="text-[11px] text-gray-600">
+            {cvLanguage === "en"
+              ? "France (International Mobility: Switzerland, Luxembourg, Belgium, Germany — Onsite / Hybrid)"
+              : "France (Mobilité Internationale Obligatoire : Suisse, Luxembourg, Belgique, Allemagne — Présentiel / Hybride)"}
+          </div>
+          <div className="text-[11px] text-gray-700 flex items-center justify-center gap-3 pt-0.5">
+            <span>+33 7 67 56 07 86</span>
+            <span>•</span>
+            <span>badroudinebacar@gmail.com</span>
+            <span>•</span>
+            <span>linkedin.com/in/badroudine-bacar</span>
+            <span>•</span>
+            <span>github.com/Badrouuu</span>
+          </div>
+        </div>
+
+        {/* Profil / Accroche */}
+        <div className="space-y-1">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+            {cvLanguage === "en" ? "Professional Summary" : "Profil Professionnel"}
+          </h2>
+          <p className="text-[11px] text-gray-800 leading-relaxed text-justify">
+            {tailoredSummary}
+          </p>
+        </div>
+
+        {/* Formation & Certifications */}
+        <div className="space-y-1">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+            {cvLanguage === "en" ? "Education & Certifications" : "Formation & Certifications"}
+          </h2>
+          <div className="space-y-1 text-[11px] text-gray-800">
+            <div className="flex justify-between items-baseline font-semibold">
+              <span>{cvLanguage === "en" ? "Master of Science in Computer Engineering — Major in Artificial Intelligence" : "Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle"}</span>
+              <span className="text-gray-600 font-normal">2024 - 2027</span>
+            </div>
+            <div className="italic text-gray-700 text-[10px]">
+              {cvLanguage === "en" ? "EILCO Graduate School of Engineering, Calais, France" : "EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France"}
+            </div>
+            <div className="text-[10px] text-gray-600">
+              {cvLanguage === "en"
+                ? "Final year (ING3 / MSc). Specialization in Deep Learning, Computer Vision, Machine Learning, MLOps, CI/CD, Advanced Databases."
+                : "Dernière année (ING3). Spécialisation en Deep Learning, Vision par Ordinateur, Machine Learning, MLOps, CI/CD, Bases de Données Avancées."}
+            </div>
+
+            <div className="flex justify-between items-baseline font-semibold pt-1">
+              <span>{cvLanguage === "en" ? "Preparatory Classes for Grandes Écoles (CPGE TSI)" : "Classes Préparatoires aux Grandes Écoles (CPGE TSI)"}</span>
+              <span className="text-gray-600 font-normal">2022 - 2024</span>
+            </div>
+            <div className="italic text-gray-700 text-[10px]">Lycée César Baggio, Lille, France</div>
+
+            <div className="flex justify-between items-baseline font-semibold pt-1">
+              <span>{cvLanguage === "en" ? "English Certification: TOEIC Listening & Reading" : "Certification Anglais : TOEIC Listening & Reading"}</span>
+              <span className="text-blue-900 font-bold">905 / 990 (CEFR C1 Level)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Projets Techniques */}
+        <div className="space-y-1">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+            {cvLanguage === "en" ? "Technical Projects & Key Achievements" : "Projets Techniques & Réalisations"}
+          </h2>
+          <div className="space-y-2 text-[11px]">
+            {projectBullets.map((proj, idx) => (
+              <div key={idx} className="space-y-0.5">
+                <div className="font-semibold text-gray-900">{proj.project}</div>
+                <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[10.5px]">
+                  {proj.bullets.map((b, bIdx) => (
+                    <li key={bIdx} className="leading-snug">{b}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Expérience Professionnelle */}
+        <div className="space-y-1">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+            {cvLanguage === "en" ? "Professional Experience" : "Expérience Professionnelle"}
+          </h2>
+          <div className="space-y-0.5 text-[11px]">
+            <div className="flex justify-between items-baseline font-semibold text-gray-900">
+              <span>{cvLanguage === "en" ? "Founder & Lead Software Developer (Entrepreneurial Internship PÉPITE)" : "Fondateur & Développeur Lead (Stage Entrepreneurial PÉPITE)"}</span>
+              <span className="text-gray-600 font-normal">2025 - 2026</span>
+            </div>
+            <div className="italic text-gray-700 text-[10px]">Étiquette Jaune (Micro-entreprise)</div>
+            <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[10.5px]">
+              {cvLanguage === "en" ? (
+                <>
+                  <li>Accomplished integration of on-device Computer Vision models measured by text extraction speed, leveraging Google ML Kit Text Recognition (OCR).</li>
+                  <li>Accomplished serverless backend development measured by real-time data synchronization, utilizing Google Cloud Firestore, Cloud Functions, and TypeScript.</li>
+                </>
+              ) : (
+                <>
+                  <li>Accompli l&apos;intégration de modèles de Vision par Ordinateur mesurés par la vitesse d&apos;extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).</li>
+                  <li>Accompli le développement d&apos;un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.</li>
+                </>
+              )}
+            </ul>
+          </div>
+        </div>
+
+        {/* Centres d'intérêt & Passions */}
+        <div className="space-y-1">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+            {cvLanguage === "en" ? "Interests & Passions" : "Centres d'Intérêt & Passions"}
+          </h2>
+          <div className="space-y-0.5 text-[10.5px] text-gray-800">
+            <div>
+              <span className="font-semibold text-gray-900">{cvLanguage === "en" ? "Game Modding & Video Games:" : "Modding & Jeux Vidéo :"} </span>
+              <span>{cvLanguage === "en" ? "Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures)." : "Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données)."}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">{cvLanguage === "en" ? "Strategy Games & Competitive TCG:" : "Jeux de Stratégie & TCG Compétitif :"} </span>
+              <span>{cvLanguage === "en" ? "Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making)." : "Pratique active de jeux de stratégie et tournois compétitifs One Piece TCG (théorie des jeux, optimisation de deck, calculs probabilistes)."}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
