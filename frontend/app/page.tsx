@@ -76,6 +76,8 @@ export default function Home() {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [extractMessage, setExtractMessage] = useState<{ type: "success" | "warning" | "error"; text: string } | null>(null);
   const [cvLanguage, setCvLanguage] = useState<"fr" | "en">("fr");
+  const [fullRemoteWarning, setFullRemoteWarning] = useState<string | null>(null);
+  const [workplaceType, setWorkplaceType] = useState<"full_remote" | "hybrid" | "onsite" | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("resumesquad_applications");
@@ -220,6 +222,19 @@ Profil requis :
         if (data.atsScore) setAtsScore(data.atsScore);
         if (data.coverageRate) setCoverageRate(data.coverageRate);
 
+        // Détection Full Remote (contrainte de convention de stage EILCO)
+        const isClientFullRemote = /\b(full[- ]?remote|100%\s*(télétravail|remote)|fully[- ]?remote|remote[- ]?only|100%\s*à distance|télétravail complet|télétravail total)\b/i.test(activeText);
+        if (data.isFullRemote || isClientFullRemote) {
+          setFullRemoteWarning(
+            data.remoteWarning ||
+              "Cette offre semble être en 100% Full Remote (télétravail total). Rappel convention : Ton école d'ingénieurs (EILCO) exige une présence physique sur site (hybride ou présentiel). Assure-toi de la flexibilité de l'employeur avant de postuler !"
+          );
+          setWorkplaceType("full_remote");
+        } else {
+          setFullRemoteWarning(null);
+          setWorkplaceType(data.workplaceType || "hybrid");
+        }
+
         const langBadge = data.language === "en" ? "🇬🇧 en Anglais" : "🇫🇷 en Français";
         setExtractMessage({
           type: "success",
@@ -244,8 +259,8 @@ Profil requis :
     const isEn = cvLanguage === "en";
 
     const locationText = isEn
-      ? "France (Mobility: Switzerland, Luxembourg, Belgium, Remote)"
-      : "Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail)";
+      ? "France (Mobility: Switzerland, Luxembourg, Belgium — Onsite / Hybrid)"
+      : "Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique — Présentiel / Hybride)";
 
     const educationSection = isEn
       ? `\\section{Education \\& Certifications}
@@ -646,6 +661,30 @@ ${interestsSection}
                 <div className="text-[10px] text-emerald-400 font-medium mt-1">100% Vérifié Grounded</div>
               </div>
             </div>
+
+            {/* ALERTE CONVENTION DE STAGE : 100% FULL REMOTE */}
+            {fullRemoteWarning && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-200 space-y-2 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold text-sm text-amber-400">
+                    <span className="text-lg">⚠️</span>
+                    <span>Alerte Convention de Stage : 100% Full Remote Détecté</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider border border-amber-500/30">
+                    Contrainte EILCO
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-amber-100">
+                  {fullRemoteWarning}
+                </p>
+                <div className="flex items-center gap-2 text-[11px] text-amber-300 bg-amber-950/60 p-2.5 rounded-xl border border-amber-500/30">
+                  <span>💡</span>
+                  <span>
+                    <b>Action conseillée :</b> Ton école (EILCO) exige une présence physique. Demande au recruteur si une formule <b>hybride</b> (présence sur site 2-3 j/semaine) est envisageable avant d&apos;envoyer ta candidature.
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* BARRE D'ACTION PRINCIPALE : TÉLÉCHARGER & SUIVRE */}
             <div className="bg-gradient-to-r from-blue-900/40 via-[#18181b] to-emerald-900/40 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">

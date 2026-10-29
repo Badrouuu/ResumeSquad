@@ -55,6 +55,14 @@ ${jobText.slice(0, 4000)}
   * Si l'offre est en ANGLAIS (English) -> Tu DOIS générer l'INTÉGRALITÉ des champs (tailoredTitle, tailoredSummary, projectBullets, strategyNote) en ANGLAIS PROFESSIONNEL NATIF (utilise des verbes d'action au prétérit : Accomplished, Engineered, Architected, Built). Renseigne "language": "en".
   * Si l'offre est en FRANÇAIS -> Rédige l'intégralité en FRANÇAIS. Renseigne "language": "fr".
 
+=== RÈGLE CONTRAINTE CONVENTION DE STAGE : VÉRIFICATION DU TÉLÉTRAVAIL (FULL REMOTE) ===
+- Badroudine effectue un stage PFE conventionné par son école d'ingénieurs (EILCO). Sa convention de stage INTERDIT le 100% Full Remote (le télétravail total sans présence physique n'est pas autorisé par l'école).
+- Analyse soigneusement le texte de l'offre pour détecter le mode de travail :
+  * "full_remote" : si l'offre est 100% à distance / télétravail complet (mots-clés : "full remote", "100% remote", "fully remote", "remote only", "100% télétravail", "télétravail total", "à distance uniquement").
+  * "hybrid" : présence sur site avec télétravail partiel (ex: 2 jours de remote).
+  * "onsite" : travail dans les locaux de l'entreprise.
+- Si le mode est "full_remote", mets "isFullRemote": true et écris une note explicative d'alerte dans "remoteWarning" (ex: "Attention : cette offre est en 100% Full Remote. Ton école (EILCO) exige une présence sur site (hybride ou présentiel) pour valider ta convention de stage."). Sinon, "isFullRemote": false et "remoteWarning": "".
+
 === INSTRUCTIONS DE GÉNÉRATION ===
 1. Titre ciblé : Ajuste le titre du CV pour refléter exactement le poste demandé (ex: "Machine Learning Infrastructure Intern", "Ingénieur IA / Deep Learning - Stage PFE").
 2. Résumé percutant : Rédige une accroche de 3-4 phrases soulignant les compétences réelles de Badroudine qui correspondent directement aux exigences de l'offre (ex: Python, C++, Deep Learning, FastAPI, Docker, anglais C1).
@@ -64,6 +72,9 @@ ${jobText.slice(0, 4000)}
 Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 {
   "language": "en" | "fr",
+  "workplaceType": "full_remote" | "hybrid" | "onsite",
+  "isFullRemote": boolean,
+  "remoteWarning": "string",
   "tailoredTitle": "string",
   "tailoredSummary": "string",
   "projectBullets": [
