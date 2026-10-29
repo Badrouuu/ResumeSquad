@@ -14,35 +14,7 @@ export interface TrackedApplication {
   notes: string;
 }
 
-const DEFAULT_APPLICATIONS: TrackedApplication[] = [
-  {
-    id: "1",
-    company: "NeuroTech Solutions",
-    title: "Stage PFE - AI / Machine Learning Engineer",
-    appliedDate: "28 Oct 2026",
-    atsScore: 90,
-    status: "en_attente",
-    notes: "CV optimisé avec focus NLP et microservices FastAPI.",
-  },
-  {
-    id: "2",
-    company: "Sophia AI Labs",
-    title: "Computer Vision & Deep Learning Intern",
-    appliedDate: "24 Oct 2026",
-    atsScore: 86,
-    status: "entretien",
-    notes: "Entretien technique prévu le 3 novembre (PyTorch & OCR).",
-  },
-  {
-    id: "3",
-    company: "DataCorp Finance",
-    title: "Data Science & NLP Intern",
-    appliedDate: "15 Oct 2026",
-    atsScore: 78,
-    status: "refus",
-    notes: "Recherchait un profil Bac+5 avec 1 an d'expérience préalable.",
-  },
-];
+const DEFAULT_APPLICATIONS: TrackedApplication[] = [];
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<"generator" | "tracker">("generator");
@@ -181,7 +153,8 @@ Profil requis :
 \\begin{center}
     {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.4em]
     {\\large \\textbf{${tailoredTitle}}} \\\\[0.4em]
-    \\small Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail) \\ $|$ \\ 
+    \\small Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail) \\\\
+    \\href{tel:+33767560786}{07 67 56 07 86} \\ $|$ \\ 
     \\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
     \\href{https://www.linkedin.com/in/badroudine-bacar/}{LinkedIn} \\ $|$ \\ 
     \\href{https://github.com/Badrouuu}{GitHub}
@@ -711,13 +684,27 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
               ))}
             </div>
 
-            <button
-              onClick={() => setCurrentView("generator")}
-              className="text-xs px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition flex items-center gap-1.5"
-            >
-              <span>+</span>
-              <span>Nouvelle Candidature Ciblée</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (confirm("Voulez-vous vider l'historique de vos candidatures pour repartir à zéro ?")) {
+                    saveToLocalStorage([]);
+                  }
+                }}
+                className="text-xs px-3 py-2 bg-[#27272a] hover:bg-red-500/20 hover:text-red-400 text-[#a1a1aa] rounded-xl font-medium transition"
+                title="Vider la liste"
+              >
+                🗑️ Vider le suivi
+              </button>
+
+              <button
+                onClick={() => setCurrentView("generator")}
+                className="text-xs px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition flex items-center gap-1.5"
+              >
+                <span>+</span>
+                <span>Nouvelle Candidature Ciblée</span>
+              </button>
+            </div>
           </div>
 
           {/* Liste des candidatures */}
