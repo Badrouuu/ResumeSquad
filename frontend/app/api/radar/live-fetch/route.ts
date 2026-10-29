@@ -3,146 +3,188 @@ import { RadarJobOffer } from "@/app/data/radarOffers";
 
 export const dynamic = "force-dynamic";
 
+// Fonction d'extraction légère des offres LinkedIn (API Guest ouverte, sans compte ni clé payante)
+async function fetchLinkedInGuestJobs(
+  keywords: string,
+  location: string,
+  country: "Suisse" | "Luxembourg" | "Belgique",
+  countryFlag: string
+): Promise<RadarJobOffer[]> {
+  const offers: RadarJobOffer[] = [];
+  try {
+    const encodedKeywords = encodeURIComponent(keywords);
+    const encodedLocation = encodeURIComponent(location);
+    const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedKeywords}&location=${encodedLocation}&start=0`;
+
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9,fr;q=0.8",
+      },
+      next: { revalidate: 1800 }, // Cache 30 minutes
+    });
+
+    if (!res.ok) return offers;
+
+    const html = await res.text();
+    const titles = [...html.matchAll(/<h3 class="base-search-card__title">([\s\S]*?)<\/h3>/g)].map((m) =>
+      m[1].trim().replace(/&amp;/g, "&").replace(/&#39;/g, "'")
+    );
+    const companies = [...html.matchAll(/<h4 class="base-search-card__subtitle">([\s\S]*?)<\/h4>/g)].map((m) =>
+      m[1].trim().replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&#39;/g, "'").trim()
+    );
+    const locations = [...html.matchAll(/<span class="job-search-card__location">([\s\S]*?)<\/span>/g)].map((m) =>
+      m[1].trim()
+    );
+    const links = [...html.matchAll(/<a class="base-card__full-link[^"]*" href="([^"]*)"/g)].map((m) =>
+      m[1].trim().split("?")[0]
+    );
+
+    for (let i = 0; i < titles.length; i++) {
+      const rawTitle = titles[i] || "";
+      const rawCompany = companies[i] || "Entreprise Internationale";
+      const rawLocation = locations[i] || location;
+      const jobUrl =
+        links[i] ||
+        `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}`;
+
+      // Déduction dynamique des compétences techniques
+      const lower = rawTitle.toLowerCase();
+      const detectedSkills: string[] = ["Python"];
+      if (lower.includes("machine learning") || lower.includes("ml")) detectedSkills.push("Machine Learning", "PyTorch");
+      if (lower.includes("vision") || lower.includes("image")) detectedSkills.push("Computer Vision", "OpenCV");
+      if (lower.includes("nlp") || lower.includes("llm") || lower.includes("language")) detectedSkills.push("NLP", "LLMs");
+      if (lower.includes("data") || lower.includes("scientist") || lower.includes("analytics")) detectedSkills.push("Data Science", "SQL");
+      if (lower.includes("autonomy") || lower.includes("robotics")) detectedSkills.push("C++", "Robotics");
+      if (lower.includes("signal") || lower.includes("sensor")) detectedSkills.push("Signal Processing", "NumPy");
+
+      const estimatedSalary =
+        country === "Suisse"
+          ? "3,500 - 6,000 CHF / mois (est.)"
+          : "1,850 - 3,200 € / mois (est.)";
+
+      offers.push({
+        id: `live-linkedin-${country.toLowerCase()}-${i}-${rawCompany.slice(0, 10).replace(/\s+/g, "").toLowerCase()}`,
+        company: rawCompany,
+        title: rawTitle,
+        location: rawLocation,
+        country: country,
+        countryFlag: countryFlag,
+        workplace: "Hybride",
+        compensation: estimatedSalary,
+        skills: detectedSkills,
+        url: jobUrl,
+        description: `Offre en direct détectée sur LinkedIn (${country}).
+Poste : ${rawTitle}
+Entreprise : ${rawCompany}
+Localisation : ${rawLocation}
+Contrat : Stage / Internship (PFE)
+Source : Flux de recrutement direct LinkedIn Jobs.
+Cliquez sur "Importer & Adapter ce CV" pour lancer l'escouade multi-agents Gemini ou sur "Offre ↗" pour postuler.`,
+      });
+    }
+  } catch (err) {
+    console.warn(`Erreur récupération LinkedIn pour ${location}:`, err);
+  }
+  return offers;
+}
+
 export async function GET() {
   try {
     const liveOffers: RadarJobOffer[] = [];
 
-    // 1. Récupération du flux en direct SwissDevJobs (Suisse 🇨🇭)
-    try {
-      const chRes = await fetch("https://swissdevjobs.ch/api/jobsLight", {
-        headers: { "User-Agent": "ResumeSquad-PFE-Bot/1.0" },
-        next: { revalidate: 3600 }, // Cache 1h
-      });
+    // Exécution concurrente pour vitesse maximale (< 3s)
+    const [linkedInCh, linkedInLux, linkedInBe, swissDevJobs, germanJobs] = await Promise.allSettled([
+      fetchLinkedInGuestJobs("Machine Learning Intern", "Switzerland", "Suisse", "🇨🇭"),
+      fetchLinkedInGuestJobs("Machine Learning Intern", "Luxembourg", "Luxembourg", "🇱🇺"),
+      fetchLinkedInGuestJobs("Machine Learning Intern", "Brussels", "Belgique", "🇧🇪"),
+      // SwissDevJobs API
+      (async () => {
+        const res = await fetch("https://swissdevjobs.ch/api/jobsLight", {
+          headers: { "User-Agent": "ResumeSquad-Bot/1.0" },
+          next: { revalidate: 3600 },
+        });
+        if (!res.ok) return [];
+        const jobs = await res.json();
+        if (!Array.isArray(jobs)) return [];
+        return jobs
+          .filter((j: any) => {
+            const combined = `${j.name || ""} ${j.company || ""} ${(j.technologies || []).join(" ")}`.toLowerCase();
+            const isAi = combined.includes("machine learning") || combined.includes("ai") || combined.includes("python") || combined.includes("data");
+            const isJunior = combined.includes("intern") || combined.includes("junior") || combined.includes("stage") || j.expLevel === "Junior";
+            return isAi && isJunior && j.workplace !== "remote";
+          })
+          .slice(0, 6)
+          .map((j: any) => ({
+            id: `live-sdj-${j._id}`,
+            company: j.company,
+            title: j.name,
+            location: `${j.actualCity || j.cityCategory || "Suisse"}, Suisse`,
+            country: "Suisse" as const,
+            countryFlag: "🇨🇭",
+            workplace: (j.workplace === "office" ? "Présentiel" : "Hybride") as "Présentiel" | "Hybride",
+            compensation: j.annualSalaryFrom ? `${Math.round(j.annualSalaryFrom / 12).toLocaleString("fr-CH")} CHF / mois` : "Selon profil",
+            skills: (j.technologies || ["Python", "Machine Learning"]).slice(0, 6),
+            url: j.redirectJobUrl || `https://swissdevjobs.ch/jobs/${j.jobUrl}`,
+            description: `Poste tech en direct en Suisse (${j.actualCity || j.cityCategory}). Stack: ${(j.technologies || []).join(", ")}. Entreprise: ${j.company}.`,
+          }));
+      })(),
+      // GermanTechJobs API
+      (async () => {
+        const res = await fetch("https://germantechjobs.de/api/jobsLight", {
+          headers: { "User-Agent": "ResumeSquad-Bot/1.0" },
+          next: { revalidate: 3600 },
+        });
+        if (!res.ok) return [];
+        const jobs = await res.json();
+        if (!Array.isArray(jobs)) return [];
+        return jobs
+          .filter((j: any) => {
+            const combined = `${j.name || ""} ${j.company || ""} ${(j.technologies || []).join(" ")}`.toLowerCase();
+            const isAi = combined.includes("machine learning") || combined.includes("computer vision") || combined.includes("deep learning") || combined.includes("python");
+            const isJunior = combined.includes("intern") || combined.includes("werkstudent") || combined.includes("junior") || j.expLevel === "Junior";
+            return isAi && isJunior && j.workplace !== "remote";
+          })
+          .slice(0, 4)
+          .map((j: any) => ({
+            id: `live-gtj-${j._id}`,
+            company: j.company,
+            title: j.name,
+            location: `${j.actualCity || j.cityCategory || "Munich"}, Allemagne`,
+            country: "Allemagne" as const,
+            countryFlag: "🇩🇪",
+            workplace: (j.workplace === "office" ? "Présentiel" : "Hybride") as "Présentiel" | "Hybride",
+            compensation: j.annualSalaryFrom ? `${Math.round(j.annualSalaryFrom / 12).toLocaleString("de-DE")} € / mois` : "Selon convention",
+            skills: (j.technologies || ["Python", "Computer Vision"]).slice(0, 6),
+            url: j.redirectJobUrl || `https://germantechjobs.de/jobs/${j.jobUrl}`,
+            description: `Opportunité en direct en Allemagne (${j.actualCity || j.cityCategory}). Stack: ${(j.technologies || []).join(", ")}. Entreprise: ${j.company}.`,
+          }));
+      })(),
+    ]);
 
-      if (chRes.ok) {
-        const chJobs = await chRes.json();
-        if (Array.isArray(chJobs)) {
-          // Filtrer les postes orientés IA / ML / Data / Python qui ne sont PAS en 100% full remote
-          const matchingCh = chJobs.filter((j: any) => {
-            const combined = `${j.name || ""} ${j.company || ""} ${(j.technologies || []).join(" ")} ${(j.filterTags || []).join(" ")}`.toLowerCase();
-            const isAiOrPython =
-              combined.includes("machine learning") ||
-              combined.includes("deep learning") ||
-              combined.includes("nlp") ||
-              combined.includes("vision") ||
-              combined.includes("pytorch") ||
-              combined.includes("python") ||
-              combined.includes("data scientist") ||
-              combined.includes("ai engineer");
-            const isInternOrJuniorOrRelevant =
-              combined.includes("intern") ||
-              combined.includes("stage") ||
-              combined.includes("pfe") ||
-              combined.includes("junior") ||
-              combined.includes("trainee") ||
-              combined.includes("entry") ||
-              combined.includes("graduate") ||
-              j.expLevel === "Junior" ||
-              j.expLevel === "Regular";
-            const isNotRemote = j.workplace !== "remote";
-            return isAiOrPython && isInternOrJuniorOrRelevant && isNotRemote;
-          });
+    // Rassembler les résultats validés
+    if (linkedInCh.status === "fulfilled") liveOffers.push(...linkedInCh.value);
+    if (linkedInLux.status === "fulfilled") liveOffers.push(...linkedInLux.value);
+    if (linkedInBe.status === "fulfilled") liveOffers.push(...linkedInBe.value);
+    if (swissDevJobs.status === "fulfilled") liveOffers.push(...swissDevJobs.value);
+    if (germanJobs.status === "fulfilled") liveOffers.push(...germanJobs.value);
 
-          // Convertir en format RadarJobOffer
-          matchingCh.slice(0, 8).forEach((j: any) => {
-            const city = j.actualCity || j.cityCategory || "Suisse";
-            const salary = j.annualSalaryFrom
-              ? `${Math.round(j.annualSalaryFrom / 12).toLocaleString("fr-CH")} CHF / mois (est.)`
-              : "Selon profil & convention";
-            const directUrl =
-              j.redirectJobUrl || `https://swissdevjobs.ch/jobs/${j.jobUrl || ""}`;
-
-            liveOffers.push({
-              id: `live-ch-${j._id || Math.random()}`,
-              company: j.company || "Entreprise Tech Suisse",
-              title: j.name || "AI / Python Software Engineer",
-              location: `${city}, Suisse`,
-              country: "Suisse",
-              countryFlag: "🇨🇭",
-              workplace: j.workplace === "office" ? "Présentiel" : "Hybride",
-              compensation: salary,
-              skills: (j.technologies || ["Python", "Machine Learning"]).slice(0, 6),
-              url: directUrl,
-              description: `Poste détecté en direct sur le marché suisse (${city}).
-Technologies clés : ${(j.technologies || []).join(", ")}.
-Entreprise : ${j.company} (${j.companySize || "PME/Scale-up"}).
-Langue de travail : ${j.language || "Anglais / Français"}.
-Type de présence : ${j.workplace === "office" ? "Présentiel" : "Hybride"}.
-Lien direct d'application disponible.`,
-            });
-          });
-        }
-      }
-    } catch (chErr) {
-      console.warn("Erreur récupération SwissDevJobs:", chErr);
-    }
-
-    // 2. Récupération du flux en direct GermanTechJobs (Munich/Berlin, Allemagne 🇩🇪)
-    try {
-      const deRes = await fetch("https://germantechjobs.de/api/jobsLight", {
-        headers: { "User-Agent": "ResumeSquad-PFE-Bot/1.0" },
-        next: { revalidate: 3600 },
-      });
-
-      if (deRes.ok) {
-        const deJobs = await deRes.json();
-        if (Array.isArray(deJobs)) {
-          const matchingDe = deJobs.filter((j: any) => {
-            const combined = `${j.name || ""} ${j.company || ""} ${(j.technologies || []).join(" ")} ${(j.filterTags || []).join(" ")}`.toLowerCase();
-            const isAiOrPython =
-              combined.includes("machine learning") ||
-              combined.includes("computer vision") ||
-              combined.includes("ai") ||
-              combined.includes("deep learning") ||
-              combined.includes("python");
-            const isStudentOrJunior =
-              combined.includes("intern") ||
-              combined.includes("werkstudent") ||
-              combined.includes("working student") ||
-              combined.includes("trainee") ||
-              combined.includes("pfe") ||
-              combined.includes("junior") ||
-              j.expLevel === "Junior";
-            const isNotRemote = j.workplace !== "remote";
-            return isAiOrPython && isStudentOrJunior && isNotRemote;
-          });
-
-          matchingDe.slice(0, 4).forEach((j: any) => {
-            const city = j.actualCity || j.cityCategory || "Munich";
-            const salary = j.annualSalaryFrom
-              ? `${Math.round(j.annualSalaryFrom / 12).toLocaleString("de-DE")} € / mois (est.)`
-              : "Selon convention";
-            const directUrl =
-              j.redirectJobUrl || `https://germantechjobs.de/jobs/${j.jobUrl || ""}`;
-
-            liveOffers.push({
-              id: `live-de-${j._id || Math.random()}`,
-              company: j.company || "German Tech Hub",
-              title: j.name || "Deep Learning / Python Engineer",
-              location: `${city}, Allemagne`,
-              country: "Allemagne",
-              countryFlag: "🇩🇪",
-              workplace: j.workplace === "office" ? "Présentiel" : "Hybride",
-              compensation: salary,
-              skills: (j.technologies || ["Python", "Deep Learning"]).slice(0, 6),
-              url: directUrl,
-              description: `Opportunité en direct en Allemagne (${city}).
-Stack technique : ${(j.technologies || []).join(", ")}.
-Profil recherché : Étudiant(e) / Jeune diplômé en Informatique & IA.
-Environnement : ${j.workplace === "office" ? "Présentiel" : "Hybride"}.`,
-            });
-          });
-        }
-      }
-    } catch (deErr) {
-      console.warn("Erreur récupération GermanTechJobs:", deErr);
-    }
+    // Déduplication par entreprise + titre
+    const seen = new Set<string>();
+    const deduplicatedOffers = liveOffers.filter((o) => {
+      const key = `${o.company.toLowerCase().trim()}-${o.title.toLowerCase().trim()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
-      count: liveOffers.length,
-      offers: liveOffers,
+      count: deduplicatedOffers.length,
+      offers: deduplicatedOffers,
     });
   } catch (error: any) {
     console.error("Erreur live radar scanner:", error);
