@@ -3,7 +3,7 @@ export interface RadarJobOffer {
   company: string;
   title: string;
   location: string;
-  country: "Suisse" | "Luxembourg" | "Belgique" | "International" | "France";
+  country: "Suisse" | "Luxembourg" | "Belgique" | "Allemagne" | "International";
   countryFlag: string;
   workplace: "Présentiel" | "Hybride";
   compensation?: string;
@@ -18,7 +18,7 @@ export interface DeepSearchPortal {
   countryFlag: string;
   description: string;
   url: string;
-  category: "Suisse" | "Luxembourg" | "Belgique" | "Tech";
+  category: "Suisse" | "Luxembourg" | "Belgique" | "International";
 }
 
 export const DEEP_SEARCH_PORTALS: DeepSearchPortal[] = [
@@ -55,12 +55,12 @@ export const DEEP_SEARCH_PORTALS: DeepSearchPortal[] = [
     category: "Belgique",
   },
   {
-    name: "Welcome to the Jungle (IA / Data)",
-    country: "France & Suisse",
-    countryFlag: "🚀",
-    description: "Les meilleures scale-ups et labos d'IA (Paris, Lyon, Genève, Lausanne) avec transparence sur les missions.",
-    url: "https://www.welcometothejungle.com/fr/jobs?query=stage%20intelligence%20artificielle",
-    category: "Tech",
+    name: "Jobup.ch (Suisse Romande)",
+    country: "Suisse (Genève & Vaud)",
+    countryFlag: "🇨🇭",
+    description: "Le portail n°1 d'emploi en Suisse romande (Genève, Lausanne). Filtre direct sur les offres Machine Learning, Data et IA.",
+    url: "https://www.jobup.ch/fr/emplois/?term=Machine%20Learning%20Stage",
+    category: "Suisse",
   },
   {
     name: "CERN Technical Students Programme",
@@ -248,49 +248,75 @@ Requirements:
 - Strong coding skills in Python and C++. Experience with PyTorch or OpenCV.`,
   },
   {
-    id: "mistral-ai-systems",
-    company: "Mistral AI",
-    title: "AI Systems & Inference Infrastructure Intern",
-    location: "Paris, France",
-    country: "France",
-    countryFlag: "🇫🇷",
+    id: "google-zurich-ml",
+    company: "Google / DeepMind",
+    title: "Student Researcher / AI Systems Intern 2027",
+    location: "Zurich, Suisse",
+    country: "Suisse",
+    countryFlag: "🇨🇭",
     workplace: "Hybride",
-    compensation: "2,500 € / mois",
-    skills: ["Python", "C++", "CUDA", "PyTorch", "LLM Serving", "HPC"],
-    url: "https://mistral.ai/careers/",
-    description: `Mistral AI - Paris, France.
-Role: AI Systems & Inference Infrastructure Intern (6 months).
+    compensation: "6,800 CHF / mois",
+    skills: ["Python", "C++", "PyTorch/JAX", "Distributed Systems", "Large Models", "Algorithms"],
+    url: "https://www.google.com/about/careers/applications/jobs/results/?location=Zurich%2C%20Switzerland",
+    description: `Google Switzerland GmbH - Zurich, Switzerland.
+Role: Student Researcher / AI Systems Engineering Intern (6 months).
 
 Responsibilities:
-- Collaborate on the inference engine and serving infrastructure for open-weight frontier models.
-- Optimize tensor kernels, memory layout, and distributed communication across GPUs.
-- Benchmark token throughput and latency under heavy concurrency workloads.
+- Collaborate with research scientists on large-scale machine learning systems, multi-modal architectures, and transformer optimization.
+- Develop efficient training and inference pipelines in Python, C++, and JAX.
+- Design benchmarks to evaluate compute efficiency, memory footprint, and model quality.
 
 Qualifications:
-- Top-tier engineering student with strong background in Systems, Compilers, or Machine Learning.
-- Deep familiarity with Python, C++, and GPU architectures. Passion for open source AI.`,
+- Currently enrolled in a Master's or PhD degree in Computer Science, Artificial Intelligence, or related technical field.
+- Strong foundation in algorithms, data structures, and machine learning principles.
+- Proficiency in Python and C++. Experience with PyTorch or JAX. Fluent in English.`,
   },
   {
-    id: "huggingface-ml-intern",
-    company: "Hugging Face",
-    title: "Open-Source Machine Learning Engineering Intern",
-    location: "Paris / Remote-Hybrid",
-    country: "France",
-    countryFlag: "🇫🇷",
+    id: "amazon-lux-applied-science",
+    company: "Amazon Web Services (AWS)",
+    title: "Applied Machine Learning Scientist Intern (PFE)",
+    location: "Luxembourg (Cloche d'Or)",
+    country: "Luxembourg",
+    countryFlag: "🇱🇺",
     workplace: "Hybride",
-    compensation: "2,200 € / mois",
-    skills: ["Transformers", "PyTorch", "Python", "NLP", "Open-Source", "Git"],
-    url: "https://huggingface.co/jobs",
-    description: `Hugging Face - Paris, France (Hybrid).
-Role: Open-Source Machine Learning Intern (6 months).
+    compensation: "3,100 € / mois + indemnité relocation",
+    skills: ["Python", "PyTorch", "NLP", "FastAPI", "Vector Search", "Docker", "AWS"],
+    url: "https://amazon.jobs/en/jobs/luxembourg",
+    description: `Amazon Europe Core SARL - Luxembourg.
+Role: Applied Machine Learning Scientist Intern (6-month Master's thesis / PFE).
+
+Key Responsibilities:
+- Build and evaluate state-of-the-art NLP and generative AI models for automated customer intent understanding and vector retrieval.
+- Design scalable microservices and APIs with FastAPI and containerize deployments using Docker.
+- Collaborate with international teams across Europe to deploy machine learning pipelines to production.
+
+Basic Qualifications:
+- Master's student in Computer Science, Machine Learning, or Artificial Intelligence.
+- Proven programming skills in Python with hands-on experience in PyTorch or HuggingFace.
+- Excellent communication skills in English (multinational environment).`,
+  },
+  {
+    id: "bmw-munich-autonomous-ai",
+    company: "BMW Group Autonomous Driving",
+    title: "Deep Learning & Computer Vision Intern (PFE 6 months)",
+    location: "Munich, Allemagne",
+    country: "Allemagne",
+    countryFlag: "🇩🇪",
+    workplace: "Hybride",
+    compensation: "2,150 € / mois",
+    skills: ["Python", "PyTorch", "Computer Vision", "C++", "Sensor Fusion", "Linux"],
+    url: "https://www.bmwgroup.jobs",
+    description: `BMW Group Autonomous Driving Campus - Munich, Germany.
+Role: Deep Learning & Computer Vision Engineering Intern (PFE 6 months).
 
 Tasks:
-- Contribute to core open-source libraries (Transformers, TGI, Datasets).
-- Reproduce paper benchmarks, add modern model architectures, and optimize pipeline inference.
-- Write technical documentation, community guides, and tutorials.
+- Develop and benchmark deep neural networks for 3D object detection, camera/LiDAR perception, and scene understanding.
+- Optimize model latency for embedded automotive compute hardware.
+- Implement automated test pipelines and synthetic data simulation in Python and C++.
 
 Requirements:
-- Engineering student in CS/AI. Good understanding of Transformers and PyTorch.
-- Active GitHub presence, fluent in English.`,
+- Enrolled Master's student in Computer Science, Artificial Intelligence, Robotics, or Data Science.
+- Practical experience with PyTorch, OpenCV, NumPy, and Linux environments.
+- Good English communication skills (German is an optional plus).`,
   },
 ];

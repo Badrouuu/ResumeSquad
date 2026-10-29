@@ -63,6 +63,14 @@ ${jobText.slice(0, 4000)}
   * "onsite" : travail dans les locaux de l'entreprise.
 - Si le mode est "full_remote", mets "isFullRemote": true et écris une note explicative d'alerte dans "remoteWarning" (ex: "Attention : cette offre est en 100% Full Remote. Ton école (EILCO) exige une présence sur site (hybride ou présentiel) pour valider ta convention de stage."). Sinon, "isFullRemote": false et "remoteWarning": "".
 
+=== RÈGLE CONTRAINTE CONVENTION DE STAGE : MOBILITÉ INTERNATIONALE OBLIGATOIRE (HORS FRANCE) ===
+- Le stage de fin d'études (PFE) de Badroudine doit OBLIGATOIREMENT être réalisé à l'ÉTRANGER (en dehors de la France) pour satisfaire l'obligation de mobilité internationale du diplôme d'ingénieur EILCO (ex: Suisse, Luxembourg, Belgique, Allemagne, Royaume-Uni, etc.).
+- Analyse soigneusement le lieu de travail de l'offre (titre, entreprise, localisation, texte) :
+  * Si l'offre est située en FRANCE (ex: Paris, Lyon, Lille, Toulouse, etc.) :
+    Mets "isInFrance": true et renseigne "franceWarning": "⚠️ Alerte Convention EILCO : Cette offre est localisée en France. Votre formation exige obligatoirement un stage de fin d'études à l'étranger (Suisse, Luxembourg, Belgique, etc.) pour l'obtention du diplôme d'ingénieur."
+  * Si l'offre est située à l'étranger (hors de France) :
+    Mets "isInFrance": false et renseigne "franceWarning": "".
+
 === INSTRUCTIONS DE GÉNÉRATION ===
 1. Titre ciblé : Ajuste le titre du CV pour refléter exactement le poste demandé (ex: "Machine Learning Infrastructure Intern", "Ingénieur IA / Deep Learning - Stage PFE").
 2. Résumé percutant : Rédige une accroche de 3-4 phrases soulignant les compétences réelles de Badroudine qui correspondent directement aux exigences de l'offre (ex: Python, C++, Deep Learning, FastAPI, Docker, anglais C1).
@@ -75,6 +83,8 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
   "workplaceType": "full_remote" | "hybrid" | "onsite",
   "isFullRemote": boolean,
   "remoteWarning": "string",
+  "isInFrance": boolean,
+  "franceWarning": "string",
   "tailoredTitle": "string",
   "tailoredSummary": "string",
   "projectBullets": [

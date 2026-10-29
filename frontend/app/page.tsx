@@ -82,6 +82,7 @@ export default function Home() {
   const [extractMessage, setExtractMessage] = useState<{ type: "success" | "warning" | "error"; text: string } | null>(null);
   const [cvLanguage, setCvLanguage] = useState<"fr" | "en">("fr");
   const [fullRemoteWarning, setFullRemoteWarning] = useState<string | null>(null);
+  const [franceWarning, setFranceWarning] = useState<string | null>(null);
   const [workplaceType, setWorkplaceType] = useState<"full_remote" | "hybrid" | "onsite" | null>(null);
 
   useEffect(() => {
@@ -240,6 +241,22 @@ Profil requis :
           setWorkplaceType(data.workplaceType || "hybrid");
         }
 
+        // Détection Mobilité Internationale Obligatoire (Stage Hors France Exigé par l'EILCO)
+        const combinedText = `${activeCompany} ${activeTitle} ${activeText}`.toLowerCase();
+        const isFranceDetected =
+          data.isInFrance ||
+          /\b(france|paris|lyon|marseille|toulouse|bordeaux|lille|nantes|rennes|strasbourg|montpellier|grenoble|sophia[- ]antipolis)\b/i.test(combinedText);
+        const isExplicitAbroad = /\b(suisse|switzerland|schweiz|luxembourg|belgique|belgium|allemagne|germany|deutschland|united kingdom|london|uk)\b/i.test(combinedText);
+
+        if (isFranceDetected && !isExplicitAbroad) {
+          setFranceWarning(
+            data.franceWarning ||
+              "⚠️ Attention : Cette offre semble être localisée en France. Rappel convention EILCO : Votre stage PFE doit obligatoirement se dérouler à l'étranger (Suisse, Luxembourg, Belgique, Allemagne, UK...) pour valider votre mobilité internationale et obtenir votre diplôme d'ingénieur !"
+          );
+        } else {
+          setFranceWarning(null);
+        }
+
         const langBadge = data.language === "en" ? "🇬🇧 en Anglais" : "🇫🇷 en Français";
         setExtractMessage({
           type: "success",
@@ -264,8 +281,8 @@ Profil requis :
     const isEn = cvLanguage === "en";
 
     const locationText = isEn
-      ? "France (Mobility: Switzerland, Luxembourg, Belgium — Onsite / Hybrid)"
-      : "Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique — Présentiel / Hybride)";
+      ? "France (International Mobility: Switzerland, Luxembourg, Belgium, Germany — Onsite / Hybrid)"
+      : "France (Mobilité Internationale Obligatoire : Suisse, Luxembourg, Belgique, Allemagne — Présentiel / Hybride)";
 
     const educationSection = isEn
       ? `\\section{Education \\& Certifications}
@@ -738,6 +755,30 @@ ${interestsSection}
               </div>
             )}
 
+            {/* ALERTE CONVENTION DE STAGE : MOBILITÉ INTERNATIONALE OBLIGATOIRE (HORS FRANCE) */}
+            {franceWarning && (
+              <div className="p-4 rounded-2xl bg-rose-500/10 border-2 border-rose-500/40 text-rose-200 space-y-2 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold text-sm text-rose-400">
+                    <span className="text-lg">🚫</span>
+                    <span>Alerte Convention : Stage Hors France Obligatoire</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold uppercase tracking-wider border border-rose-500/30">
+                    Mobilité Internationale
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-rose-100">
+                  {franceWarning}
+                </p>
+                <div className="flex items-center gap-2 text-[11px] text-rose-300 bg-rose-950/60 p-2.5 rounded-xl border border-rose-500/30">
+                  <span>💡</span>
+                  <span>
+                    <b>Rappel réglementaire :</b> Ton diplôme d&apos;ingénieur EILCO impose une expérience à l&apos;étranger. Explore les opportunités en Suisse, Luxembourg, Belgique ou Allemagne dans l&apos;onglet <b>🔍 Radar d&apos;Offres PFE</b>.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* BARRE D'ACTION PRINCIPALE : TÉLÉCHARGER & SUIVRE */}
             <div className="bg-gradient-to-r from-blue-900/40 via-[#18181b] to-emerald-900/40 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
               <div>
@@ -992,16 +1033,20 @@ ${interestsSection}
                   </span>
                 </div>
                 <p className="text-xs md:text-sm text-[#a1a1aa] mt-1 max-w-2xl">
-                  Centralisation et détection intelligente des opportunités de stage Bac+5 (Suisse, Luxembourg, Belgique, France).
-                  Ne perdez plus de temps à chercher manuellement : importez n&apos;importe quelle offre en 1 clic pour générer votre CV sur-mesure.
+                  Centralisation et détection automatique des stages de fin d&apos;études Bac+5 exclusivement à l&apos;étranger (Suisse, Luxembourg, Belgique, Allemagne, UK).
+                  Conformité totale avec l&apos;obligation de mobilité internationale et les exigences de l&apos;EILCO.
                 </p>
               </div>
 
               {/* Badges de conformité EILCO */}
               <div className="flex flex-wrap md:flex-col gap-2 items-start md:items-end">
+                <span className="text-xs px-3 py-1 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30 font-medium flex items-center gap-1.5">
+                  <span>🌍</span>
+                  <span>Mobilité Internationale Obligatoire (Hors France)</span>
+                </span>
                 <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1.5">
                   <span>🛡️</span>
-                  <span>Convention EILCO : Présentiel & Hybride (0% Full Remote)</span>
+                  <span>Convention : Présentiel & Hybride (0% Full Remote)</span>
                 </span>
                 <span className="text-xs px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium flex items-center gap-1.5">
                   <span>🎓</span>
@@ -1103,8 +1148,8 @@ ${interestsSection}
                 { key: "Suisse", label: `🇨🇭 Suisse (${RADAR_JOB_OFFERS.filter((o) => o.country === "Suisse").length})` },
                 { key: "Luxembourg", label: `🇱🇺 Luxembourg (${RADAR_JOB_OFFERS.filter((o) => o.country === "Luxembourg").length})` },
                 { key: "Belgique", label: `🇧🇪 Belgique (${RADAR_JOB_OFFERS.filter((o) => o.country === "Belgique").length})` },
-                { key: "France", label: `🇫🇷 France (${RADAR_JOB_OFFERS.filter((o) => o.country === "France").length})` },
-                { key: "International", label: `🌐 Big Tech (${RADAR_JOB_OFFERS.filter((o) => o.country === "International").length})` },
+                { key: "Allemagne", label: `🇩🇪 Allemagne (${RADAR_JOB_OFFERS.filter((o) => o.country === "Allemagne").length})` },
+                { key: "International", label: `🌐 Big Tech / UK (${RADAR_JOB_OFFERS.filter((o) => o.country === "International").length})` },
               ].map((pill) => (
                 <button
                   key={pill.key}
