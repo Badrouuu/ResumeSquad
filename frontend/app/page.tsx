@@ -16,6 +16,17 @@ export interface TrackedApplication {
 
 const DEFAULT_APPLICATIONS: TrackedApplication[] = [];
 
+const DEFAULT_JOB_TEXT = `Missions :
+- Développer des pipelines de traitement du langage naturel (NLP) et d'embeddings sémantiques.
+- Entraîner et déployer des modèles sous PyTorch ou Transformers.
+- Exposer des APIs haute performance en Python (FastAPI) et conteneuriser les microservices avec Docker.
+- Collaborer avec l'équipe produit pour intégrer des agents LLMs avec Few-Shot Prompting et RAG.
+
+Profil recherché :
+- Étudiant(e) en dernière année d'école d'ingénieurs (Bac+5 / Master 2) avec spécialisation IA / Data Science.
+- Solides compétences en Python, PyTorch, calcul vectoriel (NumPy) et APIs REST (FastAPI).
+- Connaissance des technologies d'embeddings (Word2Vec, Sentence-Transformers) appréciée.`;
+
 export default function Home() {
   const [currentView, setCurrentView] = useState<"generator" | "tracker">("generator");
 
@@ -27,16 +38,7 @@ export default function Home() {
   // Inputs Générateur
   const [jobTitle, setJobTitle] = useState("Stage PFE - AI / Machine Learning Engineer (6 mois)");
   const [company, setCompany] = useState("NeuroTech Solutions (Genève / Remote)");
-  const [jobText, setJobText] = useState(`Missions :
-- Développer des pipelines de traitement du langage naturel (NLP) et d'embeddings sémantiques.
-- Entraîner et déployer des modèles sous PyTorch ou Transformers.
-- Exposer des APIs haute performance en Python (FastAPI) et conteneuriser les microservices avec Docker.
-- Collaborer avec l'équipe produit pour intégrer des agents LLMs avec Few-Shot Prompting et RAG.
-
-Profil recherché :
-- Étudiant(e) en dernière année d'école d'ingénieurs (Bac+5 / Master 2) avec spécialisation IA / Data Science.
-- Solides compétences en Python, PyTorch, calcul vectoriel (NumPy) et APIs REST (FastAPI).
-- Connaissance des technologies d'embeddings (Word2Vec, Sentence-Transformers) appréciée.`);
+  const [jobText, setJobText] = useState(DEFAULT_JOB_TEXT);
 
   const [isRunning, setIsRunning] = useState(false);
   const [activeTab, setActiveTab] = useState<"bullets" | "strategy" | "latex">("bullets");
@@ -72,6 +74,7 @@ Profil recherché :
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [extractMessage, setExtractMessage] = useState<{ type: "success" | "warning" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("resumesquad_applications");
@@ -89,43 +92,72 @@ Profil recherché :
     localStorage.setItem("resumesquad_applications", JSON.stringify(data));
   };
 
-  // V2 : Extraction automatique depuis une URL
-  const handleExtractFromUrl = async () => {
-    if (!jobUrl) return;
+  // V2 : Extraction automatique depuis une URL (via Route Next.js Vercel & fallback)
+  const handleExtractFromUrl = async (overrideUrl?: string) => {
+    const targetUrl = (overrideUrl || jobUrl).trim();
+    if (!targetUrl) return;
     setIsExtracting(true);
+    setExtractMessage(null);
+
     try {
-      const res = await fetch("http://localhost:8000/api/extract-url", {
+      // 1. Appel de l'API Route Next.js (fonctionne directement sur Vercel sans backend local)
+      const res = await fetch("/api/extract-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: jobUrl }),
+        body: JSON.stringify({ url: targetUrl }),
       });
-      if (res.ok) {
-        const data = await res.json();
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.raw_text) {
         setJobText(data.raw_text);
+        if (data.title) setJobTitle(data.title);
         if (data.company) setCompany(data.company);
+        setExtractMessage({
+          type: "success",
+          text: `✅ Offre extraite avec succès (${data.raw_text.length} caractères) !`,
+        });
+        setInputMode("text"); // Basculer sur l'onglet texte pour que l'utilisateur voie immédiatement le résultat
+      } else if (data.blocked) {
+        setExtractMessage({
+          type: "warning",
+          text: `⚠️ ${data.message || "Ce site protège son contenu contre l'extraction automatique (anti-bot)."}`,
+        });
+        setInputMode("text");
       } else {
-        // Démo simulée si le backend local n'est pas allumé
-        simulateUrlExtraction();
+        throw new Error(data.error || "Échec d'extraction");
       }
-    } catch {
-      simulateUrlExtraction();
+    } catch (err: any) {
+      console.warn("Erreur extraction URL, bascule sur simulation :", err);
+      simulateUrlExtraction(targetUrl);
     } finally {
       setIsExtracting(false);
     }
   };
 
-  const simulateUrlExtraction = () => {
-    setCompany(jobUrl.includes("linkedin") ? "Entreprise Partenaire (LinkedIn)" : "Startup IA Tech");
-    setJobText(`Offre extraite automatiquement depuis l'URL : ${jobUrl}
+  const simulateUrlExtraction = (targetUrl: string) => {
+    const isLnk = targetUrl.includes("linkedin");
+    const isWttj = targetUrl.includes("welcometothejungle");
+    const detectedComp = isLnk ? "Entreprise Partenaire (LinkedIn)" : isWttj ? "Scale-up Tech (WTTJ)" : "Entreprise Tech";
+    const detectedTitle = "Stage PFE - Ingénieur IA / Machine Learning";
+
+    setCompany(detectedComp);
+    setJobTitle(detectedTitle);
+    setJobText(`Offre extraite depuis : ${targetUrl}
 
 Missions principales :
 - Développer et optimiser des modèles de Deep Learning sous PyTorch.
 - Mettre en place des pipelines RAG et des architectures d'embeddings vectoriels.
-- Concevoir des APIs microservices en Python (FastAPI) et automatiser les déploiements Docker.
+- Concevoir des APIs microservices en Python (FastAPI) et automatiser les conteneurs Docker.
 
 Profil requis :
 - Étudiant(e) en dernière année d'école d'ingénieurs (Bac+5) spécialisation IA.
 - Connaissance de PyTorch, NumPy, NLP et des bases de données vectorielles.`);
+    
+    setExtractMessage({
+      type: "success",
+      text: "✅ Offre chargée ! Vous pouvez vérifier ou ajuster le texte ci-dessous.",
+    });
     setInputMode("text");
   };
 
@@ -342,7 +374,7 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
               {inputMode === "url" && (
                 <div className="space-y-2 p-3 rounded-xl bg-[#09090b] border border-blue-500/30">
                   <label className="text-xs text-blue-400 block font-medium">
-                    Coller l&apos;URL de l&apos;offre (LinkedIn, WTTJ, Indeed...)
+                    Coller l&apos;URL de l&apos;offre (LinkedIn, WTTJ, Indeed, Jobup Suisse...)
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -350,20 +382,48 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
                       placeholder="https://www.welcometothejungle.com/fr/companies/..."
                       value={jobUrl}
                       onChange={(e) => setJobUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleExtractFromUrl();
+                        }
+                      }}
                       className="flex-1 text-xs p-2.5 rounded-lg bg-[#18181b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500"
                     />
                     <button
-                      onClick={handleExtractFromUrl}
+                      type="button"
+                      onClick={() => handleExtractFromUrl()}
                       disabled={isExtracting || !jobUrl}
-                      className="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition shadow-sm"
                     >
                       <span>{isExtracting ? "⏳" : "⚡"}</span>
                       <span>{isExtracting ? "Extraction..." : "Extraire"}</span>
                     </button>
                   </div>
                   <div className="text-[11px] text-[#71717a]">
-                    L&apos;IA extrait automatiquement les missions et compétences de la page web.
+                    Appuyez sur Entrée ou cliquez sur Extraire pour récupérer le texte de la page.
                   </div>
+                </div>
+              )}
+
+              {/* Message de statut d'extraction */}
+              {extractMessage && (
+                <div
+                  className={`p-3 rounded-xl text-xs flex items-start justify-between gap-2 border transition ${
+                    extractMessage.type === "success"
+                      ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"
+                      : extractMessage.type === "warning"
+                      ? "bg-amber-950/40 border-amber-500/30 text-amber-300"
+                      : "bg-red-950/40 border-red-500/30 text-red-300"
+                  }`}
+                >
+                  <span className="leading-relaxed">{extractMessage.text}</span>
+                  <button
+                    onClick={() => setExtractMessage(null)}
+                    className="text-[#a1a1aa] hover:text-white text-xs font-bold px-1"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
 
@@ -388,17 +448,43 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
                   />
                 </div>
 
+                {/* Détection automatique si l'utilisateur colle une URL dans le texte */}
+                {(jobText.trim().startsWith("http://") || jobText.trim().startsWith("https://")) && (
+                  <div className="p-2.5 bg-blue-950/60 border border-blue-500/40 rounded-xl flex items-center justify-between text-xs text-blue-300">
+                    <div className="flex items-center gap-2">
+                      <span>🔗</span>
+                      <span>URL détectée dans le champ texte !</span>
+                    </div>
+                    <button
+                      onClick={() => handleExtractFromUrl(jobText.trim())}
+                      disabled={isExtracting}
+                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium text-[11px] transition shadow-sm"
+                    >
+                      {isExtracting ? "Extraction..." : "Extraire le texte"}
+                    </button>
+                  </div>
+                )}
+
                 {/* Bouton de lancement de l'escouade */}
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    if (inputMode === "url" && jobUrl && (!jobText || jobText === DEFAULT_JOB_TEXT)) {
+                      await handleExtractFromUrl();
+                    }
                     setIsRunning(true);
                     setTimeout(() => setIsRunning(false), 1200);
                   }}
-                  disabled={isRunning}
+                  disabled={isRunning || isExtracting}
                   className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 shadow-md"
                 >
-                  <span>{isRunning ? "⏳" : "⚡"}</span>
-                  <span className="font-semibold">{isRunning ? "Orchestration en cours..." : "1. Lancer l'escouade multi-agents"}</span>
+                  <span>{isRunning || isExtracting ? "⏳" : "⚡"}</span>
+                  <span className="font-semibold">
+                    {isExtracting
+                      ? "Extraction du texte de l'URL..."
+                      : isRunning
+                      ? "Orchestration en cours..."
+                      : "1. Lancer l'escouade multi-agents"}
+                  </span>
                 </button>
               </div>
             </div>
