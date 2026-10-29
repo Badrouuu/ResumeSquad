@@ -161,6 +161,79 @@ Profil requis :
     setInputMode("text");
   };
 
+  // Exécution réelle de l'escouade multi-agents avec Gemini
+  const handleRunPipeline = async () => {
+    setIsRunning(true);
+    setExtractMessage(null);
+
+    let activeText = jobText;
+    let activeTitle = jobTitle;
+    let activeCompany = company;
+
+    // Si l'utilisateur est en mode URL et n'a pas encore cliqué sur extraire
+    if (inputMode === "url" && jobUrl && (!jobText || jobText === DEFAULT_JOB_TEXT)) {
+      try {
+        const extRes = await fetch("/api/extract-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: jobUrl }),
+        });
+        const extData = await extRes.json();
+        if (extData.success && extData.raw_text) {
+          activeText = extData.raw_text;
+          setJobText(extData.raw_text);
+          if (extData.title) {
+            activeTitle = extData.title;
+            setJobTitle(extData.title);
+          }
+          if (extData.company) {
+            activeCompany = extData.company;
+            setCompany(extData.company);
+          }
+          setInputMode("text");
+        }
+      } catch (err) {
+        console.warn("Extraction préalable échouée :", err);
+      }
+    }
+
+    try {
+      const res = await fetch("/api/run-pipeline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          job_text: activeText,
+          job_title: activeTitle,
+          company: activeCompany,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.tailoredTitle) setTailoredTitle(data.tailoredTitle);
+        if (data.tailoredSummary) setTailoredSummary(data.tailoredSummary);
+        if (data.projectBullets && data.projectBullets.length > 0) setProjectBullets(data.projectBullets);
+        if (data.atsScore) setAtsScore(data.atsScore);
+        if (data.coverageRate) setCoverageRate(data.coverageRate);
+
+        setExtractMessage({
+          type: "success",
+          text: `🎉 L'escouade d'agents IA a adapté votre profil et vos projets en direct pour ${activeCompany} (Score ATS : ${data.atsScore}/100) !`,
+        });
+      } else {
+        throw new Error(data.error || "Erreur de génération");
+      }
+    } catch (err: any) {
+      console.warn("Erreur pipeline agentique:", err);
+      setExtractMessage({
+        type: "warning",
+        text: "⚠️ L'escouade a rencontré une latence sur l'API, les projets par défaut restent disponibles.",
+      });
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   // Téléchargement du fichier LaTeX (.tex)
   const handleDownloadTex = () => {
     const texContent = `\\documentclass[10pt,a4paper]{article}
@@ -467,13 +540,7 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
 
                 {/* Bouton de lancement de l'escouade */}
                 <button
-                  onClick={async () => {
-                    if (inputMode === "url" && jobUrl && (!jobText || jobText === DEFAULT_JOB_TEXT)) {
-                      await handleExtractFromUrl();
-                    }
-                    setIsRunning(true);
-                    setTimeout(() => setIsRunning(false), 1200);
-                  }}
+                  onClick={handleRunPipeline}
                   disabled={isRunning || isExtracting}
                   className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 shadow-md"
                 >
@@ -482,7 +549,7 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
                     {isExtracting
                       ? "Extraction du texte de l'URL..."
                       : isRunning
-                      ? "Orchestration en cours..."
+                      ? "Orchestration multi-agents Gemini en cours..."
                       : "1. Lancer l'escouade multi-agents"}
                   </span>
                 </button>

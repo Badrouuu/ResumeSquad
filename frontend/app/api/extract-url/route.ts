@@ -12,6 +12,64 @@ export async function POST(request: Request) {
       );
     }
 
+    // Support natif Greenhouse ATS (ex: Waymo, Stripe, Figma, etc. avec gh_jid)
+    const ghJidMatch = url.match(/[?&]gh_jid=(\d+)/) || url.match(/\/jobs\/(\d+)/);
+    if (url.includes("greenhouse") || url.includes("gh_jid") || ghJidMatch) {
+      let board = "";
+      if (url.includes("waymo")) board = "waymo";
+      else if (url.includes("boards.greenhouse.io/")) {
+        const parts = url.split("boards.greenhouse.io/")[1].split("/");
+        board = parts[0];
+      } else {
+        const host = new URL(url).hostname;
+        const cleanHost = host.replace("careers.", "").replace("jobs.", "").split(".")[0];
+        board = cleanHost.replace("with", "");
+      }
+
+      const jobId = ghJidMatch ? ghJidMatch[1] : null;
+      if (board && jobId) {
+        try {
+          const ghRes = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${jobId}`, {
+            headers: { Accept: "application/json" },
+            next: { revalidate: 0 },
+          });
+
+          if (ghRes.ok) {
+            const ghData = await ghRes.json();
+            let content = (ghData.content || "")
+              .replace(/&lt;/g, "<")
+              .replace(/&gt;/g, ">")
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .replace(/&amp;/g, "&")
+              .replace(/&nbsp;/g, " ");
+
+            content = content.replace(/<(h[1-6]|p|div|section|article)[^>]*>/gi, "\n");
+            content = content.replace(/<li[^>]*>/gi, "\n- ");
+            content = content.replace(/<br\s*\/?>/gi, "\n");
+            content = content.replace(/<[^>]+>/g, " ");
+
+            const ghLines = content
+              .split("\n")
+              .map((l: string) => l.trim())
+              .filter((l: string) => l.length > 0 && l !== "-");
+
+            const finalContent = ghLines.join("\n").slice(0, 6000);
+
+            return NextResponse.json({
+              success: true,
+              raw_text: finalContent,
+              title: ghData.title || "Poste d'Ingénieur",
+              company: board.charAt(0).toUpperCase() + board.slice(1),
+              url,
+            });
+          }
+        } catch (e) {
+          console.warn("Erreur fallback Greenhouse:", e);
+        }
+      }
+    }
+
     // Détection des sites à forte protection anti-bot (LinkedIn, Indeed authwall, etc.)
     const isLinkedIn = url.includes("linkedin.com");
     const isIndeed = url.includes("indeed.com") || url.includes("indeed.fr");
@@ -125,7 +183,7 @@ export async function POST(request: Request) {
     const lines = cleanText
       .split("\n")
       .map((line) => line.trim())
-      .filter((line) => line.length > 0 && !line.startsWith("{") && !line.endsWith("}"));
+      .filter((line) => line.length > 0 && line !== "-" && !line.startsWith("{") && !line.endsWith("}"));
 
     const finalRawText = lines.join("\n").slice(0, 5000);
 
