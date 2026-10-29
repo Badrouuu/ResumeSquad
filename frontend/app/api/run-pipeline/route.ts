@@ -50,23 +50,25 @@ Intitulé de poste : ${jobTitle}
 Description / Missions :
 ${jobText.slice(0, 4000)}
 
+=== RÈGLE DE LANGUE IMPÉRATIVE (BILINGUISME INTELLIGENT) ===
+- Analyse la langue de l'offre d'emploi (Description / Missions) :
+  * Si l'offre est en ANGLAIS (English) -> Tu DOIS générer l'INTÉGRALITÉ des champs (tailoredTitle, tailoredSummary, projectBullets, strategyNote) en ANGLAIS PROFESSIONNEL NATIF (utilise des verbes d'action au prétérit : Accomplished, Engineered, Architected, Built). Renseigne "language": "en".
+  * Si l'offre est en FRANÇAIS -> Rédige l'intégralité en FRANÇAIS. Renseigne "language": "fr".
+
 === INSTRUCTIONS DE GÉNÉRATION ===
 1. Titre ciblé : Ajuste le titre du CV pour refléter exactement le poste demandé (ex: "Machine Learning Infrastructure Intern", "Ingénieur IA / Deep Learning - Stage PFE").
 2. Résumé percutant : Rédige une accroche de 3-4 phrases soulignant les compétences réelles de Badroudine qui correspondent directement aux exigences de l'offre (ex: Python, C++, Deep Learning, FastAPI, Docker, anglais C1).
-3. Adaptation des projets : Réécris les puces des 2 projets principaux ("VectorWord" et "Pipeline RAG") selon la formule STAR (Accompli [X] mesuré par [Y] en faisant appel à [Z]) en insistant sur les compétences clés de l'annonce.
+3. Adaptation des projets : Réécris les puces des 2 projets principaux ("VectorWord" et "Pipeline RAG") selon la formule STAR (Accompli [X] mesuré par [Y] en faisant appel à [Z] / Accomplished [X] as measured by [Y] by doing [Z]) en insistant sur les compétences clés de l'annonce.
 4. Score ATS & Couverture : Évalue de manière réaliste le score ATS (entre 80 et 96) et le taux de couverture des mots-clés selon l'adéquation.
 
 Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 {
+  "language": "en" | "fr",
   "tailoredTitle": "string",
   "tailoredSummary": "string",
   "projectBullets": [
     {
-      "project": "VectorWord / Guess-What (NLP & Vector Space Search)",
-      "bullets": ["string", "string", "string"]
-    },
-    {
-      "project": "Pipeline RAG & Automatisation de Code (Agentic AI)",
+      "project": "string",
       "bullets": ["string", "string"]
     }
   ],

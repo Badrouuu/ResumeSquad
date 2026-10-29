@@ -75,6 +75,7 @@ export default function Home() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [extractMessage, setExtractMessage] = useState<{ type: "success" | "warning" | "error"; text: string } | null>(null);
+  const [cvLanguage, setCvLanguage] = useState<"fr" | "en">("fr");
 
   useEffect(() => {
     const saved = localStorage.getItem("resumesquad_applications");
@@ -210,15 +211,19 @@ Profil requis :
 
       const data = await res.json();
       if (res.ok && data.success) {
+        if (data.language === "en" || data.language === "fr") {
+          setCvLanguage(data.language);
+        }
         if (data.tailoredTitle) setTailoredTitle(data.tailoredTitle);
         if (data.tailoredSummary) setTailoredSummary(data.tailoredSummary);
         if (data.projectBullets && data.projectBullets.length > 0) setProjectBullets(data.projectBullets);
         if (data.atsScore) setAtsScore(data.atsScore);
         if (data.coverageRate) setCoverageRate(data.coverageRate);
 
+        const langBadge = data.language === "en" ? "🇬🇧 en Anglais" : "🇫🇷 en Français";
         setExtractMessage({
           type: "success",
-          text: `🎉 L'escouade d'agents IA a adapté votre profil et vos projets en direct pour ${activeCompany} (Score ATS : ${data.atsScore}/100) !`,
+          text: `🎉 L'escouade d'agents IA a adapté votre CV ${langBadge} pour ${activeCompany} (Score ATS : ${data.atsScore}/100) !`,
         });
       } else {
         throw new Error(data.error || "Erreur de génération");
@@ -234,8 +239,64 @@ Profil requis :
     }
   };
 
-  // Téléchargement du fichier LaTeX (.tex)
+  // Téléchargement du fichier LaTeX (.tex) bilingue FR/EN
   const handleDownloadTex = () => {
+    const isEn = cvLanguage === "en";
+
+    const locationText = isEn
+      ? "France (Mobility: Switzerland, Luxembourg, Belgium, Remote)"
+      : "Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail)";
+
+    const educationSection = isEn
+      ? `\\section{Education \\& Certifications}
+\\begin{itemize}
+    \\item \\textbf{Master of Science in Computer Engineering — Major in Artificial Intelligence} \\hfill 2024 - 2027 \\\\
+    \\textit{EILCO Graduate School of Engineering, Calais, France} \\\\
+    \\footnotesize Final year (MSc / ING3). Advanced coursework: Deep Learning, Computer Vision, Machine Learning, Software Architecture, MLOps, CI/CD, Advanced Databases.
+    \\item \\textbf{English Proficiency: TOEIC Listening and Reading} \\hfill Score: \\textbf{905 / 990 (CEFR C1 Level - Fluent)}
+\\end{itemize}`
+      : `\\section{Formation \\& Certifications}
+\\begin{itemize}
+    \\item \\textbf{Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle} \\hfill 2024 - 2027 \\\\
+    \\textit{EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France} \\\\
+    \\footnotesize Dernière année (ING3). Modules avancés : Deep Learning, Vision par Ordinateur, Machine Learning, Architecture Logicielle, MLOps, CI/CD, Bases de Données Avancées.
+    \\item \\textbf{Certification Anglais : TOEIC Listening and Reading} \\hfill Score : \\textbf{905 / 990 (Niveau C1)}
+\\end{itemize}`;
+
+    const projectsSectionTitle = isEn
+      ? "\\section{Technical Projects \\& Key Achievements}"
+      : "\\section{Projets Techniques \\& Réalisations}";
+
+    const experienceSection = isEn
+      ? `\\section{Professional Experience}
+\\noindent
+\\textbf{Founder \\& Lead Software Developer (Entrepreneurial Internship PÉPITE)} \\hfill 2025 - 2026 \\\\
+\\textit{Étiquette Jaune (Startup / Micro-enterprise)}
+\\begin{itemize}
+    \\item Accomplished integration of on-device Computer Vision models measured by text extraction speed, leveraging Google ML Kit Text Recognition (OCR).
+    \\item Accomplished serverless backend development measured by real-time data synchronization, utilizing Google Cloud Firestore, Cloud Functions, and TypeScript.
+\\end{itemize}`
+      : `\\section{Expérience Professionnelle}
+\\noindent
+\\textbf{Fondateur \\& Développeur Lead (Stage Entrepreneurial PÉPITE)} \\hfill 2025 - 2026 \\\\
+\\textit{Étiquette Jaune (Micro-entreprise)}
+\\begin{itemize}
+    \\item Accompli l'intégration de modèles de Vision par Ordinateur mesurés par la vitesse d'extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).
+    \\item Accompli le développement d'un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.
+\\end{itemize}`;
+
+    const interestsSection = isEn
+      ? `\\section{Interests \\& Passions}
+\\begin{itemize}
+    \\item \\textbf{Game Modding \\& Video Games:} Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures).
+    \\item \\textbf{Strategy Games \\& Competitive TCG:} Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making).
+\\end{itemize}`
+      : `\\section{Centres d'Intérêt \\& Passions}
+\\begin{itemize}
+    \\item \\textbf{Modding \\& Jeux Vidéo :} Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données).
+    \\item \\textbf{Jeux de Stratégie \\& TCG Compétitif :} Pratique active de jeux de stratégie et participation à des tournois One Piece TCG (théorie des jeux, optimisation tactique, calculs de probabilités).
+\\end{itemize}`;
+
     const texContent = `\\documentclass[10pt,a4paper]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}
@@ -258,7 +319,7 @@ Profil requis :
 \\begin{center}
     {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.4em]
     {\\large \\textbf{${tailoredTitle}}} \\\\[0.4em]
-    \\small Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail) \\\\
+    \\small ${locationText} \\\\
     \\href{tel:+33767560786}{07 67 56 07 86} \\ $|$ \\ 
     \\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
     \\href{https://www.linkedin.com/in/badroudine-bacar/}{LinkedIn} \\ $|$ \\ 
@@ -269,15 +330,9 @@ Profil requis :
 \\noindent
 \\small ${tailoredSummary}
 
-\\section{Formation \\& Certifications}
-\\begin{itemize}
-    \\item \\textbf{Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle} \\hfill 2024 - 2027 \\\\
-    \\textit{EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France} \\\\
-    \\footnotesize Dernière année (ING3). Modules avancés : Deep Learning, Vision par Ordinateur, Machine Learning, Architecture Logicielle, MLOps, CI/CD, Bases de Données Avancées.
-    \\item \\textbf{Certification Anglais : TOEIC Listening and Reading} \\hfill Score : \\textbf{905 / 990 (Niveau C1)}
-\\end{itemize}
+${educationSection}
 
-\\section{Projets Techniques \\& Réalisations}
+${projectsSectionTitle}
 ${projectBullets
   .map(
     (p) => `\\noindent
@@ -289,20 +344,9 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
   )
   .join("\n")}
 
-\\section{Expérience Professionnelle}
-\\noindent
-\\textbf{Fondateur \\& Développeur Lead (Stage Entrepreneurial PÉPITE)} \\hfill 2025 - 2026 \\\\
-\\textit{Étiquette Jaune (Micro-entreprise)}
-\\begin{itemize}
-    \\item Accompli l'intégration de modèles de Vision par Ordinateur mesurés par la vitesse d'extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).
-    \\item Accompli le développement d'un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.
-\\end{itemize}
+${experienceSection}
 
-\\section{Centres d'Intérêt \\& Passions}
-\\begin{itemize}
-    \\item \\textbf{Modding \\& Jeux Vidéo :} Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données).
-    \\item \\textbf{Jeux de Stratégie \\& TCG Compétitif :} Pratique active de jeux de stratégie et participation à des tournois One Piece TCG (théorie des jeux, optimisation tactique, calculs de probabilités).
-\\end{itemize}
+${interestsSection}
 
 \\end{document}`;
 
@@ -663,15 +707,42 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
                   </button>
                 </div>
 
-                <a
-                  href="https://www.overleaf.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-blue-400 hover:underline font-medium hidden sm:flex items-center gap-1"
-                >
-                  <span>Ouvrir Overleaf</span>
-                  <span>↗</span>
-                </a>
+                <div className="flex items-center gap-2">
+                  {/* Sélecteur de langue CV */}
+                  <div className="flex items-center gap-1 bg-[#09090b] border border-[#27272a] p-1 rounded-xl text-xs">
+                    <span className="text-[10px] text-[#71717a] font-medium px-1.5">Langue CV :</span>
+                    <button
+                      type="button"
+                      onClick={() => setCvLanguage("fr")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                        cvLanguage === "fr" ? "bg-blue-600 text-white shadow-sm" : "text-[#a1a1aa] hover:text-white"
+                      }`}
+                      title="Générer le CV en Français"
+                    >
+                      🇫🇷 FR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCvLanguage("en")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                        cvLanguage === "en" ? "bg-blue-600 text-white shadow-sm" : "text-[#a1a1aa] hover:text-white"
+                      }`}
+                      title="Generate CV in English"
+                    >
+                      🇬🇧 EN
+                    </button>
+                  </div>
+
+                  <a
+                    href="https://www.overleaf.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-blue-400 hover:underline font-medium hidden sm:flex items-center gap-1 ml-1"
+                  >
+                    <span>Ouvrir Overleaf</span>
+                    <span>↗</span>
+                  </a>
+                </div>
               </div>
 
               {/* Onglet 1 : Puces STAR */}
