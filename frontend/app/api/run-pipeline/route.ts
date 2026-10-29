@@ -39,6 +39,10 @@ Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et
   1. VectorWord / Guess-What : API haute performance (FastAPI, Uvicorn) pour le calcul de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) avec Gensim et NumPy. Architecture Docker sur Railway, frontend Next.js 15, TypeScript, Supabase.
   2. Pipeline RAG & Automatisation Agentique : Parsing d'offres d'emploi, Few-Shot Prompting avec LLMs, génération structurée de documents LaTeX, réduction drastique des hallucinations.
   3. Étiquette Jaune (Fondateur & Lead Dev - Micro-entreprise) : Vision par ordinateur sur mobile avec Google ML Kit Text Recognition (OCR), backend serverless Google Cloud Firestore & Functions, TypeScript.
+- Passions & Centres d'intérêt réels :
+  * Modding de jeux vidéo (analyse approfondie et modification de mécaniques de gameplay, scripting, structures de données).
+  * Jeux de stratégie & pratique compétitive en tournois One Piece TCG (théorie des jeux, optimisation de decks, calculs probabilistes et prise de décision sous incertitude).
+  * Passionné de jeux vidéo et de simulation interactive.
 
 === OFFRE D'EMPLOI CIBLÉE ===
 Entreprise : ${company}

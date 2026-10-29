@@ -298,6 +298,12 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
     \\item Accompli le développement d'un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.
 \\end{itemize}
 
+\\section{Centres d'Intérêt \\& Passions}
+\\begin{itemize}
+    \\item \\textbf{Modding \\& Jeux Vidéo :} Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données).
+    \\item \\textbf{Jeux de Stratégie \\& TCG Compétitif :} Pratique active de jeux de stratégie et participation à des tournois One Piece TCG (théorie des jeux, optimisation tactique, calculs de probabilités).
+\\end{itemize}
+
 \\end{document}`;
 
     const blob = new Blob([texContent], { type: "text/plain;charset=utf-8" });
@@ -710,6 +716,38 @@ ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
                       </div>
                     </div>
                   ))}
+
+                  {/* Section Passions & Centres d'Intérêt */}
+                  <div className="space-y-2 pt-3 border-t border-[#27272a]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🎯</span> Centres d&apos;Intérêt & Passions (Inclus dans le CV)
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium">
+                        Profil & Soft Skills
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a] space-y-1">
+                        <div className="text-white font-semibold flex items-center gap-1.5">
+                          <span>🎮</span> Modding & Jeux Vidéo
+                        </div>
+                        <div className="text-[11px] text-[#a1a1aa] leading-relaxed">
+                          Passionné de jeux vidéo et de modding : analyse et rétro-ingénierie de mécaniques de gameplay, scripting et structures de données.
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a] space-y-1">
+                        <div className="text-white font-semibold flex items-center gap-1.5">
+                          <span>🃏</span> Jeux de Stratégie & TCG Compétitif
+                        </div>
+                        <div className="text-[11px] text-[#a1a1aa] leading-relaxed">
+                          Pratique active de jeux de stratégie et tournois compétitifs One Piece TCG : théorie des jeux, optimisation de deck et calculs probabilistes.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
