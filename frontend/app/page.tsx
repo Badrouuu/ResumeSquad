@@ -57,6 +57,7 @@ export default function Home() {
 
   // Filtres et recherche pour le Radar d'offres
   const [radarCountryFilter, setRadarCountryFilter] = useState<string>("all");
+  const [radarTimeframe, setRadarTimeframe] = useState<"24h" | "3d" | "7d" | "all">("7d");
   const [radarSearch, setRadarSearch] = useState<string>("");
   const [liveOffers, setLiveOffers] = useState<RadarJobOffer[]>([]);
   const [isScanningLive, setIsScanningLive] = useState(false);
@@ -546,15 +547,37 @@ ${interestsSection}
       offer.location.toLowerCase().includes(query) ||
       offer.skills.some((s) => s.toLowerCase().includes(query)) ||
       offer.description.toLowerCase().includes(query);
-    return matchesCountry && matchesSearch;
+
+    let matchesTimeframe = true;
+    if (radarTimeframe === "24h") {
+      matchesTimeframe =
+        !!offer.postedAgo &&
+        (offer.postedAgo.includes("min") ||
+          offer.postedAgo.includes(" h") ||
+          offer.postedAgo.includes("heure"));
+    } else if (radarTimeframe === "3d") {
+      matchesTimeframe =
+        offer.isFresh !== false &&
+        (offer.isFresh === true ||
+          (!!offer.postedAgo &&
+            (offer.postedAgo.includes("min") ||
+              offer.postedAgo.includes(" h") ||
+              offer.postedAgo === "Hier" ||
+              offer.postedAgo.includes("1 jour") ||
+              offer.postedAgo.includes("2 jours") ||
+              offer.postedAgo.includes("3 jours"))));
+    }
+
+    return matchesCountry && matchesSearch && matchesTimeframe;
   });
 
-  // Scanner en direct les offres sur les marchés suisse et européen (SwissDevJobs & GermanTechJobs)
-  const handleScanLiveOffers = async () => {
+  // Scanner en direct les offres sur les marchés suisse et européen avec filtre de fraîcheur
+  const handleScanLiveOffers = async (overrideTimeframe?: "24h" | "3d" | "7d" | "all") => {
+    const tf = overrideTimeframe || radarTimeframe;
     setIsScanningLive(true);
     setLastScanMessage(null);
     try {
-      const res = await fetch("/api/radar/live-fetch");
+      const res = await fetch(`/api/radar/live-fetch?timeframe=${tf}`);
       const data = await res.json();
       if (res.ok && data.success && Array.isArray(data.offers)) {
         setLiveOffers(data.offers);
@@ -564,7 +587,7 @@ ${interestsSection}
           console.warn("Erreur sauvegarde localStorage:", e);
         }
         setLastScanMessage(
-          `🔥 ${data.offers.length} opportunités fraîches scannées en direct sur les marchés suisse et européen !`
+          `🔥 ${data.offers.length} opportunités ultra-fraîches (${data.timeframeLabel || tf}) scannées en direct sur le marché européen !`
         );
       } else {
         throw new Error(data.error || "Erreur lors du scan en direct");
@@ -1329,7 +1352,7 @@ ${interestsSection}
               <div className="flex flex-col sm:flex-row items-center gap-3">
                 {/* Bouton de scan temps réel */}
                 <button
-                  onClick={handleScanLiveOffers}
+                  onClick={() => handleScanLiveOffers()}
                   disabled={isScanningLive}
                   className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
                   title="Interroge en direct les APIs de jobs tech en Suisse et en Allemagne"
@@ -1373,6 +1396,44 @@ ${interestsSection}
                 </button>
               </div>
             )}
+
+            {/* Filtres de fraîcheur temporelle */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#18181b] border border-[#27272a] rounded-xl shadow-sm">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-white flex items-center gap-1 mr-1">
+                  <span>⏱️</span>
+                  <span>Fraîcheur des offres :</span>
+                </span>
+                {[
+                  { id: "24h", label: "🔥 Moins de 24h (Ultra-Frais)", desc: "Offres publiées aujourd'hui" },
+                  { id: "3d", label: "⚡ Moins de 3 jours", desc: "Offres des 72 dernières heures" },
+                  { id: "7d", label: "📅 Cette semaine (< 7j)", desc: "Offres publiées cette semaine" },
+                  { id: "all", label: "🌐 Tout l'historique", desc: "Toutes les offres disponibles" },
+                ].map((tf) => (
+                  <button
+                    key={tf.id}
+                    onClick={() => {
+                      const newTf = tf.id as "24h" | "3d" | "7d" | "all";
+                      setRadarTimeframe(newTf);
+                      handleScanLiveOffers(newTf);
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+                      radarTimeframe === tf.id
+                        ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm font-semibold"
+                        : "bg-[#09090b] text-[#a1a1aa] border border-[#27272a] hover:text-white hover:bg-[#27272a]"
+                    }`}
+                    title={tf.desc}
+                  >
+                    {tf.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="text-[11px] text-[#71717a] flex items-center gap-1">
+                <span>🔄 Tri :</span>
+                <span className="text-emerald-400 font-medium">du plus récent au plus ancien</span>
+              </div>
+            </div>
 
             {/* Filtres par pays */}
             <div className="flex flex-wrap gap-2">
@@ -1432,12 +1493,29 @@ ${interestsSection}
                           <h4 className="text-sm font-semibold text-blue-400 mt-1">{offer.title}</h4>
                         </div>
 
-                        {/* Badges rémunération & workplace */}
+                        {/* Badges rémunération, fraîcheur & workplace */}
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                          {offer.id.startsWith("live-") && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1 shadow-sm">
-                              <span>🔥</span>
-                              <span>En Direct (Live Feed)</span>
+                          {offer.postedAgo && (
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm ${
+                                offer.postedAgo.includes("min") ||
+                                offer.postedAgo.includes(" h") ||
+                                offer.postedAgo.includes("heure") ||
+                                offer.postedAgo === "Hier"
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                  : "bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                              }`}
+                              title="Date de publication détectée sur le site recruteur"
+                            >
+                              <span>
+                                {offer.postedAgo.includes("min") ||
+                                offer.postedAgo.includes(" h") ||
+                                offer.postedAgo.includes("heure") ||
+                                offer.postedAgo === "Hier"
+                                  ? "🔥"
+                                  : "⏱️"}
+                              </span>
+                              <span>{offer.postedAgo}</span>
                             </span>
                           )}
                           <span
@@ -1496,11 +1574,11 @@ ${interestsSection}
                       </a>
 
                       <a
-                        href={`https://www.google.com/search?q=${encodeURIComponent(`${offer.company} ${offer.title} ${offer.location} careers`)}`}
+                        href={`https://www.google.com/search?q=${encodeURIComponent(`${offer.company} ${offer.title} ${offer.location} careers`)}&tbs=qdr:w`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-2.5 py-2.5 bg-[#27272a] hover:bg-blue-600/30 hover:text-blue-300 text-[#a1a1aa] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
-                        title="Rechercher sur Google Careers si le lien direct a expiré ou retourne une erreur 404"
+                        title="Rechercher sur Google Careers avec filtre de fraîcheur (< 7 jours)"
                       >
                         <span>🔎 Google</span>
                         <span>↗</span>

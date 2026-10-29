@@ -10,6 +10,8 @@ export interface RadarJobOffer {
   skills: string[];
   url: string;
   description: string;
+  postedAgo?: string;
+  isFresh?: boolean;
 }
 
 export interface DeepSearchPortal {
@@ -18,41 +20,57 @@ export interface DeepSearchPortal {
   countryFlag: string;
   description: string;
   url: string;
-  category: "Suisse" | "Luxembourg" | "Belgique" | "International";
+  category: "Suisse" | "Luxembourg" | "Belgique" | "Allemagne" | "International";
 }
 
 export const DEEP_SEARCH_PORTALS: DeepSearchPortal[] = [
   {
-    name: "SwissDevJobs (Python / AI)",
+    name: "LinkedIn Suisse (Stage IA/ML - Frais < 7j)",
     country: "Suisse",
     countryFlag: "🇨🇭",
-    description: "Le portail tech n°1 en Suisse. Filtre direct sur les offres Python, Machine Learning et Data Science.",
+    description: "Recherche booléenne ciblée avec filtre de fraîcheur (< 7 jours) et tri par date : ('intern' OR 'stage' OR 'PFE') AND ('Machine Learning' OR 'AI').",
+    url: "https://www.linkedin.com/jobs/search/?keywords=%28%22intern%22%20OR%20%22stage%22%20OR%20%22PFE%22%29%20AND%20%28%22Machine%20Learning%22%20OR%20%22Artificial%20Intelligence%22%20OR%20%22AI%22%29&location=Switzerland&sortBy=DD&f_TPR=r604800",
+    category: "Suisse",
+  },
+  {
+    name: "SwissDevJobs (Python / AI Suisse)",
+    country: "Suisse",
+    countryFlag: "🇨🇭",
+    description: "Le portail tech n°1 en Suisse. Filtre direct sur les offres récentes Python, Machine Learning et Data Science.",
     url: "https://swissdevjobs.ch/jobs/all/python",
     category: "Suisse",
   },
   {
-    name: "LinkedIn Suisse (Stage PFE IA)",
-    country: "Suisse",
-    countryFlag: "🇨🇭",
-    description: "Recherche booléenne ciblée : ('intern' OR 'stage' OR 'PFE') AND ('Machine Learning' OR 'AI' OR 'Vision') en Suisse.",
-    url: "https://www.linkedin.com/jobs/search/?keywords=%28%22intern%22%20OR%20%22stage%22%20OR%20%22PFE%22%29%20AND%20%28%22Machine%20Learning%22%20OR%20%22Artificial%20Intelligence%22%20OR%20%22AI%22%29&location=Switzerland",
-    category: "Suisse",
+    name: "LinkedIn Luxembourg (Stage Data / IA - Frais < 7j)",
+    country: "Luxembourg",
+    countryFlag: "🇱🇺",
+    description: "Flux en direct des opportunités récentes (< 7 jours) en Machine Learning, Data et IA au Luxembourg.",
+    url: "https://www.linkedin.com/jobs/search/?keywords=internship+%28%22Machine+Learning%22+OR+%22Data%22+OR+%22AI%22%29&location=Luxembourg&sortBy=DD&f_TPR=r604800",
+    category: "Luxembourg",
+  },
+  {
+    name: "LinkedIn Belgique (Stage ML Bruxelles - Frais < 7j)",
+    country: "Belgique",
+    countryFlag: "🇧🇪",
+    description: "Recherche directe sur les stages en Machine Learning, Computer Vision et NLP à Bruxelles postés cette semaine.",
+    url: "https://www.linkedin.com/jobs/search/?keywords=internship+%28%22Machine+Learning%22+OR+%22AI%22%29&location=Brussels&sortBy=DD&f_TPR=r604800",
+    category: "Belgique",
+  },
+  {
+    name: "LinkedIn Allemagne (Stage ML/IA Munich - Frais < 7j)",
+    country: "Allemagne",
+    countryFlag: "🇩🇪",
+    description: "Flux de stages de recherche et ingénierie IA à Munich (BMW, BCG X, SIXT, Google) publiés dans les 7 derniers jours.",
+    url: "https://www.linkedin.com/jobs/search/?keywords=internship+%28%22Machine+Learning%22+OR+%22AI%22%29&location=Munich&sortBy=DD&f_TPR=r604800",
+    category: "Allemagne",
   },
   {
     name: "Moovijob Luxembourg",
     country: "Luxembourg",
     countryFlag: "🇱🇺",
     description: "Portail officiel des stages au Luxembourg. Filtre sur les postes Data, Intelligence Artificielle et Cloud.",
-    url: "https://www.moovijob.com/recherche-emploi/luxembourg?keywords=stage+data+intelligence+artificielle",
+    url: "https://www.moovijob.com/recherche-emploi/luxembourg?keywords=stage+intelligence+artificielle",
     category: "Luxembourg",
-  },
-  {
-    name: "LinkedIn Belgique (Stage ML Bruxelles)",
-    country: "Belgique",
-    countryFlag: "🇧🇪",
-    description: "Recherche directe sur les stages en Machine Learning, Computer Vision et NLP à Bruxelles et en Belgique.",
-    url: "https://www.linkedin.com/jobs/search/?keywords=internship+machine+learning&location=Brussels",
-    category: "Belgique",
   },
   {
     name: "Jobup.ch (Suisse Romande)",
@@ -74,34 +92,172 @@ export const DEEP_SEARCH_PORTALS: DeepSearchPortal[] = [
 
 export const RADAR_JOB_OFFERS: RadarJobOffer[] = [
   {
-    id: "waymo-sim-ml",
-    company: "Waymo",
-    title: "2027 Summer Intern, MS/PhD, Sim-Realism ML Infrastructure",
-    location: "London, England, UK",
-    country: "International",
-    countryFlag: "🇬🇧",
+    id: "roche-ai-metadata",
+    company: "Roche",
+    title: "Internship - AI Metadata Augmentation & Machine Learning",
+    location: "Bâle, Suisse",
+    country: "Suisse",
+    countryFlag: "🇨🇭",
     workplace: "Hybride",
-    compensation: "£65,000 / an (pro-rata)",
-    skills: ["Python", "C++", "Distributed Systems", "TensorFlow/Jax", "Autonomous Driving", "Sim-Realism"],
-    url: "https://careers.withwaymo.com/jobs?department=Research%20%26%20Machine%20Learning",
-    description: `Waymo is an autonomous driving technology company with the mission to be the world's most trusted driver.
-Role: 2027 Summer Intern, MS/PhD, Sim-Realism ML Infrastructure.
-
-You will:
-- Currently enrolled in a Master's or PhD program in Computer Science, or a related technical field.
-- Contribute to existing projects maintaining millions of multi-modal examples and PiBs of feature data.
-- Implement new systems to improve existing workflows.
-- Work with users and agents to identify use cases and flows that can be improved.
-
-You have:
-- Python / C++ Coding skills.
-- Distributed Systems knowledge.
-- Familiarity with ML training and inference lifecycles.
-
-We prefer:
-- Hands-on experience with feature extraction, feature representations, distributed storage.
-- Experience with deep learning frameworks (PyTorch, TensorFlow, Jax).
-- Experience with autonomous driving and / or robotics.`,
+    compensation: "3,800 CHF / mois",
+    skills: ["Python", "Machine Learning", "NLP", "FastAPI", "Metadata Augmentation", "PyTorch"],
+    url: "https://jobs.roche.com/global/en/search-results?keywords=AI%20Intern",
+    description: `F. Hoffmann-La Roche AG - Bâle, Suisse.
+Poste : Internship - AI Metadata Augmentation (Stage PFE 6 mois).
+Missions :
+- Développer des modèles de NLP et de Machine Learning pour l'enrichissement sémantique de métadonnées scientifiques et biomédicales.
+- Concevoir des pipelines d'extraction automatique et d'alignement d'entités avec PyTorch et HuggingFace Transformers.
+- Exposer des APIs Python performantes sous FastAPI et conteneuriser les microservices sous Docker.
+Profil : Étudiant en dernière année d'école d'ingénieurs (Bac+5 / Master 2) spécialisé en IA ou Data Science. Anglais courant.`,
+    postedAgo: "Il y a 1 heure",
+    isFresh: true,
+  },
+  {
+    id: "nvidia-genai-algorithms",
+    company: "NVIDIA",
+    title: "GenAI Algorithms Intern – Model Optimization for Inference",
+    location: "Zurich, Suisse",
+    country: "Suisse",
+    countryFlag: "🇨🇭",
+    workplace: "Hybride",
+    compensation: "5,500 CHF / mois",
+    skills: ["PyTorch", "TensorRT", "CUDA", "LLMs", "Quantization", "C++", "Python"],
+    url: "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite?q=intern",
+    description: `NVIDIA AI Research & Engineering Campus - Zurich, Switzerland.
+Role: GenAI Algorithms Intern – Model Optimization for Inference (6 months PFE).
+Responsibilities:
+- Accelerate large language models (LLMs) and diffusion architectures using TensorRT-LLM and custom CUDA kernels.
+- Implement post-training quantization (INT8, FP8, AWQ) and benchmark throughput vs perplexity.
+- Collaborate with AI algorithm researchers to prototype next-generation generative AI models.
+Qualifications: Master's student in Computer Science, Machine Learning, or Electrical Engineering. Proficient in PyTorch, C++, and Python.`,
+    postedAgo: "Il y a 2 jours",
+    isFresh: true,
+  },
+  {
+    id: "bmw-munich-causal-ml",
+    company: "BMW Group",
+    title: "Thesis / Master Intern: Causal ML for Prescriptive Decision Support",
+    location: "Munich, Allemagne",
+    country: "Allemagne",
+    countryFlag: "🇩🇪",
+    workplace: "Hybride",
+    compensation: "2,200 € / mois",
+    skills: ["Python", "Causal ML", "PyTorch", "Decision Theory", "NumPy", "Pandas"],
+    url: "https://www.bmwgroup.jobs/de/en/jobs.html?location=Munich&jobField=Research%20and%20Development",
+    description: `BMW Group Tech Office - Munich, Germany.
+Role: Master's Thesis / Internship: Causal ML for Prescriptive Decision Support in Automotive Systems (6 months PFE).
+Tasks:
+- Research and develop causal inference and machine learning algorithms for prescriptive maintenance and decision modeling.
+- Implement statistical and deep learning pipelines in Python (PyTorch, EconML, DoWhy).
+- Validate algorithmic decisions on large-scale fleet telemetry datasets.
+Profile: Master's student in AI, Computer Science, or Mathematics. Strong mathematical grounding and Python skills.`,
+    postedAgo: "Il y a 6 heures",
+    isFresh: true,
+  },
+  {
+    id: "deloitte-lux-agentic-ai",
+    company: "Deloitte Luxembourg",
+    title: "Intelligent Automation & Agentic AI Trainee (PFE - Promo 2027)",
+    location: "Luxembourg (Cloche d'Or)",
+    country: "Luxembourg",
+    countryFlag: "🇱🇺",
+    workplace: "Hybride",
+    compensation: "2,400 € / mois",
+    skills: ["Python", "Agentic AI", "LLMs", "RAG", "FastAPI", "Docker", "Cloud"],
+    url: "https://careers.deloitte.lu/job-search.html?keyword=AI",
+    description: `Deloitte Luxembourg Innovation Hub - Cloche d'Or, Luxembourg.
+Poste : Intelligent Automation & Agentic AI Trainee (Stage PFE 6 mois dès début 2027).
+Missions :
+- Participer à la conception et au déploiement d'architectures agentiques multi-agents basées sur des LLMs et du RAG.
+- Développer des connecteurs d'automatisation intelligente en Python avec FastAPI et orchestrateurs de workflow.
+- Contribuer à la fiabilisation des réponses et à la suppression des hallucinations via des techniques de Few-Shot Prompting.
+Profil : Étudiant(e) en dernière année d'école d'ingénieurs (Bac+5). Solides bases en Python, API REST et architecture logicielle.`,
+    postedAgo: "Il y a 2 jours",
+    isFresh: true,
+  },
+  {
+    id: "list-lux-multimodal-vision",
+    company: "LIST (Luxembourg Institute of Science and Technology)",
+    title: "Internship: Multimodal Image Augmentation & Deep Learning",
+    location: "Esch-sur-Alzette, Luxembourg",
+    country: "Luxembourg",
+    countryFlag: "🇱🇺",
+    workplace: "Présentiel",
+    compensation: "1,950 € / mois",
+    skills: ["Computer Vision", "PyTorch", "Generative Models", "Diffusion", "OpenCV", "Python"],
+    url: "https://jobs.list.lu/en/list/all",
+    description: `Luxembourg Institute of Science and Technology (LIST) - Esch-sur-Alzette, Luxembourg.
+Reference: INT-27066 INTERNSHIP - MULTIMODAL IMAGE AUGMENTATION.
+Tasks:
+- Investigate modern multimodal generative architectures (diffusion models, GANs) for synthetic image augmentation.
+- Implement and benchmark deep learning vision models on high-resolution imaging benchmarks.
+- Document and publish experimental results under Python and PyTorch.
+Requirements: MSc / Final year engineering student in Computer Vision, Machine Learning, or Image Processing.`,
+    postedAgo: "Hier",
+    isFresh: true,
+  },
+  {
+    id: "sixt-munich-applied-ai",
+    company: "SIXT Tech Hub",
+    title: "Praktikum / Master Thesis as Applied AI Engineer",
+    location: "Munich, Allemagne",
+    country: "Allemagne",
+    countryFlag: "🇩🇪",
+    workplace: "Hybride",
+    compensation: "2,000 € / mois",
+    skills: ["Python", "FastAPI", "Docker", "Machine Learning", "MLOps", "AWS"],
+    url: "https://www.sixt.jobs/en/jobs/?keywords=AI",
+    description: `SIXT Global Tech Hub - Munich, Germany.
+Position: Praktikum as Applied AI Engineer (6 months PFE).
+Missions:
+- Build, optimize, and deploy end-to-end Machine Learning models serving real-time pricing and fleet allocation.
+- Develop production-grade microservices in Python (FastAPI) containerized with Docker.
+- Collaborate with platform engineers on CI/CD and MLOps monitoring pipelines.
+Qualifications: Final year student in Computer Science or Artificial Intelligence. Strong knowledge of Python and modern cloud tooling.`,
+    postedAgo: "Il y a 2 jours",
+    isFresh: true,
+  },
+  {
+    id: "pictet-geneva-ai-innovation",
+    company: "Banque Pictet & Cie",
+    title: "Master's Thesis - AI Innovation & Quantitative Engineer Intern",
+    location: "Genève, Suisse",
+    country: "Suisse",
+    countryFlag: "🇨🇭",
+    workplace: "Hybride",
+    compensation: "4,200 CHF / mois",
+    skills: ["Python", "LLMs", "RAG", "FastAPI", "Docker", "NLP", "Time-Series"],
+    url: "https://www.pictet.com/ch/fr/carrieres/offres-emploi",
+    description: `Banque Pictet & Cie - Genève, Suisse.
+Poste : Stage de Fin d'Études (6 mois) - Recherche & Ingénierie IA Innovation.
+Missions principales :
+- Développer des architectures RAG avancées pour l'analyse automatisée de flux sémantiques et de documents financiers.
+- Évaluer et intégrer des modèles de langage (LLMs) pour l'extraction de signaux et de connaissances structurées.
+- Déployer des microservices sécurisés avec FastAPI et Docker au sein de l'infrastructure de calcul interne.
+Profil recherché : Élève-ingénieur en dernière année (Bac+5 spécialisation IA). Maîtrise de Python, NumPy, FastAPI et RAG.`,
+    postedAgo: "Il y a 2 jours",
+    isFresh: true,
+  },
+  {
+    id: "bcg-x-ai-scientist",
+    company: "BCG X",
+    title: "Visiting Forward Deployed AI Scientist, Internship (PFE 6 months)",
+    location: "Munich / Francfort, Allemagne",
+    country: "Allemagne",
+    countryFlag: "🇩🇪",
+    workplace: "Hybride",
+    compensation: "2,800 € / mois",
+    skills: ["Python", "Deep Learning", "PyTorch", "Transformers", "RAG", "Docker"],
+    url: "https://careers.bcg.com/bcg-x",
+    description: `BCG X (Tech and Digital Build arm of Boston Consulting Group) - Germany.
+Role: Visiting Forward Deployed AI Scientist, Internship (6 months PFE).
+Tasks:
+- Prototype, train, and deploy custom Deep Learning and Generative AI solutions for enterprise clients across Europe.
+- Translate business problems into formal machine learning formulations (NLP, graph networks, predictive modeling).
+- Write clean, modular, production-ready Python code and integrate models with REST APIs and container stacks.
+Qualifications: Enrolled in Master's degree in Computer Science, Machine Learning, or Data Science. Fluent in English.`,
+    postedAgo: "Il y a 1 heure",
+    isFresh: true,
   },
   {
     id: "cern-technical-student",
@@ -111,212 +267,34 @@ We prefer:
     country: "Suisse",
     countryFlag: "🇨🇭",
     workplace: "Présentiel",
-    compensation: "3,407 CHF / mois (net d'impôt) + indemnité logement",
+    compensation: "3,407 CHF / mois (net) + allocation logement",
     skills: ["Python", "PyTorch", "C++", "HPC", "Data Pipelines", "Linux", "Docker"],
     url: "https://careers.cern/students",
     description: `Organisation européenne pour la recherche nucléaire (CERN) - Genève, Suisse.
 Poste : Stage technique (PFE 6 mois) en Informatique & Machine Learning Appliqué.
-
 Missions :
 - Participer au développement d'algorithmes de traitement de données massives issues des détecteurs du LHC.
 - Optimiser des modèles de Deep Learning (PyTorch) et de filtrage en temps réel sur des grappes de calcul haute performance (HPC).
 - Contribuer à l'intégration de conteneurs Docker et à l'automatisation de pipelines MLOps.
-
-Profil requis :
-- Étudiant(e) en dernière année d'école d'ingénieurs (Bac+5) en Informatique / IA.
-- Bonnes compétences en Python, C++, calcul scientifique (NumPy) et environnement Linux.
-- Bon niveau d'anglais (environnement de travail international).`,
+Profil requis : Étudiant(e) en dernière année d'école d'ingénieurs (Bac+5) en Informatique / IA.`,
+    postedAgo: "Cette semaine",
+    isFresh: false,
   },
   {
-    id: "logitech-edge-ai",
-    company: "Logitech",
-    title: "AI & Edge Machine Learning Engineering Intern (Vision & Audio)",
-    location: "Lausanne, Suisse (EPFL Innovation Park)",
-    country: "Suisse",
-    countryFlag: "🇨🇭",
+    id: "waymo-sim-ml",
+    company: "Waymo",
+    title: "2027 Summer Intern, MS/PhD, Sim-Realism ML Infrastructure",
+    location: "London, England, UK",
+    country: "International",
+    countryFlag: "🇬🇧",
     workplace: "Hybride",
-    compensation: "3,500 CHF / mois",
-    skills: ["Computer Vision", "PyTorch", "Embedded ML", "C++", "FastAPI", "OpenCV"],
-    url: "https://jobs.jobvite.com/logitech/search?q=Intern",
-    description: `Logitech - EPFL Innovation Park, Lausanne, Switzerland.
-Role: AI & Edge Machine Learning Intern (6 months PFE).
-
-Responsibilities:
-- Design and benchmark lightweight Computer Vision and Speech/Audio AI models for edge devices.
-- Convert and optimize deep learning neural networks (ONNX, TensorRT, CoreML).
-- Develop evaluation benchmarks to measure latency, power efficiency, and model accuracy.
-- Collaborate with software engineers to expose models via Python and C++ APIs.
-
-Requirements:
-- Master's student in Computer Science, Artificial Intelligence, or Electrical Engineering.
-- Solid understanding of Deep Learning frameworks (PyTorch, TensorFlow).
-- Practical experience with OpenCV, computer vision, and Python/C++ programming.`,
-  },
-  {
-    id: "pictet-quant-ai",
-    company: "Banque Pictet & Cie",
-    title: "Quantitative Research & Generative AI Intern",
-    location: "Genève, Suisse",
-    country: "Suisse",
-    countryFlag: "🇨🇭",
-    workplace: "Hybride",
-    compensation: "4,200 CHF / mois",
-    skills: ["Python", "LLMs", "RAG", "FastAPI", "Docker", "NLP", "Time-Series"],
-    url: "https://www.pictet.com/ch/fr/carrieres/offres-emploi",
-    description: `Banque Pictet & Cie - Genève, Suisse.
-Poste : Stage de Fin d'Études (6 mois) - Recherche Quantitative & Intelligence Artificielle Générative.
-
-Missions principales :
-- Développer des architectures RAG avancées pour l'analyse automatisée de rapports financiers et de dépêches macroéconomiques.
-- Évaluer et fine-tuner des modèles de langage (LLMs) pour l'extraction de signaux sémantiques et d'entités nommées.
-- Déployer des microservices sécurisés avec FastAPI et Docker au sein de l'infrastructure de calcul interne.
-
-Profil recherché :
-- Étudiant en dernière année d'école d'ingénieurs (Bac+5 spécialisation IA, Data Science ou Mathématiques appliquées).
-- Maîtrise de Python, NumPy, Pandas, et des architectures Transformers / RAG.
-- Rigueur mathématique, curiosité intellectuelle et discrétion professionnelle.`,
-  },
-  {
-    id: "swisscom-ai-platform",
-    company: "Swisscom",
-    title: "AI & NLP Platform Engineering Intern",
-    location: "Zurich / Berne, Suisse",
-    country: "Suisse",
-    countryFlag: "🇨🇭",
-    workplace: "Hybride",
-    compensation: "3,800 CHF / mois",
-    skills: ["Python", "FastAPI", "NLP", "Vector Databases", "Docker", "REST APIs"],
-    url: "https://jobs.swisscom.ch/search/?q=AI",
-    description: `Swisscom Enterprise - Zurich, Switzerland.
-Role: AI & NLP Platform Engineering Intern (6 months PFE).
-
-Key tasks:
-- Build, optimize, and maintain AI microservices serving embeddings and semantic search pipelines.
-- Integrate vector databases (Milvus / Qdrant) with high-throughput FastAPI backends.
-- Implement automated evaluation metrics for LLM answers and retrieval quality.
-
-Qualifications:
-- Final-year engineering student in Artificial Intelligence or Software Engineering.
-- Proficient in Python, REST APIs, and containerized deployment (Docker).
-- Fluent in English; German or French is a plus.`,
-  },
-  {
-    id: "ferrero-lux-ai",
-    company: "Ferrero Tech & Data Hub",
-    title: "Generative AI & Data Science Intern",
-    location: "Luxembourg (Findel)",
-    country: "Luxembourg",
-    countryFlag: "🇱🇺",
-    workplace: "Hybride",
-    compensation: "2,200 € / mois + tickets restaurant",
-    skills: ["Python", "Computer Vision", "LLMs", "Docker", "SQL", "Cloud Services"],
-    url: "https://www.ferrerocareers.com/global/en/search-jobs?k=Intern+Luxembourg",
-    description: `Ferrero Global Headquarters - Luxembourg.
-Role: Data Science & Generative AI Intern (PFE 6 months).
-
-Missions:
-- Développer des prototypes d'agents IA pour l'automatisation des flux logistiques et industriels.
-- Explorer des techniques de Computer Vision pour le contrôle qualité et la détection d'anomalies sur lignes de production.
-- Participer à la gouvernance de données et à l'orchestration de conteneurs Docker dans le cloud.
-
-Profil:
-- Étudiant(e) Bac+5 école d'ingénieurs en Informatique ou Intelligence Artificielle.
-- Esprit d'initiative, maîtrise de Python et des bibliothèques de Machine Learning.
-- Anglais courant indispensable (environnement international multiculturel).`,
-  },
-  {
-    id: "toyota-brussels-ai",
-    company: "Toyota Motor Europe",
-    title: "Autonomous Driving & Deep Learning Robotics Intern",
-    location: "Bruxelles (Zaventem), Belgique",
-    country: "Belgique",
-    countryFlag: "🇧🇪",
-    workplace: "Présentiel",
-    compensation: "1,850 € / mois + transport",
-    skills: ["PyTorch", "Computer Vision", "C++", "ROS", "Simulation", "Linux"],
-    url: "https://www.toyota-europe.com/careers/students-and-graduates",
-    description: `Toyota Motor Europe R&D - Brussels, Belgium.
-Position: Autonomous Driving & Computer Vision Intern (6 months PFE).
-
-Responsibilities:
-- Implement deep learning perception pipelines for obstacle detection and trajectory prediction.
-- Validate algorithms on synthetic simulation environments and sensor datasets (LiDAR, Camera).
-- Optimize C++ and Python inference code for embedded automotive compute platforms.
-
-Requirements:
-- MSc / Final-year engineering student in Robotics, AI, or Computer Vision.
-- Strong coding skills in Python and C++. Experience with PyTorch or OpenCV.`,
-  },
-  {
-    id: "google-zurich-ml",
-    company: "Google / DeepMind",
-    title: "Student Researcher / AI Systems Intern 2027",
-    location: "Zurich, Suisse",
-    country: "Suisse",
-    countryFlag: "🇨🇭",
-    workplace: "Hybride",
-    compensation: "6,800 CHF / mois",
-    skills: ["Python", "C++", "PyTorch/JAX", "Distributed Systems", "Large Models", "Algorithms"],
-    url: "https://www.google.com/about/careers/applications/jobs/results/?location=Zurich%2C%20Switzerland",
-    description: `Google Switzerland GmbH - Zurich, Switzerland.
-Role: Student Researcher / AI Systems Engineering Intern (6 months).
-
-Responsibilities:
-- Collaborate with research scientists on large-scale machine learning systems, multi-modal architectures, and transformer optimization.
-- Develop efficient training and inference pipelines in Python, C++, and JAX.
-- Design benchmarks to evaluate compute efficiency, memory footprint, and model quality.
-
-Qualifications:
-- Currently enrolled in a Master's or PhD degree in Computer Science, Artificial Intelligence, or related technical field.
-- Strong foundation in algorithms, data structures, and machine learning principles.
-- Proficiency in Python and C++. Experience with PyTorch or JAX. Fluent in English.`,
-  },
-  {
-    id: "amazon-lux-applied-science",
-    company: "Amazon Web Services (AWS)",
-    title: "Applied Machine Learning Scientist Intern (PFE)",
-    location: "Luxembourg (Cloche d'Or)",
-    country: "Luxembourg",
-    countryFlag: "🇱🇺",
-    workplace: "Hybride",
-    compensation: "3,100 € / mois + indemnité relocation",
-    skills: ["Python", "PyTorch", "NLP", "FastAPI", "Vector Search", "Docker", "AWS"],
-    url: "https://amazon.jobs/en/jobs/luxembourg",
-    description: `Amazon Europe Core SARL - Luxembourg.
-Role: Applied Machine Learning Scientist Intern (6-month Master's thesis / PFE).
-
-Key Responsibilities:
-- Build and evaluate state-of-the-art NLP and generative AI models for automated customer intent understanding and vector retrieval.
-- Design scalable microservices and APIs with FastAPI and containerize deployments using Docker.
-- Collaborate with international teams across Europe to deploy machine learning pipelines to production.
-
-Basic Qualifications:
-- Master's student in Computer Science, Machine Learning, or Artificial Intelligence.
-- Proven programming skills in Python with hands-on experience in PyTorch or HuggingFace.
-- Excellent communication skills in English (multinational environment).`,
-  },
-  {
-    id: "bmw-munich-autonomous-ai",
-    company: "BMW Group Autonomous Driving",
-    title: "Deep Learning & Computer Vision Intern (PFE 6 months)",
-    location: "Munich, Allemagne",
-    country: "Allemagne",
-    countryFlag: "🇩🇪",
-    workplace: "Hybride",
-    compensation: "2,150 € / mois",
-    skills: ["Python", "PyTorch", "Computer Vision", "C++", "Sensor Fusion", "Linux"],
-    url: "https://www.bmwgroup.jobs",
-    description: `BMW Group Autonomous Driving Campus - Munich, Germany.
-Role: Deep Learning & Computer Vision Engineering Intern (PFE 6 months).
-
-Tasks:
-- Develop and benchmark deep neural networks for 3D object detection, camera/LiDAR perception, and scene understanding.
-- Optimize model latency for embedded automotive compute hardware.
-- Implement automated test pipelines and synthetic data simulation in Python and C++.
-
-Requirements:
-- Enrolled Master's student in Computer Science, Artificial Intelligence, Robotics, or Data Science.
-- Practical experience with PyTorch, OpenCV, NumPy, and Linux environments.
-- Good English communication skills (German is an optional plus).`,
+    compensation: "£65,000 / an (pro-rata)",
+    skills: ["Python", "C++", "Distributed Systems", "TensorFlow/Jax", "Autonomous Driving"],
+    url: "https://careers.withwaymo.com/jobs?department=Research%20%26%20Machine%20Learning",
+    description: `Waymo - London, UK.
+Role: 2027 Summer Intern, MS/PhD, Sim-Realism ML Infrastructure.
+Contribute to projects maintaining millions of multi-modal examples and PiBs of feature data. Python / C++ Coding skills and distributed systems knowledge.`,
+    postedAgo: "Cette semaine",
+    isFresh: false,
   },
 ];
