@@ -125,13 +125,18 @@ export default function Home() {
       }
     }
 
-    const savedLive = localStorage.getItem("resumesquad_live_offers");
-    if (savedLive) {
-      try {
-        setLiveOffers(JSON.parse(savedLive));
-      } catch (e) {
-        console.error("Erreur chargement live offers localStorage", e);
+    // Purge de l'ancien cache obsolète qui ne contenait pas les dates précises
+    try {
+      localStorage.removeItem("resumesquad_live_offers");
+      const savedLive = localStorage.getItem("resumesquad_live_offers_v3");
+      if (savedLive) {
+        const parsed = JSON.parse(savedLive);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].postedAgo) {
+          setLiveOffers(parsed);
+        }
       }
+    } catch (e) {
+      console.error("Erreur chargement live offers localStorage", e);
     }
   }, []);
 
@@ -582,7 +587,7 @@ ${interestsSection}
       if (res.ok && data.success && Array.isArray(data.offers)) {
         setLiveOffers(data.offers);
         try {
-          localStorage.setItem("resumesquad_live_offers", JSON.stringify(data.offers));
+          localStorage.setItem("resumesquad_live_offers_v3", JSON.stringify(data.offers));
         } catch (e) {
           console.warn("Erreur sauvegarde localStorage:", e);
         }
@@ -1349,18 +1354,34 @@ ${interestsSection}
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-center gap-2">
                 {/* Bouton de scan temps réel */}
                 <button
                   onClick={() => handleScanLiveOffers()}
                   disabled={isScanningLive}
                   className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
-                  title="Interroge en direct les APIs de jobs tech en Suisse et en Allemagne"
+                  title="Interroge en direct les APIs de jobs tech en Suisse, Luxembourg, Belgique et Allemagne"
                 >
                   <span className={isScanningLive ? "animate-spin" : ""}>🔄</span>
                   <span>
                     {isScanningLive ? "Scan du marché suisse & européen..." : "Scanner en direct (Temps Réel)"}
                   </span>
+                </button>
+
+                {/* Bouton de purge de cache et scan immédiat */}
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("resumesquad_live_offers");
+                    localStorage.removeItem("resumesquad_live_offers_v3");
+                    setLiveOffers([]);
+                    handleScanLiveOffers("7d");
+                  }}
+                  disabled={isScanningLive}
+                  className="w-full sm:w-auto px-3 py-2 bg-[#18181b] hover:bg-[#27272a] text-[#a1a1aa] hover:text-white border border-[#27272a] text-xs font-medium rounded-xl transition flex items-center justify-center gap-1.5"
+                  title="Vider le cache local et recharger les offres du jour"
+                >
+                  <span>🧹</span>
+                  <span>Actualiser à zéro</span>
                 </button>
 
                 {/* Filtre de recherche texte */}
@@ -1495,29 +1516,31 @@ ${interestsSection}
 
                         {/* Badges rémunération, fraîcheur & workplace */}
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                          {offer.postedAgo && (
-                            <span
-                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm ${
-                                offer.postedAgo.includes("min") ||
-                                offer.postedAgo.includes(" h") ||
-                                offer.postedAgo.includes("heure") ||
-                                offer.postedAgo === "Hier"
-                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                  : "bg-blue-500/10 text-blue-300 border border-blue-500/20"
-                              }`}
-                              title="Date de publication détectée sur le site recruteur"
-                            >
-                              <span>
-                                {offer.postedAgo.includes("min") ||
-                                offer.postedAgo.includes(" h") ||
-                                offer.postedAgo.includes("heure") ||
-                                offer.postedAgo === "Hier"
-                                  ? "🔥"
-                                  : "⏱️"}
-                              </span>
-                              <span>{offer.postedAgo}</span>
+                          {/* Badge Date de Publication Toujours Visible */}
+                          <span
+                            className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm ${
+                              (offer.postedAgo || "").includes("min") ||
+                              (offer.postedAgo || "").includes(" h") ||
+                              (offer.postedAgo || "").includes("heure") ||
+                              offer.postedAgo === "Hier"
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                : (offer.postedAgo || "").includes("jour")
+                                ? "bg-teal-500/20 text-teal-300 border border-teal-500/30"
+                                : "bg-blue-500/15 text-blue-300 border border-blue-500/30"
+                            }`}
+                            title="Date de publication détectée sur le flux du recruteur"
+                          >
+                            <span>
+                              {(offer.postedAgo || "").includes("min") ||
+                              (offer.postedAgo || "").includes(" h") ||
+                              (offer.postedAgo || "").includes("heure")
+                                ? "🔥"
+                                : (offer.postedAgo || "") === "Hier" || (offer.postedAgo || "").includes("jour")
+                                ? "⚡"
+                                : "📅"}
                             </span>
-                          )}
+                            <span>{offer.postedAgo ? `Publié : ${offer.postedAgo}` : "Publié cette semaine"}</span>
+                          </span>
                           <span
                             className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
                               offer.workplace === "Présentiel"
