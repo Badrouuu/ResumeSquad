@@ -605,6 +605,29 @@ ${interestsSection}
     }
   };
 
+  // Nettoyage et formatage optimisé des requêtes de recherche Google & Google Jobs
+  const cleanJobTitle = (title: string) => {
+    return title
+      .replace(/\s*[\(\[\{](?:m\/[wfd]\/[mdx]|f\/m\/x|m\/w\/d|h\/f|f\/h|h\/f\/x|d\/m\/w)[\)\]\}]/gi, "")
+      .replace(/\s*INT-\d+/gi, "")
+      .replace(/\s*Thesis\s*\/\s*Master\s*Intern\s*:\s*/gi, "")
+      .replace(/\s*Master's\s*Thesis\s*-\s*/gi, "")
+      .replace(/\s*\(PFE\s*-\s*Promo\s*\d+\)/gi, "")
+      .replace(/\s*—\s*Computing & Applied Machine Learning/gi, "")
+      .replace(/\s*2027\s*Summer\s*Intern,\s*MS\/PhD,\s*/gi, "")
+      .trim();
+  };
+
+  const getCleanJobSearchQuery = (company: string, title: string) => {
+    const cleaned = cleanJobTitle(title);
+    return `"${company}" ${cleaned} careers`;
+  };
+
+  const getGoogleJobsQuery = (company: string, title: string, location: string) => {
+    const cleaned = cleanJobTitle(title);
+    return `${company} ${cleaned} ${location}`;
+  };
+
   // Action d'importation 1-clic depuis le Radar vers le Générateur avec lancement immédiat
   const handleImportRadarOffer = (offer: RadarJobOffer) => {
     setCompany(offer.company);
@@ -1577,10 +1600,10 @@ ${interestsSection}
                     </div>
 
                     {/* Boutons d'action */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-[#27272a]">
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#27272a]">
                       <button
                         onClick={() => handleImportRadarOffer(offer)}
-                        className="flex-1 py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-1.5"
+                        className="flex-1 min-w-[170px] py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-1.5"
                       >
                         <span>⚡ Importer & Adapter (1-Clic)</span>
                       </button>
@@ -1590,18 +1613,29 @@ ${interestsSection}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-2.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
-                        title="Lien direct vers l'offre officielle"
+                        title="Lien direct vers l'offre officielle ou le portail carrière"
                       >
-                        <span>Offre</span>
+                        <span>🔗 Direct</span>
                         <span>↗</span>
                       </a>
 
                       <a
-                        href={`https://www.google.com/search?q=${encodeURIComponent(`${offer.company} ${offer.title} ${offer.location} careers`)}&tbs=qdr:w`}
+                        href={`https://www.google.com/search?q=${encodeURIComponent(getGoogleJobsQuery(offer.company, offer.title, offer.location))}&ibp=htl;jobs`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-2.5 bg-[#27272a] hover:bg-blue-600/30 hover:text-blue-300 text-[#a1a1aa] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
-                        title="Rechercher sur Google Careers avec filtre de fraîcheur (< 7 jours)"
+                        className="px-2.5 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
+                        title="Ouvrir dans Google Jobs (agrégateur multi-sources officiel : ATS, LinkedIn, Indeed)"
+                      >
+                        <span>💼 Google Jobs</span>
+                        <span>↗</span>
+                      </a>
+
+                      <a
+                        href={`https://www.google.com/search?q=${encodeURIComponent(getCleanJobSearchQuery(offer.company, offer.title))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-2.5 bg-[#27272a] hover:bg-amber-500/20 hover:text-amber-300 text-[#a1a1aa] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
+                        title="Recherche ciblée Google sans filtre restrictif"
                       >
                         <span>🔎 Google</span>
                         <span>↗</span>

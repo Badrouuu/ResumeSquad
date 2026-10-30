@@ -88,6 +88,14 @@ export const DEEP_SEARCH_PORTALS: DeepSearchPortal[] = [
     url: "https://careers.cern/students",
     category: "Suisse",
   },
+  {
+    name: "Ferrero Careers (Bettembourg / Luxembourg)",
+    country: "Luxembourg",
+    countryFlag: "🇱🇺",
+    description: "Portail officiel de recrutement Ferrero (All Eyes on Me) pour le hub de Bettembourg / Findel (stages Data, IT, Supply Chain & IA).",
+    url: "https://alleyesonme.jobs/de/jobs/location/bettembourg?degree=DOCTORATE%2CBACHELOR%2CMASTER%2CVOCATIONAL%2CNONE%2CSECONDARY&exp=content&workplace=ON_SITE%2CREMOTE",
+    category: "Luxembourg",
+  },
 ];
 
 export const RADAR_JOB_OFFERS: RadarJobOffer[] = [
@@ -296,5 +304,26 @@ Role: 2027 Summer Intern, MS/PhD, Sim-Realism ML Infrastructure.
 Contribute to projects maintaining millions of multi-modal examples and PiBs of feature data. Python / C++ Coding skills and distributed systems knowledge.`,
     postedAgo: "Cette semaine",
     isFresh: false,
+  },
+  {
+    id: "ferrero-lux-bettembourg",
+    company: "Ferrero",
+    title: "Data & AI / Digital Transformation Intern",
+    location: "Bettembourg / Findel, Luxembourg",
+    country: "Luxembourg",
+    countryFlag: "🇱🇺",
+    workplace: "Hybride",
+    compensation: "2,100 € / mois",
+    skills: ["Python", "Machine Learning", "Data Analytics", "PowerBI", "SQL", "LLMs"],
+    url: "https://alleyesonme.jobs/de/jobs/location/bettembourg?degree=DOCTORATE%2CBACHELOR%2CMASTER%2CVOCATIONAL%2CNONE%2CSECONDARY&exp=content&workplace=ON_SITE%2CREMOTE",
+    description: `Ferrero Headquarters & Tech Center - Bettembourg / Findel, Luxembourg.
+Poste : Data & AI / Digital Transformation Intern (Stage PFE 6 mois).
+Missions :
+- Participer au développement et au déploiement de solutions d'intelligence artificielle et d'analytique avancée pour les opérations globales de Ferrero.
+- Automatiser des pipelines de traitement de données sous Python et intégrer des modèles prédictifs et LLMs.
+- Collaborer avec les équipes Supply Chain, IT et Digital Transformation sur des indicateurs de performance et des assistants intelligents.
+Profil : Étudiant(e) en Master / Fin d'études ingénieur en Informatique, Data Science ou IA. Anglais courant.`,
+    postedAgo: "Hier",
+    isFresh: true,
   },
 ];
