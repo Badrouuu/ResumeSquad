@@ -31,7 +31,7 @@ Issu de CPGE TSI • EILCO (ING3) • TOEIC 905/990 (Niveau C1)
 
 ## 💡 À propos de moi
 
-- 🎓 **Formation :** Élève-ingénieur en 3e année à l'**EILCO**, spécialité **Intelligence Artificielle & Big Data**, après deux années de **CPGE TSI** (Maths/Physique/Sciences de l'Ingénieur).
+- 🎓 **Formation :** Élève-ingénieur en 3e année à l'**EILCO**, spécialité **Intelligence Artificielle & Big Data**, après deux années de **CPGE TSI** au **Lycée Antonin Artaud** (Marseille — Maths/Physique/Sciences de l'Ingénieur).
 - 🧠 **Cœur d'expertise :** Architecture de pipelines d'IA Générative (**Multi-Agent Systems**, **RAG**, **Constrained Decoding**), modélisation NLP (espaces vectoriels, embeddings), vision par ordinateur et déploiement d'APIs asynchrones haute performance (**FastAPI**, **Docker**).
 - 🎯 **Objectif :** Stage de fin d'études (PFE) de **6 mois à partir de mars 2027** en tant que **AI / Machine Learning Engineer** ou **Data Scientist**.
 

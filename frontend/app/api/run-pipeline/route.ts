@@ -32,7 +32,7 @@ Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et
 
 === PROFIL RÉEL DU CANDIDAT (NE RIEN INVENTER D'AUTRE) ===
 - Identité : Badroudine Bacar
-- Formation : Étudiant en 3e année d'école d'ingénieurs (Bac+5) à l'EILCO (Calais, France). Spécialité : Informatique - Parcours Intelligence Artificielle (Deep Learning, Vision par Ordinateur, MLOps, CI/CD, FastAPI).
+- Formation : Étudiant en 3e année d'école d'ingénieurs (Bac+5) à l'EILCO (Calais, France). Spécialité : Informatique - Parcours Intelligence Artificielle (Deep Learning, Vision par Ordinateur, MLOps, CI/CD, FastAPI). Issu de CPGE TSI au Lycée Antonin Artaud (Marseille, France).
 - Certification : TOEIC 905/990 (Niveau C1 Courant).
 - Recherche : Stage de fin d'études (PFE) de 6 mois à partir de mars/avril 2027.
 - Projets techniques réels :

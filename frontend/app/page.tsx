@@ -407,7 +407,7 @@ Profil requis :
     \\textit{EILCO Graduate School of Engineering, Calais, France} \\\\
     \\footnotesize Final year (MSc / ING3). Advanced coursework: Deep Learning, Computer Vision, Machine Learning, Software Architecture, MLOps, CI/CD, Advanced Databases.
     \\item \\textbf{Preparatory Classes for Grandes Écoles (CPGE TSI)} \\hfill 2022 - 2024 \\\\
-    \\textit{Lycée César Baggio, Lille, France} \\\\
+    \\textit{Lycée Antonin Artaud, Marseille, France} \\\\
     \\footnotesize Intensive 2-year preparation in Advanced Mathematics, Physics, and Engineering Sciences.
     \\item \\textbf{English Proficiency: TOEIC Listening and Reading} \\hfill Score: \\textbf{905 / 990 (CEFR C1 Level - Fluent)}
 \\end{itemize}`
@@ -417,7 +417,7 @@ Profil requis :
     \\textit{EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France} \\\\
     \\footnotesize Dernière année (ING3). Modules avancés : Deep Learning, Vision par Ordinateur, Machine Learning, Architecture Logicielle, MLOps, CI/CD, Bases de Données Avancées.
     \\item \\textbf{Classes Préparatoires aux Grandes Écoles (CPGE TSI)} \\hfill 2022 - 2024 \\\\
-    \\textit{Lycée César Baggio, Lille, France} \\\\
+    \\textit{Lycée Antonin Artaud, Marseille, France} \\\\
     \\footnotesize Mathématiques Supérieures et Spéciales, Physique, Sciences de l'Ingénieur.
     \\item \\textbf{Certification Anglais : TOEIC Listening and Reading} \\hfill Score : \\textbf{905 / 990 (Niveau C1)}
 \\end{itemize}`;
@@ -1952,7 +1952,7 @@ ${interestsSection}
               <span>{effectiveIsEn ? "Preparatory Classes for Grandes Écoles (CPGE TSI)" : "Classes Préparatoires aux Grandes Écoles (CPGE TSI)"}</span>
               <span className="text-gray-600 font-normal">2022 - 2024</span>
             </div>
-            <div className="italic text-gray-700 text-[10px]">Lycée César Baggio, Lille, France</div>
+            <div className="italic text-gray-700 text-[10px]">Lycée Antonin Artaud, Marseille, France</div>
 
             <div className="flex justify-between items-baseline font-semibold pt-1">
               <span>{effectiveIsEn ? "English Certification: TOEIC Listening & Reading" : "Certification Anglais : TOEIC Listening & Reading"}</span>
