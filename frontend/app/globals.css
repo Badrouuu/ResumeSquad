@@ -41,7 +41,8 @@ body {
     display: none !important;
   }
 
-  #cv-print-area {
+  /* Par défaut ou si data-print-target="cv" */
+  body:not([data-print-target="cover_letter"]) #cv-print-area {
     display: block !important;
     visibility: visible !important;
     width: 210mm !important;
@@ -56,7 +57,32 @@ body {
     line-height: 1.3 !important;
   }
 
-  #cv-print-area > div {
+  body:not([data-print-target="cover_letter"]) #cover-letter-print-area {
+    display: none !important;
+  }
+
+  /* Si data-print-target="cover_letter" (Lettre de motivation A4) */
+  body[data-print-target="cover_letter"] #cv-print-area {
+    display: none !important;
+  }
+
+  body[data-print-target="cover_letter"] #cover-letter-print-area {
+    display: block !important;
+    visibility: visible !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 18mm 20mm !important;
+    background: white !important;
+    color: #111827 !important;
+    font-size: 11px !important;
+    line-height: 1.6 !important;
+  }
+
+  #cv-print-area > div,
+  #cover-letter-print-area > div {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }

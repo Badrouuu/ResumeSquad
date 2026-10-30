@@ -28,7 +28,7 @@ Profil recherché :
 - Solides compétences en Python, PyTorch, calcul vectoriel (NumPy) et APIs REST (FastAPI).
 - Connaissance des technologies d'embeddings (Word2Vec, Sentence-Transformers) appréciée.`;
 
-const DEFAULT_COVER_LETTER = `Badroudine Bacar
+const DEFAULT_COVER_LETTER_FR = `Badroudine Bacar
 Élève-Ingénieur en Informatique — Spécialité Intelligence Artificielle (Bac+5 / ING3)
 EILCO (École d'Ingénieurs du Littoral Côte d'Opale)
 Email : badroudinebacar@gmail.com | Tél : +33 7 67 56 07 86
@@ -42,7 +42,7 @@ Objet : Candidature — Stage de fin d'études PFE (6 mois) : Ingénieur AI / Ma
 
 Madame, Monsieur,
 
-Actuellement en dernière année de cycle ingénieur à l'EILCO (spécialisation Intelligence Artificielle & Data Science) après un parcours exigeant en Classes Préparatoires aux Grandes Écoles (CPGE TSI), je vous présente ma candidature pour un stage de fin d'études de 6 mois en tant qu'Ingénieur AI / Machine Learning, disponible à partir de mars 2027.
+Actuellement en dernière année de cycle ingénieur à l'EILCO (spécialisation Intelligence Artificielle & Data Science) après un parcours exigeant en Classes Préparatoires aux Grandes Écoles (CPGE TSI au Lycée Antonin Artaud à Marseille), je vous présente ma candidature pour un stage de fin d'études de 6 mois en tant qu'Ingénieur AI / Machine Learning, disponible à partir de mars 2027.
 
 Votre positionnement technologique et vos challenges en IA appliquée correspondent parfaitement à mon profil et à mes réalisations. Passionné par l'industrialisation des modèles de Machine Learning et le NLP, j'ai notamment conçu et déployé VectorWord / Guess-What, un moteur sémantique temps réel exploitant des embeddings Word2Vec (Gensim, NumPy) et exposé via une API haute performance sous FastAPI et conteneurisé avec Docker. De plus, j'ai mis au point des pipelines agentiques RAG (Retrieval-Augmented Generation) combinant Few-Shot Prompting et matching sémantique pour automatiser des workflows complexes avec une fiabilité totale sans hallucinations.
 
@@ -51,6 +51,34 @@ Rigoureux, autonome et certifié au niveau C1 en anglais professionnel (TOEIC 90
 Dans l'attente d'un prochain échange au cours duquel je pourrai vous présenter plus en détail mes réalisations techniques, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
 
 Badroudine Bacar`;
+
+const DEFAULT_COVER_LETTER_EN = `Badroudine Bacar
+Graduate Engineering Student — Artificial Intelligence & Data Science (MSc / Final Year)
+EILCO Graduate School of Engineering
+Email: badroudinebacar@gmail.com | Phone: +33 7 67 56 07 86
+LinkedIn: linkedin.com/in/badroudine-bacar | GitHub: github.com/Badrouuu
+Mobility: Switzerland, Luxembourg, Belgium, Germany, UK (On-site / Hybrid)
+
+To the Attention of the Tech Recruiting Team
+NeuroTech Solutions
+
+Subject: Application — 6-Month End-of-Studies Internship (PFE): AI / Machine Learning Engineer (Starting March 2027)
+
+Dear Hiring Team,
+
+Currently in my final year of computer engineering at EILCO specializing in Artificial Intelligence and Data Science, following intensive Preparatory Classes for Grandes Écoles (CPGE TSI at Lycée Antonin Artaud in Marseille), I am applying for a 6-month end-of-studies internship as an AI / Machine Learning Engineer, starting in March 2027.
+
+Your company's innovative technological focus and applied AI challenges strongly align with my background and technical achievements. Passionate about machine learning engineering and NLP systems, I architected and deployed VectorWord / Guess-What, a high-performance semantic search platform powered by Word2Vec vector spaces (Gensim, NumPy), exposed via an asynchronous FastAPI backend and containerized with Docker. Furthermore, I developed automated RAG pipelines combining Few-Shot Prompting and semantic matching to execute complex agentic workflows with zero hallucinations.
+
+Autonomous, disciplined, and fully proficient in professional English (TOEIC 905/990, CEFR C1 Level), I am eager to join your engineering team in an on-site or hybrid environment to contribute to scalable and reliable AI systems.
+
+I would welcome the opportunity to discuss my background and how my skills can contribute to your projects. Thank you for your time and consideration.
+
+Sincerely,
+
+Badroudine Bacar`;
+
+const DEFAULT_COVER_LETTER = DEFAULT_COVER_LETTER_FR;
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<"generator" | "radar" | "tracker">("generator");
@@ -85,6 +113,7 @@ export default function Home() {
     tailoredTitle: "Ingénieur IA & Machine Learning — Stage PFE",
     tailoredSummary:
       "Élève-ingénieur en dernière année à l'EILCO (spécialité IA), doté d'une certification TOEIC 905/990. Spécialisé en Machine Learning, NLP et Deep Learning, avec une expérience avérée dans le développement de pipelines RAG, d'agents LLM (Few-Shot Prompting) et de calculs d'espaces vectoriels sémantiques (Word2Vec). Expert dans la conception d'APIs haute performance avec FastAPI et leur conteneurisation via Docker. À la recherche d'un stage de fin d'études (PFE) de 6 mois à partir de mars 2027.",
+    coverLetter: DEFAULT_COVER_LETTER_FR,
     projectBullets: [
       {
         project: "VectorWord / Guess-What (NLP & Vector Space Search)",
@@ -108,6 +137,7 @@ export default function Home() {
     tailoredTitle: "AI & Machine Learning Engineer Intern (PFE)",
     tailoredSummary:
       "Final-year engineering student (Bac+5) at EILCO specializing in Artificial Intelligence, Deep Learning, and Computer Vision. Proven expertise in building production-ready AI systems using Python, FastAPI, Docker, and MLOps pipelines. Proficient in English (TOEIC 905/990, C1), seeking a 6-month international internship starting March/April 2027 to drive impactful AI solutions.",
+    coverLetter: DEFAULT_COVER_LETTER_EN,
     projectBullets: [
       {
         project: "VectorWord / Guess-What (NLP & Vector Space Search)",
@@ -129,9 +159,15 @@ export default function Home() {
   const [tailoredTitle, setTailoredTitle] = useState("AI / Machine Learning Engineer (Stage PFE)");
   const [tailoredSummary, setTailoredSummary] = useState(DEFAULT_CV_FR.tailoredSummary);
   const [projectBullets, setProjectBullets] = useState(DEFAULT_CV_FR.projectBullets);
+  const [coverLetterLanguage, setCoverLetterLanguage] = useState<"fr" | "en">("fr");
+  const [coverLetterMode, setCoverLetterMode] = useState<"edit" | "preview" | "latex">("edit");
+  const [coverLetterVersions, setCoverLetterVersions] = useState<{ fr: string; en: string }>({
+    fr: DEFAULT_COVER_LETTER_FR,
+    en: DEFAULT_COVER_LETTER_EN,
+  });
   const [bilingualVersions, setBilingualVersions] = useState<{
-    fr?: { tailoredTitle: string; tailoredSummary: string; projectBullets: { project: string; bullets: string[] }[] };
-    en?: { tailoredTitle: string; tailoredSummary: string; projectBullets: { project: string; bullets: string[] }[] };
+    fr?: { tailoredTitle: string; tailoredSummary: string; projectBullets: { project: string; bullets: string[] }[]; coverLetter?: string };
+    en?: { tailoredTitle: string; tailoredSummary: string; projectBullets: { project: string; bullets: string[] }[]; coverLetter?: string };
   }>({
     fr: DEFAULT_CV_FR,
     en: DEFAULT_CV_EN,
@@ -301,14 +337,22 @@ Profil requis :
             ...prev,
             ...data.versions,
           }));
+          if (data.versions.fr?.coverLetter || data.versions.en?.coverLetter) {
+            setCoverLetterVersions((prev) => ({
+              fr: data.versions.fr?.coverLetter || prev.fr,
+              en: data.versions.en?.coverLetter || prev.en,
+            }));
+          }
         }
         if (data.language === "en" || data.language === "fr") {
           setCvLanguage(data.language);
+          setCoverLetterLanguage(data.language);
         }
         if (data.tailoredTitle) setTailoredTitle(data.tailoredTitle);
         if (data.tailoredSummary) setTailoredSummary(data.tailoredSummary);
         if (data.projectBullets && data.projectBullets.length > 0) setProjectBullets(data.projectBullets);
-        if (data.coverLetter) setCoverLetter(data.coverLetter);
+        const resolvedLetter = (data.versions && data.versions[data.language]?.coverLetter) || data.coverLetter;
+        if (resolvedLetter) setCoverLetter(resolvedLetter);
         if (data.atsScore) setAtsScore(data.atsScore);
         if (data.coverageRate) setCoverageRate(data.coverageRate);
 
@@ -344,7 +388,7 @@ Profil requis :
         const langBadge = data.language === "en" ? "🇬🇧 en Anglais" : "🇫🇷 en Français";
         setExtractMessage({
           type: "success",
-          text: `🎉 L'escouade d'agents IA a adapté votre CV ${langBadge} pour ${activeCompany} (Score ATS : ${data.atsScore}/100) !`,
+          text: `🎉 L'escouade d'agents IA a adapté votre CV et lettre de motivation ${langBadge} pour ${activeCompany} (Score ATS : ${data.atsScore}/100) !`,
         });
       } else {
         throw new Error(data.error || "Erreur de génération");
@@ -368,7 +412,26 @@ Profil requis :
       if (version.tailoredTitle) setTailoredTitle(version.tailoredTitle);
       if (version.tailoredSummary) setTailoredSummary(version.tailoredSummary);
       if (version.projectBullets && version.projectBullets.length > 0) setProjectBullets(version.projectBullets);
+      if (version.coverLetter) {
+        setCoverLetterLanguage(targetLang);
+        setCoverLetter(version.coverLetter);
+      }
     }
+  };
+
+  // Bascule dynamique de la lettre de motivation
+  const handleSwitchCoverLetterLanguage = (targetLang: "fr" | "en") => {
+    setCoverLetterLanguage(targetLang);
+    const letter = coverLetterVersions[targetLang] || (targetLang === "en" ? DEFAULT_COVER_LETTER_EN : DEFAULT_COVER_LETTER_FR);
+    setCoverLetter(letter);
+  };
+
+  const handleCoverLetterChange = (newVal: string) => {
+    setCoverLetter(newVal);
+    setCoverLetterVersions((prev) => ({
+      ...prev,
+      [coverLetterLanguage]: newVal,
+    }));
   };
 
   // Helper de génération du code source LaTeX (.tex) bilingue FR/EN sans AUCUN mélange Franglais
@@ -565,10 +628,118 @@ ${interestsSection}
     const originalTitle = document.title;
     const fileName = getCleanExportFileName("CV", "pdf").replace(/\.pdf$/, "");
     document.title = fileName;
+    document.body.setAttribute("data-print-target", "cv");
     window.print();
     setTimeout(() => {
       document.title = originalTitle;
+      document.body.removeAttribute("data-print-target");
     }, 1500);
+  };
+
+  // Helper de génération du code source LaTeX (.tex) pour la lettre de motivation
+  const getCoverLetterTex = (forcedLang?: "fr" | "en"): string => {
+    const isEn = (forcedLang || coverLetterLanguage) === "en";
+    const letterText = coverLetter || (isEn ? DEFAULT_COVER_LETTER_EN : DEFAULT_COVER_LETTER_FR);
+
+    const escapeTex = (str: string) =>
+      str
+        .replace(/\\/g, "\\textbackslash{}")
+        .replace(/([%&$#_{}])/g, "\\$1")
+        .replace(/~/g, "\\textasciitilde{}")
+        .replace(/\^/g, "\\textasciicircum{}");
+
+    // Découpage en blocs de texte
+    const rawParagraphs = letterText
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    const formattedParagraphs = rawParagraphs
+      .map((para) => {
+        // Détection de l'objet / subject
+        if (/^(objet|subject)\s*:/i.test(para)) {
+          return `\\vspace{0.6em}\n\\noindent\\textbf{\\color{primary} ${escapeTex(para)}}\n\\vspace{0.4em}`;
+        }
+        const lines = para.split("\n").map((l) => l.trim()).filter(Boolean);
+        // Si c'est un bloc d'en-tête (expéditeur ou destinataire composé de plusieurs lignes courtes)
+        if (lines.length > 1 && lines.length <= 8 && lines.every((l) => l.length < 120)) {
+          return `\\noindent\n` + lines.map((l) => escapeTex(l)).join(" \\\\\n");
+        }
+        return `\\noindent\n${escapeTex(para)}`;
+      })
+      .join("\n\n\\vspace{0.8em}\n\n");
+
+    return `\\documentclass[11pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage[margin=2.2cm]{geometry}
+\\usepackage{hyperref}
+\\usepackage{xcolor}
+\\usepackage{parskip}
+
+\\definecolor{primary}{RGB}{30, 58, 138}
+\\definecolor{textdark}{RGB}{31, 41, 55}
+\\color{textdark}
+\\pagestyle{empty}
+
+\\begin{document}
+
+${formattedParagraphs}
+
+\\end{document}`;
+  };
+
+  // Export direct de la lettre de motivation en PDF (format A4 soigné)
+  const handlePrintCoverLetterPdf = () => {
+    const originalTitle = document.title;
+    const fileName = getCleanExportFileName("Lettre_Motivation", "pdf").replace(/\.pdf$/, "");
+    document.title = fileName;
+    document.body.setAttribute("data-print-target", "cover_letter");
+    window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+      document.body.removeAttribute("data-print-target");
+    }, 1500);
+  };
+
+  // Ouverture et compilation 1-clic sur Overleaf de la lettre de motivation
+  const handleOpenOverleafCoverLetter = () => {
+    const texContent = getCoverLetterTex();
+    const fileName = getCleanExportFileName("Lettre_Motivation", "tex");
+    const form = document.createElement("form");
+    form.action = "https://www.overleaf.com/docs";
+    form.method = "POST";
+    form.target = "_blank";
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "snip";
+    input.value = texContent;
+    form.appendChild(input);
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "hidden";
+    nameInput.name = "snip_name";
+    nameInput.value = fileName;
+    form.appendChild(nameInput);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  };
+
+  // Téléchargement du fichier LaTeX (.tex) de la lettre de motivation
+  const handleDownloadCoverLetterTex = () => {
+    const texContent = getCoverLetterTex();
+    const blob = new Blob([texContent], { type: "text/x-tex;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = getCleanExportFileName("Lettre_Motivation", "tex");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // Copie de la lettre de motivation dans le presse-papier
@@ -1295,47 +1466,171 @@ ${interestsSection}
               {/* Onglet 3 : Lettre de Motivation */}
               {activeTab === "cover_letter" && (
                 <div className="space-y-4 text-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
-                    <div>
-                      <div className="font-semibold text-white flex items-center gap-2">
+                  {/* Barre d'en-tête et contrôles de langue + modes */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#09090b] border border-[#27272a]">
+                    <div className="space-y-1">
+                      <div className="font-semibold text-white flex flex-wrap items-center gap-2">
                         <span>✉️</span>
-                        <span>Lettre de Motivation Personnalisée</span>
+                        <span className="text-sm">Lettre de Motivation Ciblée</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
-                          {cvLanguage === "en" ? "🇬🇧 Rédigée en Anglais" : "🇫🇷 Rédigée en Français"}
+                          {coverLetterLanguage === "en" ? "🇬🇧 Version Anglaise" : "🇫🇷 Version Française"}
                         </span>
                       </div>
-                      <div className="text-[11px] text-[#a1a1aa] mt-0.5">
-                        Ciblée pour <b>{company}</b> et le poste <b>{jobTitle}</b>. Vous pouvez modifier le texte ci-dessous à votre guise.
+                      <div className="text-[11px] text-[#a1a1aa]">
+                        Entreprise : <b className="text-white">{company}</b> | Poste : <b className="text-white">{jobTitle}</b>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Sélecteur de langue bilingue */}
+                      <div className="flex items-center gap-1 bg-[#18181b] border border-[#27272a] p-1 rounded-xl text-xs">
+                        <span className="text-[10px] text-[#71717a] font-medium px-1.5">Langue :</span>
+                        <button
+                          type="button"
+                          onClick={() => handleSwitchCoverLetterLanguage("fr")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                            coverLetterLanguage === "fr" ? "bg-blue-600 text-white shadow-sm" : "text-[#a1a1aa] hover:text-white"
+                          }`}
+                          title="Générer la lettre en Français (100% soigné)"
+                        >
+                          🇫🇷 FR
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSwitchCoverLetterLanguage("en")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                            coverLetterLanguage === "en" ? "bg-blue-600 text-white shadow-sm" : "text-[#a1a1aa] hover:text-white"
+                          }`}
+                          title="Generate cover letter in English (100% pure English)"
+                        >
+                          🇬🇧 EN
+                        </button>
+                      </div>
+
+                      {/* Sélecteur de mode d'affichage */}
+                      <div className="flex items-center gap-1 bg-[#18181b] border border-[#27272a] p-1 rounded-xl text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setCoverLetterMode("edit")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                            coverLetterMode === "edit" ? "bg-[#27272a] text-white" : "text-[#a1a1aa] hover:text-white"
+                          }`}
+                        >
+                          📝 Éditeur
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCoverLetterMode("preview")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                            coverLetterMode === "preview" ? "bg-[#27272a] text-white" : "text-[#a1a1aa] hover:text-white"
+                          }`}
+                        >
+                          👁️ Aperçu Propre
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCoverLetterMode("latex")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                            coverLetterMode === "latex" ? "bg-[#27272a] text-white" : "text-[#a1a1aa] hover:text-white"
+                          }`}
+                        >
+                          📄 LaTeX (.tex)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barre d'actions d'exportation */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-[#18181b] border border-[#27272a]">
+                    <div className="text-[11px] text-[#a1a1aa] flex items-center gap-1.5">
+                      <span>📄 Export prêt :</span>
+                      <code className="text-white text-[11px]">{getCleanExportFileName("Lettre_Motivation", "pdf")}</code>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={handlePrintCoverLetterPdf}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
+                        title="Télécharger directement en PDF A4 propre sans entête parasite du navigateur"
+                      >
+                        <span>📄</span>
+                        <span>Télécharger en PDF (Propre)</span>
+                      </button>
+
+                      <button
+                        onClick={handleOpenOverleafCoverLetter}
+                        className="px-3 py-1.5 bg-[#27272a] hover:bg-[#3f3f46] text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5 border border-[#3f3f46]"
+                        title="Compiler sur Overleaf (1-Clic)"
+                      >
+                        <span>🚀</span>
+                        <span className="hidden sm:inline">Compiler sur</span>
+                        <span>Overleaf</span>
+                      </button>
+
+                      <button
+                        onClick={handleDownloadCoverLetterTex}
+                        className="px-2.5 py-1.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-lg text-xs font-medium transition flex items-center gap-1 border border-[#3f3f46]"
+                        title="Télécharger le code LaTeX (.tex)"
+                      >
+                        <span>📥</span>
+                        <span>.tex</span>
+                      </button>
+
+                      <button
+                        onClick={handleDownloadCoverLetter}
+                        className="px-2.5 py-1.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-lg text-xs font-medium transition flex items-center gap-1 border border-[#3f3f46]"
+                        title="Télécharger en texte brut (.txt)"
+                      >
+                        <span>📥</span>
+                        <span>.txt</span>
+                      </button>
+
                       <button
                         onClick={handleCopyCoverLetter}
                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition flex items-center gap-1 shadow-sm"
                       >
                         <span>{copyLetterSuccess ? "✓" : "📋"}</span>
-                        <span>{copyLetterSuccess ? "Copié !" : "Copier la lettre"}</span>
-                      </button>
-                      <button
-                        onClick={handleDownloadCoverLetter}
-                        className="px-3 py-1.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-lg text-xs font-medium transition flex items-center gap-1 border border-[#3f3f46]"
-                      >
-                        <span>📥</span>
-                        <span>Télécharger (.txt)</span>
+                        <span>{copyLetterSuccess ? "Copié !" : "Copier"}</span>
                       </button>
                     </div>
                   </div>
 
-                  <div className="relative">
-                    <textarea
-                      rows={14}
-                      value={coverLetter}
-                      onChange={(e) => setCoverLetter(e.target.value)}
-                      className="w-full text-xs p-4 rounded-xl bg-[#09090b] border border-[#27272a] text-[#f4f4f5] font-sans leading-relaxed focus:outline-none focus:border-blue-500 transition resize-y"
-                      placeholder="Lettre de motivation générée automatiquement..."
-                    />
-                  </div>
+                  {/* Contenu selon le mode sélectionné */}
+                  {coverLetterMode === "edit" && (
+                    <div className="relative">
+                      <textarea
+                        rows={16}
+                        value={coverLetter}
+                        onChange={(e) => handleCoverLetterChange(e.target.value)}
+                        className="w-full text-xs p-4 rounded-xl bg-[#09090b] border border-[#27272a] text-[#f4f4f5] font-sans leading-relaxed focus:outline-none focus:border-blue-500 transition resize-y"
+                        placeholder="Lettre de motivation générée automatiquement..."
+                      />
+                      <div className="flex justify-between items-center text-[10px] text-[#71717a] px-1 pt-1">
+                        <span>💡 Modifiez librement le texte. Vos modifications sont conservées pour la langue active ({coverLetterLanguage.toUpperCase()}).</span>
+                        <span>{coverLetter.length} caractères • {coverLetter.trim().split(/\s+/).filter(Boolean).length} mots</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {coverLetterMode === "preview" && (
+                    <div className="p-8 sm:p-12 rounded-xl bg-white text-gray-900 border border-gray-200 shadow-lg font-sans max-w-2xl mx-auto space-y-4">
+                      <div className="text-[11.5px] leading-relaxed text-gray-900 whitespace-pre-line text-justify font-sans">
+                        {coverLetter}
+                      </div>
+                    </div>
+                  )}
+
+                  {coverLetterMode === "latex" && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[#a1a1aa] text-[11px]">
+                        <span>Code LaTeX prêt à compiler :</span>
+                        <span className="text-emerald-400 font-medium">✓ Packages standard : geometry, hyperref, xcolor, parskip</span>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-[#f4f4f5] overflow-x-auto max-h-80 leading-relaxed">
+{getCoverLetterTex()}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2022,6 +2317,15 @@ ${interestsSection}
               <span>{effectiveIsEn ? "Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making)." : "Pratique active de jeux de stratégie et tournois compétitifs One Piece TCG (théorie des jeux, optimisation de deck, calculs probabilistes)."}</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* ZONE D'EXPORTATION PDF / IMPRESSION LETTRE DE MOTIVATION (A4)               */}
+      {/* ========================================================================= */}
+      <div id="cover-letter-print-area" className="hidden print:block text-black bg-white font-sans text-xs space-y-4">
+        <div className="text-[11.5px] leading-relaxed text-gray-900 whitespace-pre-line text-justify font-sans">
+          {coverLetter}
         </div>
       </div>
     </main>

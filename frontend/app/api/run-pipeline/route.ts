@@ -54,13 +54,13 @@ ${jobText.slice(0, 4000)}
 - Analyse la langue de l'offre d'emploi (Description / Missions) :
   * Si l'offre est en ANGLAIS (English) ou bilingue international -> La langue par défaut est "en".
   * Si l'offre est 100% en FRANÇAIS -> La langue par défaut est "fr".
-- RÈGLE D'OR ABSOLUE : INTERDICTION FORMELLE DE MÉLANGER ANGLAIS ET FRANÇAIS DANS UN MÊME CV (ZÉRO "FRANGLAIS").
-  Ne génère JAMAIS un résumé en anglais avec des puces en français, ou inversement.
-- Pour permettre à l'utilisateur de basculer instantanément entre CV Anglais et CV Français sur son interface et Overleaf sans jamais mélanger les langues, tu DOIS générer :
+- RÈGLE D'OR ABSOLUE : INTERDICTION FORMELLE DE MÉLANGER ANGLAIS ET FRANÇAIS DANS UN MÊME CV OU UNE LETTRE DE MOTIVATION (ZÉRO "FRANGLAIS").
+  Ne génère JAMAIS un résumé en anglais avec des puces en français, ou une lettre en anglais avec un CV en français.
+- Pour permettre à l'utilisateur de basculer instantanément entre CV/Lettre en Anglais et CV/Lettre en Français sur son interface et Overleaf sans jamais mélanger les langues, tu DOIS générer :
   1. Les champs racine ("tailoredTitle", "tailoredSummary", "projectBullets", "coverLetter") dans la langue principale de l'offre (selon "language": "en" | "fr").
   2. Deux versions complètes dans le champ "versions" :
-     - "versions.en" : { "tailoredTitle": string, "tailoredSummary": string, "projectBullets": [...] } 100% en ANGLAIS PROFESSIONNEL NATIF (verbes au prétérit : Accomplished, Engineered, Architected, Built).
-     - "versions.fr" : { "tailoredTitle": string, "tailoredSummary": string, "projectBullets": [...] } 100% en FRANÇAIS SOIGNÉ (verbes d'action : Conçu, Développé, Déployé, Optimisé).
+     - "versions.en" : { "tailoredTitle": string, "tailoredSummary": string, "projectBullets": [...], "coverLetter": string } 100% en ANGLAIS PROFESSIONNEL NATIF (verbes au prétérit : Accomplished, Engineered, Architected, Built; lettre de motivation 300-400 mots en anglais natif).
+     - "versions.fr" : { "tailoredTitle": string, "tailoredSummary": string, "projectBullets": [...], "coverLetter": string } 100% en FRANÇAIS SOIGNÉ (verbes d'action : Conçu, Développé, Déployé, Optimisé; lettre de motivation 300-400 mots en français soigné).
 
 === RÈGLE CONTRAINTE CONVENTION DE STAGE : VÉRIFICATION DU TÉLÉTRAVAIL (FULL REMOTE) ===
 - Badroudine effectue un stage PFE conventionné par son école d'ingénieurs (EILCO). Sa convention de stage INTERDIT le 100% Full Remote (le télétravail total sans présence physique n'est pas autorisé par l'école).
@@ -84,8 +84,8 @@ ${jobText.slice(0, 4000)}
 3. Adaptation des projets : Réécris les puces des 2 projets principaux ("VectorWord" et "Pipeline RAG") selon la formule STAR (Accompli [X] mesuré par [Y] en faisant appel à [Z] / Accomplished [X] as measured by [Y] by doing [Z]) en insistant sur les compétences clés de l'annonce.
 4. Score ATS & Couverture : Évalue de manière réaliste le score ATS (entre 80 et 96) et le taux de couverture des mots-clés selon l'adéquation.
 5. Lettre de Motivation (Cover Letter) ciblée : Rédige une lettre de motivation complète (300-400 mots) personnalisée pour l'entreprise et l'intitulé du poste.
-- Structure : En-tête (Badroudine Bacar, Élève-Ingénieur EILCO, IA / Machine Learning, badroudinebacar@gmail.com, 07 67 56 07 86, Entreprise), Objet précis (Candidature : Stage de fin d'études PFE 6 mois), Accroche motivée sur l'entreprise, Corps valorisant la stack technique (PyTorch, FastAPI, Docker, NLP, CPGE TSI, TOEIC 905 C1) et les projets concrets (VectorWord, RAG), Disponibilité pour 6 mois dès mars 2027 à l'étranger (Suisse, Luxembourg, etc.), et formule de politesse.
-- Rédige en ANGLAIS si language="en", ou en FRANÇAIS si language="fr". Renseigne "coverLetter": "string".
+- Structure : En-tête (Badroudine Bacar, Élève-Ingénieur EILCO, IA / Machine Learning, badroudinebacar@gmail.com, 07 67 56 07 86, Entreprise), Objet précis (Candidature : Stage de fin d'études PFE 6 mois), Accroche motivée sur l'entreprise, Corps valorisant la stack technique (PyTorch, FastAPI, Docker, NLP, CPGE TSI au Lycée Antonin Artaud Marseille, TOEIC 905 C1) et les projets concrets (VectorWord, RAG), Disponibilité pour 6 mois dès mars 2027 à l'étranger (Suisse, Luxembourg, etc.), et formule de politesse.
+- Génère la lettre dans les deux langues dans "versions.en.coverLetter" (100% en anglais) et "versions.fr.coverLetter" (100% en français), ainsi que dans "coverLetter" dans la langue de l'offre.
 
 Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 {
@@ -112,7 +112,8 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
           "project": "string",
           "bullets": ["string", "string"]
         }
-      ]
+      ],
+      "coverLetter": "string"
     },
     "fr": {
       "tailoredTitle": "string",
@@ -122,7 +123,8 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
           "project": "string",
           "bullets": ["string", "string"]
         }
-      ]
+      ],
+      "coverLetter": "string"
     }
   },
   "coverLetter": "string",
@@ -188,7 +190,10 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
         tailoredTitle: parsedResult.tailoredTitle,
         tailoredSummary: parsedResult.tailoredSummary,
         projectBullets: parsedResult.projectBullets,
+        coverLetter: parsedResult.coverLetter,
       };
+    } else if (!parsedResult.versions[resolvedLang].coverLetter && parsedResult.coverLetter) {
+      parsedResult.versions[resolvedLang].coverLetter = parsedResult.coverLetter;
     }
 
     return NextResponse.json({
