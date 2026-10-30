@@ -50,10 +50,17 @@ Intitulé de poste : ${jobTitle}
 Description / Missions :
 ${jobText.slice(0, 4000)}
 
-=== RÈGLE DE LANGUE IMPÉRATIVE (BILINGUISME INTELLIGENT) ===
+=== RÈGLE DE LANGUE IMPÉRATIVE (BILINGUISME INTELLIGENT ET ZÉRO MÉLANGE) ===
 - Analyse la langue de l'offre d'emploi (Description / Missions) :
-  * Si l'offre est en ANGLAIS (English) -> Tu DOIS générer l'INTÉGRALITÉ des champs (tailoredTitle, tailoredSummary, projectBullets, strategyNote) en ANGLAIS PROFESSIONNEL NATIF (utilise des verbes d'action au prétérit : Accomplished, Engineered, Architected, Built). Renseigne "language": "en".
-  * Si l'offre est en FRANÇAIS -> Rédige l'intégralité en FRANÇAIS. Renseigne "language": "fr".
+  * Si l'offre est en ANGLAIS (English) ou bilingue international -> La langue par défaut est "en".
+  * Si l'offre est 100% en FRANÇAIS -> La langue par défaut est "fr".
+- RÈGLE D'OR ABSOLUE : INTERDICTION FORMELLE DE MÉLANGER ANGLAIS ET FRANÇAIS DANS UN MÊME CV (ZÉRO "FRANGLAIS").
+  Ne génère JAMAIS un résumé en anglais avec des puces en français, ou inversement.
+- Pour permettre à l'utilisateur de basculer instantanément entre CV Anglais et CV Français sur son interface et Overleaf sans jamais mélanger les langues, tu DOIS générer :
+  1. Les champs racine ("tailoredTitle", "tailoredSummary", "projectBullets", "coverLetter") dans la langue principale de l'offre (selon "language": "en" | "fr").
+  2. Deux versions complètes dans le champ "versions" :
+     - "versions.en" : { "tailoredTitle": string, "tailoredSummary": string, "projectBullets": [...] } 100% en ANGLAIS PROFESSIONNEL NATIF (verbes au prétérit : Accomplished, Engineered, Architected, Built).
+     - "versions.fr" : { "tailoredTitle": string, "tailoredSummary": string, "projectBullets": [...] } 100% en FRANÇAIS SOIGNÉ (verbes d'action : Conçu, Développé, Déployé, Optimisé).
 
 === RÈGLE CONTRAINTE CONVENTION DE STAGE : VÉRIFICATION DU TÉLÉTRAVAIL (FULL REMOTE) ===
 - Badroudine effectue un stage PFE conventionné par son école d'ingénieurs (EILCO). Sa convention de stage INTERDIT le 100% Full Remote (le télétravail total sans présence physique n'est pas autorisé par l'école).
@@ -96,6 +103,28 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
       "bullets": ["string", "string"]
     }
   ],
+  "versions": {
+    "en": {
+      "tailoredTitle": "string",
+      "tailoredSummary": "string",
+      "projectBullets": [
+        {
+          "project": "string",
+          "bullets": ["string", "string"]
+        }
+      ]
+    },
+    "fr": {
+      "tailoredTitle": "string",
+      "tailoredSummary": "string",
+      "projectBullets": [
+        {
+          "project": "string",
+          "bullets": ["string", "string"]
+        }
+      ]
+    }
+  },
   "coverLetter": "string",
   "atsScore": 92,
   "coverageRate": 89.5,
@@ -130,6 +159,37 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
     }
 
     const parsedResult = JSON.parse(candidate);
+
+    // Détection stricte et normalisation de la langue pour bannir tout mélange Franglais
+    const isSummaryEnglish = /\b(engineering|student|specializing|seeking|proven|proficient|internship|architected|engineered|built)\b/i.test(
+      parsedResult.tailoredSummary || ""
+    );
+    const isSummaryFrench = /\b(élève-ingénieur|étudiant|dernière année|spécialisé|recherche|stage|diplôme)\b/i.test(
+      parsedResult.tailoredSummary || ""
+    );
+
+    let resolvedLang: "en" | "fr" = "fr";
+    if (isSummaryEnglish && !isSummaryFrench) {
+      resolvedLang = "en";
+    } else if (isSummaryFrench && !isSummaryEnglish) {
+      resolvedLang = "fr";
+    } else {
+      resolvedLang = String(parsedResult.language || "").toLowerCase().includes("en") ? "en" : "fr";
+    }
+
+    parsedResult.language = resolvedLang;
+
+    // Garantir que versions contient au minimum la langue détectée
+    if (!parsedResult.versions) {
+      parsedResult.versions = {};
+    }
+    if (!parsedResult.versions[resolvedLang]) {
+      parsedResult.versions[resolvedLang] = {
+        tailoredTitle: parsedResult.tailoredTitle,
+        tailoredSummary: parsedResult.tailoredSummary,
+        projectBullets: parsedResult.projectBullets,
+      };
+    }
 
     return NextResponse.json({
       success: true,

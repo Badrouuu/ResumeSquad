@@ -81,28 +81,61 @@ export default function Home() {
   const [atsScore, setAtsScore] = useState(90);
   const [coverageRate, setCoverageRate] = useState(90.0);
 
-  const [tailoredTitle, setTailoredTitle] = useState("AI / Machine Learning Engineer (Stage PFE)");
-  const [tailoredSummary, setTailoredSummary] = useState(
-    "Élève-ingénieur en dernière année à l'EILCO (spécialité IA), doté d'une certification TOEIC 905/990. Spécialisé en Machine Learning, NLP et Deep Learning, avec une expérience avérée dans le développement de pipelines RAG, d'agents LLM (Few-Shot Prompting) et de calculs d'espaces vectoriels sémantiques (Word2Vec). Expert dans la conception d'APIs haute performance avec FastAPI et leur conteneurisation via Docker. À la recherche d'un stage de fin d'études (PFE) de 6 mois à partir de mars 2027."
-  );
+  const DEFAULT_CV_FR = {
+    tailoredTitle: "Ingénieur IA & Machine Learning — Stage PFE",
+    tailoredSummary:
+      "Élève-ingénieur en dernière année à l'EILCO (spécialité IA), doté d'une certification TOEIC 905/990. Spécialisé en Machine Learning, NLP et Deep Learning, avec une expérience avérée dans le développement de pipelines RAG, d'agents LLM (Few-Shot Prompting) et de calculs d'espaces vectoriels sémantiques (Word2Vec). Expert dans la conception d'APIs haute performance avec FastAPI et leur conteneurisation via Docker. À la recherche d'un stage de fin d'études (PFE) de 6 mois à partir de mars 2027.",
+    projectBullets: [
+      {
+        project: "VectorWord / Guess-What (NLP & Vector Space Search)",
+        bullets: [
+          "Accompli la mise en place d'une API haute performance mesurée par un temps de réponse optimisé, en faisant appel à FastAPI et Uvicorn pour servir des calculs de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) via Gensim et NumPy.",
+          "Accompli la portabilité et le déploiement industrialisé mesurés par une reproductibilité totale, en faisant usage d'une architecture conteneurisée avec Docker et un déploiement automatisé sur Railway.",
+          "Accompli le développement d'un frontend réactif mesuré par une synchronisation temps réel des données, en faisant appel à Next.js 15, TypeScript, Tailwind CSS et Supabase (PostgreSQL)."
+        ]
+      },
+      {
+        project: "Pipeline RAG & Automatisation de Code (Agentic AI)",
+        bullets: [
+          "Accompli la conception d'un moteur de parsing d'offres et de matching mesuré par la précision du score de pertinence sémantique, en faisant usage d'un système agentique RAG et LLM.",
+          "Accompli la génération automatisée de documents mesurée par la réduction drastique des hallucinations, en faisant appel à des stratégies de Few-Shot Prompting et de génération structurée LaTeX."
+        ]
+      }
+    ]
+  };
 
-  const [projectBullets, setProjectBullets] = useState([
-    {
-      project: "VectorWord / Guess-What (NLP & Vector Space Search)",
-      bullets: [
-        "Accompli la mise en place d'une API haute performance mesurée par un temps de réponse optimisé, en faisant appel à FastAPI et Uvicorn pour servir des calculs de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) via Gensim et NumPy.",
-        "Accompli la portabilité et le déploiement industrialisé mesurés par une reproductibilité totale, en faisant usage d'une architecture conteneurisée avec Docker et un déploiement automatisé sur Railway.",
-        "Accompli le développement d'un frontend réactif mesuré par une synchronisation temps réel des données, en faisant appel à Next.js 15, TypeScript, Tailwind CSS et Supabase (PostgreSQL)."
-      ]
-    },
-    {
-      project: "Pipeline RAG & Automatisation de Code (Agentic AI)",
-      bullets: [
-        "Accompli la conception d'un moteur de parsing d'offres et de matching mesuré par la précision du score de pertinence sémantique, en faisant usage d'un système agentique RAG et LLM.",
-        "Accompli la génération automatisée de documents mesurée par la réduction drastique des hallucinations, en faisant appel à des stratégies de Few-Shot Prompting et de génération structurée LaTeX."
-      ]
-    }
-  ]);
+  const DEFAULT_CV_EN = {
+    tailoredTitle: "AI & Machine Learning Engineer Intern (PFE)",
+    tailoredSummary:
+      "Final-year engineering student (Bac+5) at EILCO specializing in Artificial Intelligence, Deep Learning, and Computer Vision. Proven expertise in building production-ready AI systems using Python, FastAPI, Docker, and MLOps pipelines. Proficient in English (TOEIC 905/990, C1), seeking a 6-month international internship starting March/April 2027 to drive impactful AI solutions.",
+    projectBullets: [
+      {
+        project: "VectorWord / Guess-What (NLP & Vector Space Search)",
+        bullets: [
+          "Architected and deployed a high-performance FastAPI/Uvicorn backend to compute cosine similarity on multilingual Word2Vec vector spaces (FR/EN) using Gensim and NumPy.",
+          "Containerized the application using Docker and deployed on Railway, integrating a Next.js 15, TypeScript, and Supabase frontend for seamless user interaction."
+        ]
+      },
+      {
+        project: "RAG Pipeline & Agentic Automation",
+        bullets: [
+          "Engineered an automated RAG pipeline featuring job parsing, Few-Shot Prompting with LLMs, and structured LaTeX document generation.",
+          "Significantly reduced LLM hallucinations and streamlined document generation workflows through robust prompt engineering and validation."
+        ]
+      }
+    ]
+  };
+
+  const [tailoredTitle, setTailoredTitle] = useState("AI / Machine Learning Engineer (Stage PFE)");
+  const [tailoredSummary, setTailoredSummary] = useState(DEFAULT_CV_FR.tailoredSummary);
+  const [projectBullets, setProjectBullets] = useState(DEFAULT_CV_FR.projectBullets);
+  const [bilingualVersions, setBilingualVersions] = useState<{
+    fr?: { tailoredTitle: string; tailoredSummary: string; projectBullets: { project: string; bullets: string[] }[] };
+    en?: { tailoredTitle: string; tailoredSummary: string; projectBullets: { project: string; bullets: string[] }[] };
+  }>({
+    fr: DEFAULT_CV_FR,
+    en: DEFAULT_CV_EN,
+  });
 
   // Applications Tracker State avec localStorage
   const [applications, setApplications] = useState<TrackedApplication[]>(DEFAULT_APPLICATIONS);
@@ -263,6 +296,12 @@ Profil requis :
 
       const data = await res.json();
       if (res.ok && data.success) {
+        if (data.versions) {
+          setBilingualVersions((prev) => ({
+            ...prev,
+            ...data.versions,
+          }));
+        }
         if (data.language === "en" || data.language === "fr") {
           setCvLanguage(data.language);
         }
@@ -321,9 +360,45 @@ Profil requis :
     }
   };
 
-  // Helper de génération du code source LaTeX (.tex) bilingue FR/EN
-  const getTexContent = (): string => {
-    const isEn = cvLanguage === "en";
+  // Bascule dynamique et instantanée de langue de CV sans AUCUN mélange Franglais
+  const handleSwitchLanguage = (targetLang: "fr" | "en") => {
+    setCvLanguage(targetLang);
+    const version = bilingualVersions[targetLang] || (targetLang === "en" ? DEFAULT_CV_EN : DEFAULT_CV_FR);
+    if (version) {
+      if (version.tailoredTitle) setTailoredTitle(version.tailoredTitle);
+      if (version.tailoredSummary) setTailoredSummary(version.tailoredSummary);
+      if (version.projectBullets && version.projectBullets.length > 0) setProjectBullets(version.projectBullets);
+    }
+  };
+
+  // Helper de génération du code source LaTeX (.tex) bilingue FR/EN sans AUCUN mélange Franglais
+  const getTexContent = (forcedLang?: "fr" | "en"): string => {
+    // Détection stricte de la langue réelle du texte pour éradiquer tout mélange accidentel
+    const isSummaryEnglish = /\b(engineering|student|specializing|seeking|proven|proficient|internship|architected|engineered|built)\b/i.test(
+      tailoredSummary
+    );
+    const isSummaryFrench = /\b(élève-ingénieur|étudiant|dernière année|spécialisé|recherche|stage|diplôme)\b/i.test(
+      tailoredSummary
+    );
+
+    let isEn = cvLanguage === "en";
+    if (forcedLang) {
+      isEn = forcedLang === "en";
+    } else if (isSummaryEnglish && !isSummaryFrench) {
+      isEn = true;
+    } else if (isSummaryFrench && !isSummaryEnglish) {
+      isEn = false;
+    }
+
+    // Récupérer les champs textuels parfaitement synchronisés avec la langue résolue
+    const targetVersionKey: "en" | "fr" = isEn ? "en" : "fr";
+    const activeVersion = bilingualVersions[targetVersionKey];
+    const activeTitle = activeVersion?.tailoredTitle || tailoredTitle;
+    const activeSummary = activeVersion?.tailoredSummary || tailoredSummary;
+    const activeBullets =
+      activeVersion?.projectBullets && activeVersion.projectBullets.length > 0
+        ? activeVersion.projectBullets
+        : projectBullets;
 
     const locationText = isEn
       ? "France (International Mobility: Switzerland, Luxembourg, Belgium, Germany — Onsite / Hybrid)"
@@ -406,7 +481,7 @@ Profil requis :
 \\begin{document}
 \\begin{center}
     {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.4em]
-    {\\large \\textbf{${tailoredTitle}}} \\\\[0.4em]
+    {\\large \\textbf{${activeTitle}}} \\\\[0.4em]
     \\small ${locationText} \\\\
     \\href{tel:+33767560786}{07 67 56 07 86} \\ $|$ \\ 
     \\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
@@ -416,12 +491,12 @@ Profil requis :
 
 \\vspace{-0.4em}
 \\noindent
-\\small ${tailoredSummary}
+\\small ${activeSummary}
 
 ${educationSection}
 
 ${projectsSectionTitle}
-${projectBullets
+${activeBullets
   .map(
     (p) => `\\noindent
 \\textbf{${p.project}} \\\\
@@ -659,6 +734,19 @@ ${interestsSection}
         return <span className="px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium">🔴 Refusé</span>;
     }
   };
+
+  // Détection stricte et sans compromis de la langue effective pour éradiquer tout mélange Franglais
+  const isSummaryEnglish = /\b(engineering|student|specializing|seeking|proven|proficient|internship|architected|engineered|built)\b/i.test(
+    tailoredSummary
+  );
+  const isSummaryFrench = /\b(élève-ingénieur|étudiant|dernière année|spécialisé|recherche|stage|diplôme)\b/i.test(
+    tailoredSummary
+  );
+  const effectiveIsEn = isSummaryEnglish && !isSummaryFrench ? true : isSummaryFrench && !isSummaryEnglish ? false : cvLanguage === "en";
+  const printVersion = bilingualVersions[effectiveIsEn ? "en" : "fr"];
+  const printTitle = printVersion?.tailoredTitle || tailoredTitle;
+  const printSummary = printVersion?.tailoredSummary || tailoredSummary;
+  const printBullets = printVersion?.projectBullets && printVersion.projectBullets.length > 0 ? printVersion.projectBullets : projectBullets;
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
@@ -1053,21 +1141,21 @@ ${interestsSection}
                     <span className="text-[10px] text-[#71717a] font-medium px-1.5">Langue CV :</span>
                     <button
                       type="button"
-                      onClick={() => setCvLanguage("fr")}
+                      onClick={() => handleSwitchLanguage("fr")}
                       className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
                         cvLanguage === "fr" ? "bg-blue-600 text-white shadow-sm" : "text-[#a1a1aa] hover:text-white"
                       }`}
-                      title="Générer le CV en Français"
+                      title="Générer le CV complet en Français (100% sans Franglais)"
                     >
                       🇫🇷 FR
                     </button>
                     <button
                       type="button"
-                      onClick={() => setCvLanguage("en")}
+                      onClick={() => handleSwitchLanguage("en")}
                       className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
                         cvLanguage === "en" ? "bg-blue-600 text-white shadow-sm" : "text-[#a1a1aa] hover:text-white"
                       }`}
-                      title="Generate CV in English"
+                      title="Generate full CV in English (100% pure English)"
                     >
                       🇬🇧 EN
                     </button>
@@ -1803,9 +1891,9 @@ ${interestsSection}
         {/* En-tête */}
         <div className="text-center space-y-1 pb-2 border-b border-gray-400">
           <h1 className="text-2xl font-bold tracking-tight text-blue-900 uppercase">Badroudine Bacar</h1>
-          <div className="text-sm font-semibold text-gray-800">{tailoredTitle}</div>
+          <div className="text-sm font-semibold text-gray-800">{printTitle}</div>
           <div className="text-[11px] text-gray-600">
-            {cvLanguage === "en"
+            {effectiveIsEn
               ? "France (International Mobility: Switzerland, Luxembourg, Belgium, Germany — Onsite / Hybrid)"
               : "France (Mobilité Internationale Obligatoire : Suisse, Luxembourg, Belgique, Allemagne — Présentiel / Hybride)"}
           </div>
@@ -1823,40 +1911,40 @@ ${interestsSection}
         {/* Profil / Accroche */}
         <div className="space-y-1">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
-            {cvLanguage === "en" ? "Professional Summary" : "Profil Professionnel"}
+            {effectiveIsEn ? "Professional Summary" : "Profil Professionnel"}
           </h2>
           <p className="text-[11px] text-gray-800 leading-relaxed text-justify">
-            {tailoredSummary}
+            {printSummary}
           </p>
         </div>
 
         {/* Formation & Certifications */}
         <div className="space-y-1">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
-            {cvLanguage === "en" ? "Education & Certifications" : "Formation & Certifications"}
+            {effectiveIsEn ? "Education & Certifications" : "Formation & Certifications"}
           </h2>
           <div className="space-y-1 text-[11px] text-gray-800">
             <div className="flex justify-between items-baseline font-semibold">
-              <span>{cvLanguage === "en" ? "Master of Science in Computer Engineering — Major in Artificial Intelligence" : "Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle"}</span>
+              <span>{effectiveIsEn ? "Master of Science in Computer Engineering — Major in Artificial Intelligence" : "Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle"}</span>
               <span className="text-gray-600 font-normal">2024 - 2027</span>
             </div>
             <div className="italic text-gray-700 text-[10px]">
-              {cvLanguage === "en" ? "EILCO Graduate School of Engineering, Calais, France" : "EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France"}
+              {effectiveIsEn ? "EILCO Graduate School of Engineering, Calais, France" : "EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France"}
             </div>
             <div className="text-[10px] text-gray-600">
-              {cvLanguage === "en"
+              {effectiveIsEn
                 ? "Final year (ING3 / MSc). Specialization in Deep Learning, Computer Vision, Machine Learning, MLOps, CI/CD, Advanced Databases."
                 : "Dernière année (ING3). Spécialisation en Deep Learning, Vision par Ordinateur, Machine Learning, MLOps, CI/CD, Bases de Données Avancées."}
             </div>
 
             <div className="flex justify-between items-baseline font-semibold pt-1">
-              <span>{cvLanguage === "en" ? "Preparatory Classes for Grandes Écoles (CPGE TSI)" : "Classes Préparatoires aux Grandes Écoles (CPGE TSI)"}</span>
+              <span>{effectiveIsEn ? "Preparatory Classes for Grandes Écoles (CPGE TSI)" : "Classes Préparatoires aux Grandes Écoles (CPGE TSI)"}</span>
               <span className="text-gray-600 font-normal">2022 - 2024</span>
             </div>
             <div className="italic text-gray-700 text-[10px]">Lycée César Baggio, Lille, France</div>
 
             <div className="flex justify-between items-baseline font-semibold pt-1">
-              <span>{cvLanguage === "en" ? "English Certification: TOEIC Listening & Reading" : "Certification Anglais : TOEIC Listening & Reading"}</span>
+              <span>{effectiveIsEn ? "English Certification: TOEIC Listening & Reading" : "Certification Anglais : TOEIC Listening & Reading"}</span>
               <span className="text-blue-900 font-bold">905 / 990 (CEFR C1 Level)</span>
             </div>
           </div>
@@ -1865,10 +1953,10 @@ ${interestsSection}
         {/* Projets Techniques */}
         <div className="space-y-1">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
-            {cvLanguage === "en" ? "Technical Projects & Key Achievements" : "Projets Techniques & Réalisations"}
+            {effectiveIsEn ? "Technical Projects & Key Achievements" : "Projets Techniques & Réalisations"}
           </h2>
           <div className="space-y-2 text-[11px]">
-            {projectBullets.map((proj, idx) => (
+            {printBullets.map((proj, idx) => (
               <div key={idx} className="space-y-0.5">
                 <div className="font-semibold text-gray-900">{proj.project}</div>
                 <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[10.5px]">
@@ -1884,16 +1972,16 @@ ${interestsSection}
         {/* Expérience Professionnelle */}
         <div className="space-y-1">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
-            {cvLanguage === "en" ? "Professional Experience" : "Expérience Professionnelle"}
+            {effectiveIsEn ? "Professional Experience" : "Expérience Professionnelle"}
           </h2>
           <div className="space-y-0.5 text-[11px]">
             <div className="flex justify-between items-baseline font-semibold text-gray-900">
-              <span>{cvLanguage === "en" ? "Founder & Lead Software Developer (Entrepreneurial Internship PÉPITE)" : "Fondateur & Développeur Lead (Stage Entrepreneurial PÉPITE)"}</span>
+              <span>{effectiveIsEn ? "Founder & Lead Software Developer (Entrepreneurial Internship PÉPITE)" : "Fondateur & Développeur Lead (Stage Entrepreneurial PÉPITE)"}</span>
               <span className="text-gray-600 font-normal">2025 - 2026</span>
             </div>
             <div className="italic text-gray-700 text-[10px]">Étiquette Jaune (Micro-entreprise)</div>
             <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[10.5px]">
-              {cvLanguage === "en" ? (
+              {effectiveIsEn ? (
                 <>
                   <li>Accomplished integration of on-device Computer Vision models measured by text extraction speed, leveraging Google ML Kit Text Recognition (OCR).</li>
                   <li>Accomplished serverless backend development measured by real-time data synchronization, utilizing Google Cloud Firestore, Cloud Functions, and TypeScript.</li>
@@ -1911,16 +1999,16 @@ ${interestsSection}
         {/* Centres d'intérêt & Passions */}
         <div className="space-y-1">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
-            {cvLanguage === "en" ? "Interests & Passions" : "Centres d'Intérêt & Passions"}
+            {effectiveIsEn ? "Interests & Passions" : "Centres d'Intérêt & Passions"}
           </h2>
           <div className="space-y-0.5 text-[10.5px] text-gray-800">
             <div>
-              <span className="font-semibold text-gray-900">{cvLanguage === "en" ? "Game Modding & Video Games:" : "Modding & Jeux Vidéo :"} </span>
-              <span>{cvLanguage === "en" ? "Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures)." : "Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données)."}</span>
+              <span className="font-semibold text-gray-900">{effectiveIsEn ? "Game Modding & Video Games:" : "Modding & Jeux Vidéo :"} </span>
+              <span>{effectiveIsEn ? "Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures)." : "Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données)."}</span>
             </div>
             <div>
-              <span className="font-semibold text-gray-900">{cvLanguage === "en" ? "Strategy Games & Competitive TCG:" : "Jeux de Stratégie & TCG Compétitif :"} </span>
-              <span>{cvLanguage === "en" ? "Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making)." : "Pratique active de jeux de stratégie et tournois compétitifs One Piece TCG (théorie des jeux, optimisation de deck, calculs probabilistes)."}</span>
+              <span className="font-semibold text-gray-900">{effectiveIsEn ? "Strategy Games & Competitive TCG:" : "Jeux de Stratégie & TCG Compétitif :"} </span>
+              <span>{effectiveIsEn ? "Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making)." : "Pratique active de jeux de stratégie et tournois compétitifs One Piece TCG (théorie des jeux, optimisation de deck, calculs probabilistes)."}</span>
             </div>
           </div>
         </div>
