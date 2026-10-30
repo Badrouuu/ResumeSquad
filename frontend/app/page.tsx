@@ -29,7 +29,7 @@ Profil recherché :
 - Connaissance des technologies d'embeddings (Word2Vec, Sentence-Transformers) appréciée.`;
 
 const DEFAULT_COVER_LETTER_FR = `Badroudine Bacar
-Élève-Ingénieur en Informatique — Spécialité Intelligence Artificielle (Bac+5 / ING3)
+Élève-Ingénieur en Informatique - Spécialité Intelligence Artificielle (Bac+5 / ING3)
 EILCO (École d'Ingénieurs du Littoral Côte d'Opale)
 Email : badroudinebacar@gmail.com | Tél : +33 7 67 56 07 86
 LinkedIn : linkedin.com/in/badroudine-bacar | GitHub : github.com/Badrouuu
@@ -37,17 +37,17 @@ LinkedIn : linkedin.com/in/badroudine-bacar | GitHub : github.com/Badrouuu
 À l'attention de l'équipe Recrutement Tech
 NeuroTech Solutions
 
-Objet : Candidature — Stage de fin d'études PFE (6 mois) : Ingénieur AI / Machine Learning (dès Mars 2027)
+Objet : Candidature - Stage de fin d'études PFE (6 mois) : Ingénieur AI / Machine Learning (dès Mars 2027)
 
 Madame, Monsieur,
 
-Actuellement en dernière année de cycle ingénieur à l'EILCO (spécialisation Intelligence Artificielle & Data Science) après deux années de Classes Préparatoires aux Grandes Écoles (CPGE TSI au Lycée Antonin Artaud à Marseille), je vous soumets ma candidature pour le stage de fin d'études de 6 mois d'Ingénieur AI / Machine Learning au sein de NeuroTech Solutions, disponible dès mars 2027.
+Actuellement en dernière année de cycle ingénieur à l'EILCO (spécialisation Intelligence Artificielle & Data Science) après un parcours en Classes Préparatoires (CPGE TSI), je vous soumets ma candidature pour le stage de fin d'études de 6 mois d'Ingénieur AI / Machine Learning au sein de NeuroTech Solutions, disponible dès mars 2027.
 
-Votre travail à la frontière des neurosciences et de l'intelligence artificielle — notamment le développement de pipelines NLP d'embeddings sémantiques et le déploiement d'agents LLM avancés — répond précisément à mes aspirations techniques. Concevoir des systèmes d'IA robustes capables de traiter des flux de données complexes avec une latence maîtrisée constitue le cœur de mes travaux et de mes projets d'ingénierie récents.
+Votre travail à la frontière des neurosciences et de l'intelligence artificielle, notamment le développement de pipelines NLP d'embeddings sémantiques et le déploiement d'agents LLM, répond précisément à mes aspirations techniques. Concevoir des systèmes d'IA robustes capables de traiter des flux de données complexes avec une latence maîtrisée constitue le cœur de mes travaux récents.
 
-Sur le plan technique, mon parcours s'articule directement avec les missions du poste. Dans le cadre de VectorWord / Guess-What, j'ai architecturé et déployé une API asynchrone haute performance sous FastAPI et conteneurisée avec Docker, effectuant des calculs de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) via Gensim et NumPy. Par ailleurs, j'ai conçu un pipeline d'automatisation agentique RAG (Retrieval-Augmented Generation) combinant Few-Shot Prompting et extraction contextuelle, réduisant drastiquement les hallucinations des LLMs. Cette pratique confirmée de PyTorch, de la conteneurisation microservices et de l'optimisation des espaces sémantiques me permettra d'être immédiatement opérationnel au sein de vos équipes d'ingénierie.
+Sur le plan technique, mes réalisations répondent directement à vos défis. Dans le cadre du projet VectorWord, j'ai déployé un moteur sémantique sous FastAPI et Docker capable de calculer en temps réel des similarités cosinus sur des espaces vectoriels multilingues (Gensim, NumPy) avec un temps de réponse moyen inférieur à 40 ms. De plus, j'ai développé un pipeline RAG combinant Few-Shot Prompting et validation stricte (Pydantic), permettant d'atteindre un taux de conformité structurée de 100 % et de faire chuter le taux d'hallucination à moins de 2 %. Cette expérience concrète en traitement du langage naturel et en architecture microservices me permettra d'être immédiatement opérationnel sur vos modèles et pipelines de données.
 
-Doté d'une solide formation mathématique acquise en CPGE et certifié au niveau C1 en anglais professionnel (TOEIC 905/990), je suis parfaitement opérationnel pour collaborer au sein d'équipes techniques pluridisciplinaires et internationales.
+Doté d'une solide formation mathématique acquise en CPGE et certifié au niveau C1 en anglais professionnel (TOEIC 905/990), je suis parfaitement préparé pour collaborer au sein d'équipes techniques pluridisciplinaires et internationales.
 
 Pleinement mobile pour m'installer à Genève et intégrer vos locaux en présentiel ou selon un rythme hybride, je serais honoré d'échanger avec vous lors d'un entretien technique afin d'approfondir l'apport de mes compétences à vos objectifs de recherche et développement.
 
@@ -56,7 +56,7 @@ Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distin
 Badroudine Bacar`;
 
 const DEFAULT_COVER_LETTER_EN = `Badroudine Bacar
-Graduate Engineering Student — Artificial Intelligence & Data Science (MSc / Final Year)
+Graduate Engineering Student - Artificial Intelligence & Data Science (MSc / Final Year)
 EILCO Graduate School of Engineering
 Email: badroudinebacar@gmail.com | Phone: +33 7 67 56 07 86
 LinkedIn: linkedin.com/in/badroudine-bacar | GitHub: github.com/Badrouuu
@@ -64,15 +64,15 @@ LinkedIn: linkedin.com/in/badroudine-bacar | GitHub: github.com/Badrouuu
 To the Attention of the Tech Recruiting Team
 NeuroTech Solutions
 
-Subject: Application — 6-Month End-of-Studies Internship (PFE): AI / Machine Learning Engineer (Starting March 2027)
+Subject: Application - 6-Month End-of-Studies Internship (PFE): AI / Machine Learning Engineer (Starting March 2027)
 
 Dear Hiring Team,
 
-Currently in my final year of computer engineering at EILCO specializing in Artificial Intelligence and Data Science, following intensive Preparatory Classes for Grandes Écoles (CPGE TSI at Lycée Antonin Artaud in Marseille), I am writing to apply for the 6-month AI / Machine Learning Engineer internship at NeuroTech Solutions, starting in March 2027.
+Currently in my final year of computer engineering at EILCO specializing in Artificial Intelligence and Data Science, following rigorous preparatory classes (CPGE TSI), I am writing to apply for the 6-month AI / Machine Learning Engineer internship at NeuroTech Solutions, starting in March 2027.
 
-NeuroTech Solutions' pioneering work at the intersection of neuroscience and computational AI — particularly your focus on semantic embedding NLP pipelines and deploying production-grade LLM agents — strongly resonates with my technical focus. Building robust AI infrastructure capable of processing complex multimodal data streams with low inference latency has been the central theme of my recent engineering projects.
+NeuroTech Solutions' pioneering work at the intersection of neuroscience and computational AI, particularly your focus on semantic embedding NLP pipelines and deploying production-grade LLM agents, strongly resonates with my technical focus. Building robust AI infrastructure capable of processing complex multimodal data streams with low inference latency has been the central theme of my recent engineering projects.
 
-My technical experience directly aligns with your requirements. While engineering VectorWord / Guess-What, I architected and deployed a containerized asynchronous FastAPI service with Docker on Railway, executing vector calculations on multilingual Word2Vec spaces using Gensim and NumPy. In addition, I built an end-to-end agentic RAG pipeline featuring Few-Shot Prompting and contextual matching that substantially minimized LLM hallucinations and automated multi-step workflows. This hands-on expertise with PyTorch, containerization, and vector retrieval pipelines equips me to contribute productively to your engineering sprints from day one.
+On the technical side, my achievements directly align with your requirements. With VectorWord, I built a containerized semantic engine with FastAPI and Docker that computes real-time cosine similarities on multilingual vector spaces (Gensim, NumPy) with sub-40ms latency. Furthermore, I engineered an agentic RAG pipeline combining Few-Shot Prompting and strict schema validation, achieving 100% structured compliance and reducing hallucination rates to under 2%. This hands-on experience in NLP workflows and microservices enables me to contribute to your engineering sprints from day one.
 
 Backed by the mathematical rigor of my preparatory training and fully certified at the CEFR C1 level in professional English (TOEIC 905/990), I thrive in international, collaborative environments solving complex engineering challenges.
 
@@ -644,7 +644,9 @@ ${interestsSection}
 
   // Helper pour décomposer et mettre en page la lettre de motivation avec un design corporate exécutif
   const renderFormattedCoverLetter = (letterText: string, isPrint = false) => {
-    const rawChunks = letterText.split(/\n{2,}/).map((c) => c.trim()).filter(Boolean);
+    // Normalisation typographique : remplacer les tirets cadratins (—) et demi-cadratins (–) par des tirets simples (-)
+    const cleanText = letterText.replace(/[\u2014\u2013]/g, "-");
+    const rawChunks = cleanText.split(/\n{2,}/).map((c) => c.trim()).filter(Boolean);
 
     let senderChunk = "";
     let recipientChunk = "";
@@ -673,6 +675,14 @@ ${interestsSection}
       }
     });
 
+    const isLetterFrench = /\b(madame|monsieur|élève|candidature|stage|ingénieur|veuillez|agréer|recherche|formation)\b/i.test(cleanText);
+    const resolvedIsEn = isLetterFrench ? false : coverLetterLanguage === "en";
+    const letterDate = new Date().toLocaleDateString(resolvedIsEn ? "en-US" : "fr-FR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
     if (senderChunk && (recipientChunk || subjectChunk)) {
       return (
         <div className={`space-y-4 text-gray-900 ${isPrint ? "text-[11px] leading-relaxed" : "text-xs leading-relaxed"}`}>
@@ -682,9 +692,9 @@ ${interestsSection}
             <div className="space-y-0.5">
               <div className="text-base font-bold text-blue-900 tracking-tight">BADROUDINE BACAR</div>
               <div className="text-[11px] font-semibold text-gray-800">
-                {coverLetterLanguage === "en"
-                  ? "Engineering Student — AI & Data Science (MSc / Final Year)"
-                  : "Élève-Ingénieur en Informatique — Spécialité IA (Bac+5 / ING3)"}
+                {resolvedIsEn
+                  ? "Engineering Student - AI & Data Science (MSc / Final Year)"
+                  : "Élève-Ingénieur en Informatique - Spécialité IA (Bac+5 / ING3)"}
               </div>
               <div className="text-[10px] text-gray-600">
                 EILCO Graduate School of Engineering (Calais, France)
@@ -702,16 +712,12 @@ ${interestsSection}
 
             {/* Destinataire & Date */}
             <div className="text-right space-y-1 self-end sm:self-start">
-              <div className="text-[10px] text-gray-500 italic">
-                {new Date().toLocaleDateString(coverLetterLanguage === "en" ? "en-US" : "fr-FR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+              <div className="text-[10px] text-gray-600 font-medium italic">
+                {letterDate}
               </div>
               <div className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-left text-[10.5px]">
                 <div className="text-gray-500 font-medium">
-                  {coverLetterLanguage === "en" ? "To the Attention of:" : "À l'attention de :"}
+                  {resolvedIsEn ? "To the Attention of:" : "À l'attention de :"}
                 </div>
                 <div className="font-bold text-gray-900">
                   {recipientChunk.split("\n").filter(l => !l.toLowerCase().includes("attention")).join(" ") || company}
@@ -754,7 +760,7 @@ ${interestsSection}
               {signatureChunk || "Badroudine Bacar"}
             </div>
             <div className="text-[10px] text-gray-500">
-              {coverLetterLanguage === "en" ? "AI & Machine Learning Engineer" : "Élève-Ingénieur en IA & Machine Learning"}
+              {resolvedIsEn ? "AI & Machine Learning Engineer" : "Élève-Ingénieur en IA & Machine Learning"}
             </div>
           </div>
         </div>
@@ -763,15 +769,25 @@ ${interestsSection}
 
     return (
       <div className="text-[11.5px] leading-relaxed text-gray-900 whitespace-pre-line text-justify font-sans">
-        {letterText}
+        {cleanText}
       </div>
     );
   };
 
   // Helper de génération du code source LaTeX (.tex) pour la lettre de motivation
   const getCoverLetterTex = (forcedLang?: "fr" | "en"): string => {
-    const isEn = (forcedLang || coverLetterLanguage) === "en";
-    const letterText = coverLetter || (isEn ? DEFAULT_COVER_LETTER_EN : DEFAULT_COVER_LETTER_FR);
+    const rawText = coverLetter || DEFAULT_COVER_LETTER_FR;
+    const cleanText = rawText.replace(/[\u2014\u2013]/g, "-");
+
+    const isLetterFrench = /\b(madame|monsieur|élève|candidature|stage|ingénieur|veuillez|agréer|recherche|formation)\b/i.test(cleanText);
+    const isEn = forcedLang ? forcedLang === "en" : isLetterFrench ? false : coverLetterLanguage === "en";
+    const letterText = cleanText || (isEn ? DEFAULT_COVER_LETTER_EN : DEFAULT_COVER_LETTER_FR);
+
+    const letterDate = new Date().toLocaleDateString(isEn ? "en-US" : "fr-FR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
 
     const escapeTex = (str: string) =>
       str
@@ -828,7 +844,7 @@ ${interestsSection}
 
 % --- EN-TÊTE EXPÉDITEUR ---
 {\\large \\textbf{\\color{primary} BADROUDINE BACAR}} \\\\[0.2em]
-\\textbf{${isEn ? "Engineering Student — Major in AI (MSc / Final Year)" : "Élève-Ingénieur en Informatique — Spécialité IA (Bac+5 / ING3)"}} \\\\
+\\textbf{${isEn ? "Engineering Student - Major in AI (MSc / Final Year)" : "Élève-Ingénieur en Informatique - Spécialité IA (Bac+5 / ING3)"}} \\\\
 ${isEn ? "EILCO Graduate School of Engineering, Calais, France" : "EILCO (École d'Ingénieurs du Littoral Côte d'Opale), France"} \\\\
 \\small
 \\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
@@ -842,7 +858,7 @@ ${isEn ? "EILCO Graduate School of Engineering, Calais, France" : "EILCO (École
 
 % --- DESTINATAIRE & DATE ---
 \\begin{flushright}
-    \\small \\textit{\\today}
+    \\small \\textit{${escapeTex(letterDate)}}
 \\end{flushright}
 
 \\noindent
