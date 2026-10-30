@@ -33,7 +33,6 @@ const DEFAULT_COVER_LETTER_FR = `Badroudine Bacar
 EILCO (École d'Ingénieurs du Littoral Côte d'Opale)
 Email : badroudinebacar@gmail.com | Tél : +33 7 67 56 07 86
 LinkedIn : linkedin.com/in/badroudine-bacar | GitHub : github.com/Badrouuu
-Mobilité : Suisse, Luxembourg, Belgique, Allemagne, UK (Présentiel / Hybride)
 
 À l'attention de l'équipe Recrutement Tech
 NeuroTech Solutions
@@ -42,13 +41,17 @@ Objet : Candidature — Stage de fin d'études PFE (6 mois) : Ingénieur AI / Ma
 
 Madame, Monsieur,
 
-Actuellement en dernière année de cycle ingénieur à l'EILCO (spécialisation Intelligence Artificielle & Data Science) après un parcours exigeant en Classes Préparatoires aux Grandes Écoles (CPGE TSI au Lycée Antonin Artaud à Marseille), je vous présente ma candidature pour un stage de fin d'études de 6 mois en tant qu'Ingénieur AI / Machine Learning, disponible à partir de mars 2027.
+Actuellement en dernière année de cycle ingénieur à l'EILCO (spécialisation Intelligence Artificielle & Data Science) après deux années de Classes Préparatoires aux Grandes Écoles (CPGE TSI au Lycée Antonin Artaud à Marseille), je vous soumets ma candidature pour le stage de fin d'études de 6 mois d'Ingénieur AI / Machine Learning au sein de NeuroTech Solutions, disponible dès mars 2027.
 
-Votre positionnement technologique et vos challenges en IA appliquée correspondent parfaitement à mon profil et à mes réalisations. Passionné par l'industrialisation des modèles de Machine Learning et le NLP, j'ai notamment conçu et déployé VectorWord / Guess-What, un moteur sémantique temps réel exploitant des embeddings Word2Vec (Gensim, NumPy) et exposé via une API haute performance sous FastAPI et conteneurisé avec Docker. De plus, j'ai mis au point des pipelines agentiques RAG (Retrieval-Augmented Generation) combinant Few-Shot Prompting et matching sémantique pour automatiser des workflows complexes avec une fiabilité totale sans hallucinations.
+Votre travail à la frontière des neurosciences et de l'intelligence artificielle — notamment le développement de pipelines NLP d'embeddings sémantiques et le déploiement d'agents LLM avancés — répond précisément à mes aspirations techniques. Concevoir des systèmes d'IA robustes capables de traiter des flux de données complexes avec une latence maîtrisée constitue le cœur de mes travaux et de mes projets d'ingénierie récents.
 
-Rigoureux, autonome et certifié au niveau C1 en anglais professionnel (TOEIC 905/990), je suis particulièrement enthousiaste à l'idée d'intégrer vos équipes sur site ou en format hybride, afin de concevoir et déployer des solutions d'IA robustes et scalables.
+Sur le plan technique, mon parcours s'articule directement avec les missions du poste. Dans le cadre de VectorWord / Guess-What, j'ai architecturé et déployé une API asynchrone haute performance sous FastAPI et conteneurisée avec Docker, effectuant des calculs de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) via Gensim et NumPy. Par ailleurs, j'ai conçu un pipeline d'automatisation agentique RAG (Retrieval-Augmented Generation) combinant Few-Shot Prompting et extraction contextuelle, réduisant drastiquement les hallucinations des LLMs. Cette pratique confirmée de PyTorch, de la conteneurisation microservices et de l'optimisation des espaces sémantiques me permettra d'être immédiatement opérationnel au sein de vos équipes d'ingénierie.
 
-Dans l'attente d'un prochain échange au cours duquel je pourrai vous présenter plus en détail mes réalisations techniques, je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+Doté d'une solide formation mathématique acquise en CPGE et certifié au niveau C1 en anglais professionnel (TOEIC 905/990), je suis parfaitement opérationnel pour collaborer au sein d'équipes techniques pluridisciplinaires et internationales.
+
+Pleinement mobile pour m'installer à Genève et intégrer vos locaux en présentiel ou selon un rythme hybride, je serais honoré d'échanger avec vous lors d'un entretien technique afin d'approfondir l'apport de mes compétences à vos objectifs de recherche et développement.
+
+Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
 
 Badroudine Bacar`;
 
@@ -57,7 +60,6 @@ Graduate Engineering Student — Artificial Intelligence & Data Science (MSc / F
 EILCO Graduate School of Engineering
 Email: badroudinebacar@gmail.com | Phone: +33 7 67 56 07 86
 LinkedIn: linkedin.com/in/badroudine-bacar | GitHub: github.com/Badrouuu
-Mobility: Switzerland, Luxembourg, Belgium, Germany, UK (On-site / Hybrid)
 
 To the Attention of the Tech Recruiting Team
 NeuroTech Solutions
@@ -66,13 +68,17 @@ Subject: Application — 6-Month End-of-Studies Internship (PFE): AI / Machine L
 
 Dear Hiring Team,
 
-Currently in my final year of computer engineering at EILCO specializing in Artificial Intelligence and Data Science, following intensive Preparatory Classes for Grandes Écoles (CPGE TSI at Lycée Antonin Artaud in Marseille), I am applying for a 6-month end-of-studies internship as an AI / Machine Learning Engineer, starting in March 2027.
+Currently in my final year of computer engineering at EILCO specializing in Artificial Intelligence and Data Science, following intensive Preparatory Classes for Grandes Écoles (CPGE TSI at Lycée Antonin Artaud in Marseille), I am writing to apply for the 6-month AI / Machine Learning Engineer internship at NeuroTech Solutions, starting in March 2027.
 
-Your company's innovative technological focus and applied AI challenges strongly align with my background and technical achievements. Passionate about machine learning engineering and NLP systems, I architected and deployed VectorWord / Guess-What, a high-performance semantic search platform powered by Word2Vec vector spaces (Gensim, NumPy), exposed via an asynchronous FastAPI backend and containerized with Docker. Furthermore, I developed automated RAG pipelines combining Few-Shot Prompting and semantic matching to execute complex agentic workflows with zero hallucinations.
+NeuroTech Solutions' pioneering work at the intersection of neuroscience and computational AI — particularly your focus on semantic embedding NLP pipelines and deploying production-grade LLM agents — strongly resonates with my technical focus. Building robust AI infrastructure capable of processing complex multimodal data streams with low inference latency has been the central theme of my recent engineering projects.
 
-Autonomous, disciplined, and fully proficient in professional English (TOEIC 905/990, CEFR C1 Level), I am eager to join your engineering team in an on-site or hybrid environment to contribute to scalable and reliable AI systems.
+My technical experience directly aligns with your requirements. While engineering VectorWord / Guess-What, I architected and deployed a containerized asynchronous FastAPI service with Docker on Railway, executing vector calculations on multilingual Word2Vec spaces using Gensim and NumPy. In addition, I built an end-to-end agentic RAG pipeline featuring Few-Shot Prompting and contextual matching that substantially minimized LLM hallucinations and automated multi-step workflows. This hands-on expertise with PyTorch, containerization, and vector retrieval pipelines equips me to contribute productively to your engineering sprints from day one.
 
-I would welcome the opportunity to discuss my background and how my skills can contribute to your projects. Thank you for your time and consideration.
+Backed by the mathematical rigor of my preparatory training and fully certified at the CEFR C1 level in professional English (TOEIC 905/990), I thrive in international, collaborative environments solving complex engineering challenges.
+
+Fully mobile to relocate to Geneva for an on-site or hybrid role, I would welcome the opportunity to discuss my background and how my skills can advance your engineering objectives during a technical interview.
+
+Thank you for your time and consideration.
 
 Sincerely,
 
@@ -636,6 +642,132 @@ ${interestsSection}
     }, 1500);
   };
 
+  // Helper pour décomposer et mettre en page la lettre de motivation avec un design corporate exécutif
+  const renderFormattedCoverLetter = (letterText: string, isPrint = false) => {
+    const rawChunks = letterText.split(/\n{2,}/).map((c) => c.trim()).filter(Boolean);
+
+    let senderChunk = "";
+    let recipientChunk = "";
+    let subjectChunk = "";
+    let salutationChunk = "";
+    const bodyParagraphs: string[] = [];
+    let closingChunk = "";
+    let signatureChunk = "";
+
+    rawChunks.forEach((chunk, idx) => {
+      const lower = chunk.toLowerCase();
+      if (idx === 0 && (lower.includes("badroudine") || lower.includes("eilco") || lower.includes("@"))) {
+        senderChunk = chunk;
+      } else if (!recipientChunk && (lower.startsWith("à l'attention") || lower.startsWith("to the attention") || lower.startsWith("to the tech") || lower.includes("recrutement"))) {
+        recipientChunk = chunk;
+      } else if (!subjectChunk && (lower.startsWith("objet") || lower.startsWith("subject"))) {
+        subjectChunk = chunk;
+      } else if (!salutationChunk && (lower.startsWith("madame") || lower.startsWith("monsieur") || lower.startsWith("dear") || lower.startsWith("chère") || lower.startsWith("cher"))) {
+        salutationChunk = chunk;
+      } else if (idx === rawChunks.length - 1 && (lower.includes("badroudine") || chunk.length < 50)) {
+        signatureChunk = chunk;
+      } else if (idx === rawChunks.length - 2 && (lower.includes("salutations") || lower.includes("sincerely") || lower.includes("regards") || lower.includes("attente") || lower.includes("considération"))) {
+        closingChunk = chunk;
+      } else {
+        bodyParagraphs.push(chunk);
+      }
+    });
+
+    if (senderChunk && (recipientChunk || subjectChunk)) {
+      return (
+        <div className={`space-y-4 text-gray-900 ${isPrint ? "text-[11px] leading-relaxed" : "text-xs leading-relaxed"}`}>
+          {/* En-tête : Expéditeur (gauche) & Destinataire / Date (droite) */}
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-3 border-b-2 border-blue-900/20">
+            {/* Expéditeur */}
+            <div className="space-y-0.5">
+              <div className="text-base font-bold text-blue-900 tracking-tight">BADROUDINE BACAR</div>
+              <div className="text-[11px] font-semibold text-gray-800">
+                {coverLetterLanguage === "en"
+                  ? "Engineering Student — AI & Data Science (MSc / Final Year)"
+                  : "Élève-Ingénieur en Informatique — Spécialité IA (Bac+5 / ING3)"}
+              </div>
+              <div className="text-[10px] text-gray-600">
+                EILCO Graduate School of Engineering (Calais, France)
+              </div>
+              <div className="text-[10px] text-gray-500 pt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                <span>📧 badroudinebacar@gmail.com</span>
+                <span>•</span>
+                <span>📱 07 67 56 07 86</span>
+                <span>•</span>
+                <span>🌐 linkedin.com/in/badroudine-bacar</span>
+                <span>•</span>
+                <span>💻 github.com/Badrouuu</span>
+              </div>
+            </div>
+
+            {/* Destinataire & Date */}
+            <div className="text-right space-y-1 self-end sm:self-start">
+              <div className="text-[10px] text-gray-500 italic">
+                {new Date().toLocaleDateString(coverLetterLanguage === "en" ? "en-US" : "fr-FR", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </div>
+              <div className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-left text-[10.5px]">
+                <div className="text-gray-500 font-medium">
+                  {coverLetterLanguage === "en" ? "To the Attention of:" : "À l'attention de :"}
+                </div>
+                <div className="font-bold text-gray-900">
+                  {recipientChunk.split("\n").filter(l => !l.toLowerCase().includes("attention")).join(" ") || company}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Objet */}
+          {subjectChunk && (
+            <div className="p-2.5 rounded-lg bg-blue-50/60 border-l-4 border-blue-900 text-[11.5px] font-semibold text-blue-950">
+              {subjectChunk}
+            </div>
+          )}
+
+          {/* Salutation */}
+          {salutationChunk && (
+            <div className="font-semibold text-gray-900 pt-0.5">
+              {salutationChunk}
+            </div>
+          )}
+
+          {/* Corps de la lettre */}
+          <div className="space-y-3 text-justify text-gray-800 leading-relaxed font-sans">
+            {bodyParagraphs.map((para, pIdx) => (
+              <p key={pIdx}>{para}</p>
+            ))}
+          </div>
+
+          {/* Formule finale de politesse */}
+          {closingChunk && (
+            <div className="text-justify text-gray-800 leading-relaxed pt-0.5">
+              {closingChunk}
+            </div>
+          )}
+
+          {/* Signature */}
+          <div className="pt-2 text-right">
+            <div className="font-bold text-blue-900 text-sm">
+              {signatureChunk || "Badroudine Bacar"}
+            </div>
+            <div className="text-[10px] text-gray-500">
+              {coverLetterLanguage === "en" ? "AI & Machine Learning Engineer" : "Élève-Ingénieur en IA & Machine Learning"}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-[11.5px] leading-relaxed text-gray-900 whitespace-pre-line text-justify font-sans">
+        {letterText}
+      </div>
+    );
+  };
+
   // Helper de génération du code source LaTeX (.tex) pour la lettre de motivation
   const getCoverLetterTex = (forcedLang?: "fr" | "en"): string => {
     const isEn = (forcedLang || coverLetterLanguage) === "en";
@@ -648,22 +780,110 @@ ${interestsSection}
         .replace(/~/g, "\\textasciitilde{}")
         .replace(/\^/g, "\\textasciicircum{}");
 
-    // Découpage en blocs de texte
-    const rawParagraphs = letterText
-      .split(/\n{2,}/)
-      .map((p) => p.trim())
-      .filter(Boolean);
+    const rawChunks = letterText.split(/\n{2,}/).map((c) => c.trim()).filter(Boolean);
 
-    const formattedParagraphs = rawParagraphs
+    let senderChunk = "";
+    let recipientChunk = "";
+    let subjectChunk = "";
+    let salutationChunk = "";
+    const bodyParagraphs: string[] = [];
+    let closingChunk = "";
+    let signatureChunk = "";
+
+    rawChunks.forEach((chunk, idx) => {
+      const lower = chunk.toLowerCase();
+      if (idx === 0 && (lower.includes("badroudine") || lower.includes("eilco") || lower.includes("@"))) {
+        senderChunk = chunk;
+      } else if (!recipientChunk && (lower.startsWith("à l'attention") || lower.startsWith("to the attention") || lower.startsWith("to the tech") || lower.includes("recrutement"))) {
+        recipientChunk = chunk;
+      } else if (!subjectChunk && (lower.startsWith("objet") || lower.startsWith("subject"))) {
+        subjectChunk = chunk;
+      } else if (!salutationChunk && (lower.startsWith("madame") || lower.startsWith("monsieur") || lower.startsWith("dear") || lower.startsWith("chère") || lower.startsWith("cher"))) {
+        salutationChunk = chunk;
+      } else if (idx === rawChunks.length - 1 && (lower.includes("badroudine") || chunk.length < 50)) {
+        signatureChunk = chunk;
+      } else if (idx === rawChunks.length - 2 && (lower.includes("salutations") || lower.includes("sincerely") || lower.includes("regards") || lower.includes("attente") || lower.includes("considération"))) {
+        closingChunk = chunk;
+      } else {
+        bodyParagraphs.push(chunk);
+      }
+    });
+
+    if (senderChunk && (recipientChunk || subjectChunk)) {
+      const cleanCompany = recipientChunk.split("\n").filter(l => !l.toLowerCase().includes("attention")).join(" ") || company;
+      return `\\documentclass[11pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage[margin=2.2cm]{geometry}
+\\usepackage{hyperref}
+\\usepackage{xcolor}
+\\usepackage{parskip}
+
+\\definecolor{primary}{RGB}{30, 58, 138}
+\\definecolor{textdark}{RGB}{31, 41, 55}
+\\color{textdark}
+\\pagestyle{empty}
+
+\\begin{document}
+
+% --- EN-TÊTE EXPÉDITEUR ---
+{\\large \\textbf{\\color{primary} BADROUDINE BACAR}} \\\\[0.2em]
+\\textbf{${isEn ? "Engineering Student — Major in AI (MSc / Final Year)" : "Élève-Ingénieur en Informatique — Spécialité IA (Bac+5 / ING3)"}} \\\\
+${isEn ? "EILCO Graduate School of Engineering, Calais, France" : "EILCO (École d'Ingénieurs du Littoral Côte d'Opale), France"} \\\\
+\\small
+\\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
+\\href{tel:+33767560786}{07 67 56 07 86} \\ $|$ \\ 
+\\href{https://www.linkedin.com/in/badroudine-bacar/}{LinkedIn} \\ $|$ \\ 
+\\href{https://github.com/Badrouuu}{GitHub}
+
+\\vspace{0.8em}
+\\hrule height 0.8pt
+\\vspace{1.0em}
+
+% --- DESTINATAIRE & DATE ---
+\\begin{flushright}
+    \\small \\textit{\\today}
+\\end{flushright}
+
+\\noindent
+\\textbf{${isEn ? "To the Attention of the Tech Recruiting Team" : "À l'attention de l'équipe Recrutement Tech"}} \\\\
+\\textbf{${escapeTex(cleanCompany)}}
+
+\\vspace{1.2em}
+
+% --- OBJET ---
+\\noindent
+\\colorbox{primary!8}{\\parbox{\\dimexpr\\textwidth-2\\fboxsep\\relax}{%
+    \\textbf{\\color{primary} ${escapeTex(subjectChunk)}}%
+}}
+
+\\vspace{1.2em}
+
+% --- SALUTATION ---
+\\noindent
+${salutationChunk ? escapeTex(salutationChunk) : (isEn ? "Dear Hiring Team," : "Madame, Monsieur,")}
+
+\\vspace{0.6em}
+
+% --- CORPS DE LA LETTRE ---
+${bodyParagraphs.map((p) => escapeTex(p)).join("\n\n\\vspace{0.8em}\n\n")}
+
+${closingChunk ? `\n\n\\vspace{0.8em}\n\\noindent\n${escapeTex(closingChunk)}` : ""}
+
+\\vspace{1.5em}
+\\begin{flushright}
+    \\textbf{\\color{primary} ${escapeTex(signatureChunk || "Badroudine Bacar")}} \\\\
+    \\small ${isEn ? "AI \\& Machine Learning Engineer" : "Élève-Ingénieur en IA \\& Machine Learning"}
+\\end{flushright}
+
+\\end{document}`;
+    }
+
+    // Fallback standard
+    const formattedParagraphs = rawChunks
       .map((para) => {
-        // Détection de l'objet / subject
         if (/^(objet|subject)\s*:/i.test(para)) {
           return `\\vspace{0.6em}\n\\noindent\\textbf{\\color{primary} ${escapeTex(para)}}\n\\vspace{0.4em}`;
-        }
-        const lines = para.split("\n").map((l) => l.trim()).filter(Boolean);
-        // Si c'est un bloc d'en-tête (expéditeur ou destinataire composé de plusieurs lignes courtes)
-        if (lines.length > 1 && lines.length <= 8 && lines.every((l) => l.length < 120)) {
-          return `\\noindent\n` + lines.map((l) => escapeTex(l)).join(" \\\\\n");
         }
         return `\\noindent\n${escapeTex(para)}`;
       })
@@ -1613,10 +1833,8 @@ ${formattedParagraphs}
                   )}
 
                   {coverLetterMode === "preview" && (
-                    <div className="p-8 sm:p-12 rounded-xl bg-white text-gray-900 border border-gray-200 shadow-lg font-sans max-w-2xl mx-auto space-y-4">
-                      <div className="text-[11.5px] leading-relaxed text-gray-900 whitespace-pre-line text-justify font-sans">
-                        {coverLetter}
-                      </div>
+                    <div className="p-8 sm:p-12 rounded-xl bg-white text-gray-900 border border-gray-200 shadow-xl font-sans max-w-3xl mx-auto">
+                      {renderFormattedCoverLetter(coverLetter)}
                     </div>
                   )}
 
@@ -2324,9 +2542,7 @@ ${formattedParagraphs}
       {/* ZONE D'EXPORTATION PDF / IMPRESSION LETTRE DE MOTIVATION (A4)               */}
       {/* ========================================================================= */}
       <div id="cover-letter-print-area" className="hidden print:block text-black bg-white font-sans text-xs space-y-4">
-        <div className="text-[11.5px] leading-relaxed text-gray-900 whitespace-pre-line text-justify font-sans">
-          {coverLetter}
-        </div>
+        {renderFormattedCoverLetter(coverLetter, true)}
       </div>
     </main>
   );
