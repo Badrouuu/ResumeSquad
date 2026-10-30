@@ -19,24 +19,45 @@ body {
 }
 
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
+  @page {
+    size: A4 portrait;
+    margin: 0 !important; /* Supprime obligatoirement les en-têtes et pieds de page par défaut du navigateur (date, URL, titre) */
   }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: #111827 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   header,
   nav,
+  footer,
   .no-print {
     display: none !important;
   }
+
   #cv-print-area {
     display: block !important;
     visibility: visible !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 10mm 12mm !important;
+    background: white !important;
+    color: #111827 !important;
+    font-size: 10.5px !important;
+    line-height: 1.3 !important;
   }
-  @page {
-    size: A4;
-    margin: 10mm 12mm;
+
+  #cv-print-area > div {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 }

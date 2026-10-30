@@ -400,10 +400,6 @@ Profil requis :
         ? activeVersion.projectBullets
         : projectBullets;
 
-    const locationText = isEn
-      ? "France (International Mobility: Switzerland, Luxembourg, Belgium, Germany — Onsite / Hybrid)"
-      : "France (Mobilité Internationale Obligatoire : Suisse, Luxembourg, Belgique, Allemagne — Présentiel / Hybride)";
-
     const educationSection = isEn
       ? `\\section{Education \\& Certifications}
 \\begin{itemize}
@@ -480,9 +476,9 @@ Profil requis :
 
 \\begin{document}
 \\begin{center}
-    {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.4em]
-    {\\large \\textbf{${activeTitle}}} \\\\[0.4em]
-    \\small ${locationText} \\\\
+    {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.3em]
+    {\\large \\textbf{${activeTitle}}} \\\\[0.3em]
+    \\small France \\ $|$ \\ 
     \\href{tel:+33767560786}{07 67 56 07 86} \\ $|$ \\ 
     \\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
     \\href{https://www.linkedin.com/in/badroudine-bacar/}{LinkedIn} \\ $|$ \\ 
@@ -514,15 +510,21 @@ ${interestsSection}
 \\end{document}`;
   };
 
-  // Téléchargement du fichier LaTeX (.tex) bilingue FR/EN
+  // Helper pour formater le nom de fichier propre, standard et adapté à l'entreprise visée
+  const getCleanExportFileName = (prefix: string, ext: string): string => {
+    const rawCompany = (company || "Candidature").trim();
+    const cleanComp = rawCompany.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+    return `${prefix}_Badroudine_Bacar_${cleanComp || "Candidature"}.${ext}`;
+  };
+
+  // Téléchargement du fichier LaTeX (.tex) bilingue FR/EN adapté à l'entreprise
   const handleDownloadTex = () => {
     const texContent = getTexContent();
     const blob = new Blob([texContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const cleanCompany = (company || "entreprise").toLowerCase().replace(/[^a-z0-9]/g, "_");
-    a.download = `cv_badroudine_${cleanCompany}.tex`;
+    a.download = getCleanExportFileName("CV", "tex");
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -532,9 +534,10 @@ ${interestsSection}
     setTimeout(() => setDownloadSuccess(false), 3000);
   };
 
-  // Ouverture et compilation 1-clic sur Overleaf
+  // Ouverture et compilation 1-clic sur Overleaf avec nommage adapté à l'entreprise
   const handleOpenOverleaf = () => {
     const texContent = getTexContent();
+    const fileName = getCleanExportFileName("CV", "tex");
     const form = document.createElement("form");
     form.action = "https://www.overleaf.com/docs";
     form.method = "POST";
@@ -544,16 +547,28 @@ ${interestsSection}
     input.type = "hidden";
     input.name = "snip";
     input.value = texContent;
-
     form.appendChild(input);
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "hidden";
+    nameInput.name = "snip_name";
+    nameInput.value = fileName;
+    form.appendChild(nameInput);
+
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
   };
 
-  // Export direct en PDF conforme ATS via le moteur d'impression navigateur
+  // Export direct en PDF conforme ATS sans en-tête ni pied de page parasite du navigateur
   const handlePrintPdf = () => {
+    const originalTitle = document.title;
+    const fileName = getCleanExportFileName("CV", "pdf").replace(/\.pdf$/, "");
+    document.title = fileName;
     window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1500);
   };
 
   // Copie de la lettre de motivation dans le presse-papier
@@ -567,14 +582,13 @@ ${interestsSection}
     }
   };
 
-  // Téléchargement de la lettre de motivation (.txt)
+  // Téléchargement de la lettre de motivation (.txt) adaptée à l'entreprise
   const handleDownloadCoverLetter = () => {
     const blob = new Blob([coverLetter], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const cleanCompany = (company || "entreprise").toLowerCase().replace(/[^a-z0-9]/g, "_");
-    a.download = `lettre_motivation_badroudine_${cleanCompany}.txt`;
+    a.download = getCleanExportFileName("Lettre_Motivation", "txt");
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1892,13 +1906,10 @@ ${interestsSection}
         <div className="text-center space-y-1 pb-2 border-b border-gray-400">
           <h1 className="text-2xl font-bold tracking-tight text-blue-900 uppercase">Badroudine Bacar</h1>
           <div className="text-sm font-semibold text-gray-800">{printTitle}</div>
-          <div className="text-[11px] text-gray-600">
-            {effectiveIsEn
-              ? "France (International Mobility: Switzerland, Luxembourg, Belgium, Germany — Onsite / Hybrid)"
-              : "France (Mobilité Internationale Obligatoire : Suisse, Luxembourg, Belgique, Allemagne — Présentiel / Hybride)"}
-          </div>
-          <div className="text-[11px] text-gray-700 flex items-center justify-center gap-3 pt-0.5">
-            <span>+33 7 67 56 07 86</span>
+          <div className="text-[11px] text-gray-700 flex flex-wrap items-center justify-center gap-2.5 pt-0.5">
+            <span>France</span>
+            <span>•</span>
+            <span>07 67 56 07 86</span>
             <span>•</span>
             <span>badroudinebacar@gmail.com</span>
             <span>•</span>
