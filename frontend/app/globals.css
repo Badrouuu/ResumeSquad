@@ -68,11 +68,11 @@ body {
     max-height: 296.5mm !important;
     box-sizing: border-box !important;
     margin: 0 auto !important;
-    padding: 7mm 12mm 5mm 12mm !important;
+    padding: 8.5mm 12mm 6mm 12mm !important;
     background: white !important;
     color: #111827 !important;
-    font-size: 9.5px !important;
-    line-height: 1.25 !important;
+    font-size: 10px !important;
+    line-height: 1.32 !important;
     overflow: hidden !important;
     page-break-after: avoid !important;
     break-after: avoid !important;

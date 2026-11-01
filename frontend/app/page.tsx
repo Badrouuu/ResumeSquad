@@ -514,15 +514,17 @@ Profil requis :
 \\end{itemize}`;
 
     const interestsSection = isEn
-      ? `\\section{Interests \\& Passions}
+      ? `\\section{Interests \\& Community Engagement}
 \\begin{itemize}[leftmargin=1.2em, itemsep=1.5pt, topsep=1.5pt, parsep=0pt]
     \\item \\textbf{Game Modding \\& Video Games:} Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures).
     \\item \\textbf{Strategy Games \\& Competitive TCG:} Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making).
+    \\item \\textbf{Community Engagement \\& First Aid:} Volunteer intern in non-profit community associations (team coordination, civic responsibility) \\& Certified in First Aid (PSC1 / Emergency Response).
 \\end{itemize}`
-      : `\\section{Centres d'Intérêt \\& Passions}
+      : `\\section{Centres d'Intérêt \\& Engagement Associatif}
 \\begin{itemize}[leftmargin=1.2em, itemsep=1.5pt, topsep=1.5pt, parsep=0pt]
     \\item \\textbf{Modding \\& Jeux Vidéo :} Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données).
     \\item \\textbf{Jeux de Stratégie \\& TCG Compétitif :} Pratique active de jeux de stratégie et participation à des tournois One Piece TCG (théorie des jeux, optimisation tactique, calculs de probabilités).
+    \\item \\textbf{Engagement Associatif \\& Secourisme :} Stagiaire bénévole en association d'entraide (animation, coordination terrain, esprit d'équipe) \\& Titulaire du Brevet de Premiers Secours (PSC1).
 \\end{itemize}`;
 
     return `\\documentclass[10pt,a4paper]{article}
@@ -2531,12 +2533,12 @@ ${formattedParagraphs}
       {/* ZONE D'EXPORTATION PDF / IMPRESSION ATS (A4)                                */}
       {/* Masqué à l'écran, visible et vectorisé à 100% lors du window.print()       */}
       {/* ========================================================================= */}
-      <div id="cv-print-area" className="hidden print:block text-black bg-white font-sans text-xs space-y-1.5">
+      <div id="cv-print-area" className="hidden print:block text-black bg-white font-sans text-xs space-y-2">
         {/* En-tête */}
-        <div className="text-center space-y-0.5 pb-1 border-b border-gray-400">
-          <h1 className="text-xl font-bold tracking-tight text-blue-900 uppercase">Badroudine Bacar</h1>
-          <div className="text-xs font-semibold text-gray-800">{printTitle}</div>
-          <div className="text-[10px] text-gray-700 flex flex-wrap items-center justify-center gap-2 pt-0.5">
+        <div className="text-center space-y-0.5 pb-1.5 border-b border-gray-400">
+          <h1 className="text-2xl font-bold tracking-tight text-blue-900 uppercase">Badroudine Bacar</h1>
+          <div className="text-[13px] font-semibold text-gray-800">{printTitle}</div>
+          <div className="text-[10.5px] text-gray-700 flex flex-wrap items-center justify-center gap-2.5 pt-0.5">
             <span>France</span>
             <span>•</span>
             <span>07 67 56 07 86</span>
@@ -2551,40 +2553,40 @@ ${formattedParagraphs}
 
         {/* Profil / Accroche */}
         <div className="space-y-0.5 break-inside-avoid">
-          <h2 className="text-[11px] font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Professional Summary" : "Profil Professionnel"}
           </h2>
-          <p className="text-[9.5px] text-gray-800 leading-snug text-justify">
+          <p className="text-[10px] text-gray-800 leading-normal text-justify">
             {printSummary}
           </p>
         </div>
 
         {/* Formation & Certifications */}
         <div className="space-y-0.5 break-inside-avoid">
-          <h2 className="text-[11px] font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Education & Certifications" : "Formation & Certifications"}
           </h2>
-          <div className="space-y-0.5 text-[9.5px] text-gray-800">
-            <div className="flex justify-between items-baseline font-semibold text-[10px]">
+          <div className="space-y-0.5 text-[10px] text-gray-800">
+            <div className="flex justify-between items-baseline font-semibold text-[10.5px]">
               <span>{effectiveIsEn ? "Master of Science in Computer Engineering — Major in Artificial Intelligence" : "Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle"}</span>
               <span className="text-gray-600 font-normal">2024 - 2027</span>
             </div>
-            <div className="italic text-gray-700 text-[9px]">
+            <div className="italic text-gray-700 text-[9.5px]">
               {effectiveIsEn ? "EILCO Graduate School of Engineering, Calais, France" : "EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France"}
             </div>
-            <div className="text-[9px] text-gray-600 leading-tight">
+            <div className="text-[9.5px] text-gray-600 leading-normal">
               {effectiveIsEn
                 ? "Final year (ING3 / MSc). Specialization in Deep Learning, Computer Vision, Machine Learning, MLOps, CI/CD, Advanced Databases."
                 : "Dernière année (ING3). Spécialisation en Deep Learning, Vision par Ordinateur, Machine Learning, MLOps, CI/CD, Bases de Données Avancées."}
             </div>
 
-            <div className="flex justify-between items-baseline font-semibold text-[10px] pt-0.5">
+            <div className="flex justify-between items-baseline font-semibold text-[10.5px] pt-1">
               <span>{effectiveIsEn ? "Preparatory Classes for Grandes Écoles (CPGE TSI)" : "Classes Préparatoires aux Grandes Écoles (CPGE TSI)"}</span>
               <span className="text-gray-600 font-normal">2022 - 2024</span>
             </div>
-            <div className="italic text-gray-700 text-[9px]">Lycée Antonin Artaud, Marseille, France</div>
+            <div className="italic text-gray-700 text-[9.5px]">Lycée Antonin Artaud, Marseille, France</div>
 
-            <div className="flex justify-between items-baseline font-semibold text-[9.5px] pt-0.5">
+            <div className="flex justify-between items-baseline font-semibold text-[10px] pt-1">
               <span>{effectiveIsEn ? "English Certification: TOEIC Listening & Reading" : "Certification Anglais : TOEIC Listening & Reading"}</span>
               <span className="text-blue-900 font-bold">905 / 990 (CEFR C1 Level)</span>
             </div>
@@ -2593,16 +2595,16 @@ ${formattedParagraphs}
 
         {/* Projets Techniques */}
         <div className="space-y-0.5 break-inside-avoid">
-          <h2 className="text-[11px] font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Technical Projects & Key Achievements" : "Projets Techniques & Réalisations"}
           </h2>
-          <div className="space-y-1 text-[9.5px]">
+          <div className="space-y-1.5 text-[10px]">
             {printBullets.map((proj, idx) => (
               <div key={idx} className="space-y-0.5">
-                <div className="font-semibold text-gray-900 text-[10px]">{proj.project}</div>
-                <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[9px]">
+                <div className="font-semibold text-gray-900 text-[10.5px]">{proj.project}</div>
+                <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[9.5px]">
                   {proj.bullets.map((b, bIdx) => (
-                    <li key={bIdx} className="leading-snug">{b}</li>
+                    <li key={bIdx} className="leading-normal">{b}</li>
                   ))}
                 </ul>
               </div>
@@ -2612,37 +2614,37 @@ ${formattedParagraphs}
 
         {/* Expérience Professionnelle */}
         <div className="space-y-0.5 break-inside-avoid">
-          <h2 className="text-[11px] font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Professional Experience" : "Expérience Professionnelle"}
           </h2>
-          <div className="space-y-0.5 text-[9.5px]">
-            <div className="flex justify-between items-baseline font-semibold text-[10px] text-gray-900">
+          <div className="space-y-0.5 text-[10px]">
+            <div className="flex justify-between items-baseline font-semibold text-[10.5px] text-gray-900">
               <span>{effectiveIsEn ? "Founder & Lead Software Developer (Entrepreneurial Internship PÉPITE)" : "Fondateur & Développeur Lead (Stage Entrepreneurial PÉPITE)"}</span>
               <span className="text-gray-600 font-normal">2025 - 2026</span>
             </div>
-            <div className="italic text-gray-700 text-[9px]">Étiquette Jaune (Micro-entreprise)</div>
-            <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[9px]">
+            <div className="italic text-gray-700 text-[9.5px]">Étiquette Jaune (Micro-entreprise)</div>
+            <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[9.5px]">
               {effectiveIsEn ? (
                 <>
-                  <li className="leading-snug">Accomplished integration of on-device Computer Vision models measured by text extraction speed, leveraging Google ML Kit Text Recognition (OCR).</li>
-                  <li className="leading-snug">Accomplished serverless backend development measured by real-time data synchronization, utilizing Google Cloud Firestore, Cloud Functions, and TypeScript.</li>
+                  <li className="leading-normal">Accomplished integration of on-device Computer Vision models measured by text extraction speed, leveraging Google ML Kit Text Recognition (OCR).</li>
+                  <li className="leading-normal">Accomplished serverless backend development measured by real-time data synchronization, utilizing Google Cloud Firestore, Cloud Functions, and TypeScript.</li>
                 </>
               ) : (
                 <>
-                  <li className="leading-snug">Accompli l&apos;intégration de modèles de Vision par Ordinateur mesurés par la vitesse d&apos;extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).</li>
-                  <li className="leading-snug">Accompli le développement d&apos;un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.</li>
+                  <li className="leading-normal">Accompli l&apos;intégration de modèles de Vision par Ordinateur mesurés par la vitesse d&apos;extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).</li>
+                  <li className="leading-normal">Accompli le développement d&apos;un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.</li>
                 </>
               )}
             </ul>
           </div>
         </div>
 
-        {/* Centres d'intérêt & Passions */}
+        {/* Centres d'intérêt & Engagement Associatif */}
         <div className="space-y-0.5 break-inside-avoid">
-          <h2 className="text-[11px] font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
-            {effectiveIsEn ? "Interests & Passions" : "Centres d'Intérêt & Passions"}
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+            {effectiveIsEn ? "Interests & Community Engagement" : "Centres d'Intérêt & Engagement Associatif"}
           </h2>
-          <div className="space-y-0.5 text-[9px] text-gray-800 leading-snug">
+          <div className="space-y-1 text-[9.5px] text-gray-800 leading-normal">
             <div>
               <span className="font-semibold text-gray-900">{effectiveIsEn ? "Game Modding & Video Games:" : "Modding & Jeux Vidéo :"} </span>
               <span>{effectiveIsEn ? "Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures)." : "Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données)."}</span>
@@ -2650,6 +2652,10 @@ ${formattedParagraphs}
             <div>
               <span className="font-semibold text-gray-900">{effectiveIsEn ? "Strategy Games & Competitive TCG:" : "Jeux de Stratégie & TCG Compétitif :"} </span>
               <span>{effectiveIsEn ? "Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making)." : "Pratique active de jeux de stratégie et tournois compétitifs One Piece TCG (théorie des jeux, optimisation de deck, calculs probabilistes)."}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">{effectiveIsEn ? "Community Engagement & First Aid:" : "Engagement Associatif & Secourisme :"} </span>
+              <span>{effectiveIsEn ? "Volunteer intern in non-profit community associations (field coordination, teamwork) & Certified in First Aid (PSC1 / Emergency Response)." : "Stagiaire bénévole en association d'entraide (animation, coordination terrain, esprit d'équipe) & Titulaire du Brevet de Premiers Secours (PSC1)."}</span>
             </div>
           </div>
         </div>
