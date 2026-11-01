@@ -33,6 +33,9 @@ body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
   }
 
   main {
@@ -40,6 +43,12 @@ body {
     padding: 0 !important;
     max-width: none !important;
     width: 210mm !important;
+    height: auto !important;
+  }
+
+  main > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
   }
 
   header,
