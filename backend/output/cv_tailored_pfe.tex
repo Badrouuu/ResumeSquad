@@ -1,7 +1,7 @@
 \documentclass[10pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[margin=1.5cm]{geometry}
+\usepackage[a4paper, top=1.1cm, bottom=1.1cm, left=1.2cm, right=1.2cm]{geometry}
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
@@ -14,6 +14,7 @@
 
 \color{textdark}
 \pagestyle{empty}
+\raggedbottom
 
 % Configuration des liens hypertexte
 \hypersetup{
@@ -27,13 +28,14 @@
 % Configuration des titres de sections (compatible ATS)
 \titleformat{\section}
   {\large\bfseries\color{primary}\uppercase}
-  {}{0em}{}[\vspace{-0.5em}\rule{\textwidth}{0.8pt}\vspace{-0.3em}]
+  {}{0em}{}[\vspace{-0.6em}\rule{\textwidth}{0.8pt}\vspace{-0.4em}]
 
-\titlespacing*{\section}{0pt}{1.0em}{0.6em}
+\titlespacing*{\section}{0pt}{0.65em}{0.25em}
 
-\setlist[itemize]{leftmargin=1.2em, itemsep=2pt, topsep=2pt, parsep=0pt}
+\setlist[itemize]{leftmargin=1.2em, itemsep=1.5pt, topsep=1.5pt, parsep=0pt, partopsep=0pt}
 
 \begin{document}
+\enlargethispage{2\baselineskip}
 
 % --- EN-TÊTE ---
 \begin{center}

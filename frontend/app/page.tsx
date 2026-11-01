@@ -515,12 +515,12 @@ Profil requis :
 
     const interestsSection = isEn
       ? `\\section{Interests \\& Passions}
-\\begin{itemize}
+\\begin{itemize}[leftmargin=1.2em, itemsep=1.5pt, topsep=1.5pt, parsep=0pt]
     \\item \\textbf{Game Modding \\& Video Games:} Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures).
     \\item \\textbf{Strategy Games \\& Competitive TCG:} Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making).
 \\end{itemize}`
       : `\\section{Centres d'Intérêt \\& Passions}
-\\begin{itemize}
+\\begin{itemize}[leftmargin=1.2em, itemsep=1.5pt, topsep=1.5pt, parsep=0pt]
     \\item \\textbf{Modding \\& Jeux Vidéo :} Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données).
     \\item \\textbf{Jeux de Stratégie \\& TCG Compétitif :} Pratique active de jeux de stratégie et participation à des tournois One Piece TCG (théorie des jeux, optimisation tactique, calculs de probabilités).
 \\end{itemize}`;
@@ -528,7 +528,7 @@ Profil requis :
     return `\\documentclass[10pt,a4paper]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}
-\\usepackage[margin=1.5cm]{geometry}
+\\usepackage[a4paper, top=1.1cm, bottom=1.1cm, left=1.2cm, right=1.2cm]{geometry}
 \\usepackage{hyperref}
 \\usepackage{enumitem}
 \\usepackage{xcolor}
@@ -538,15 +538,17 @@ Profil requis :
 \\definecolor{textdark}{RGB}{31, 41, 55}
 \\color{textdark}
 \\pagestyle{empty}
+\\raggedbottom
 
-\\titleformat{\\section}{\\large\\bfseries\\color{primary}\\uppercase}{}{0em}{}[\\vspace{-0.5em}\\rule{\\textwidth}{0.8pt}\\vspace{-0.3em}]
-\\titlespacing*{\\section}{0pt}{1.0em}{0.6em}
-\\setlist[itemize]{leftmargin=1.2em, itemsep=2pt, topsep=2pt, parsep=0pt}
+\\titleformat{\\section}{\\large\\bfseries\\color{primary}\\uppercase}{}{0em}{}[\\vspace{-0.6em}\\rule{\\textwidth}{0.8pt}\\vspace{-0.4em}]
+\\titlespacing*{\\section}{0pt}{0.65em}{0.25em}
+\\setlist[itemize]{leftmargin=1.2em, itemsep=1.5pt, topsep=1.5pt, parsep=0pt, partopsep=0pt}
 
 \\begin{document}
+\\enlargethispage{2\\baselineskip}
 \\begin{center}
-    {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.3em]
-    {\\large \\textbf{${activeTitle}}} \\\\[0.3em]
+    {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.2em]
+    {\\large \\textbf{${activeTitle}}} \\\\[0.25em]
     \\small France \\ $|$ \\ 
     \\href{tel:+33767560786}{07 67 56 07 86} \\ $|$ \\ 
     \\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
@@ -554,7 +556,7 @@ Profil requis :
     \\href{https://github.com/Badrouuu}{GitHub}
 \\end{center}
 
-\\vspace{-0.4em}
+\\vspace{-0.5em}
 \\noindent
 \\small ${activeSummary}
 
@@ -563,12 +565,11 @@ ${educationSection}
 ${projectsSectionTitle}
 ${activeBullets
   .map(
-    (p) => `\\noindent
+    (p, idx) => `\\noindent
 \\textbf{${p.project}} \\\\
 \\begin{itemize}
 ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
-\\end{itemize}
-\\vspace{0.4em}`
+\\end{itemize}${idx < activeBullets.length - 1 ? "\n\\vspace{0.25em}" : ""}`
   )
   .join("\n")}
 
@@ -2530,9 +2531,9 @@ ${formattedParagraphs}
       {/* ZONE D'EXPORTATION PDF / IMPRESSION ATS (A4)                                */}
       {/* Masqué à l'écran, visible et vectorisé à 100% lors du window.print()       */}
       {/* ========================================================================= */}
-      <div id="cv-print-area" className="hidden print:block text-black bg-white font-sans text-xs p-2 space-y-3">
+      <div id="cv-print-area" className="hidden print:block text-black bg-white font-sans text-xs p-1 space-y-2">
         {/* En-tête */}
-        <div className="text-center space-y-1 pb-2 border-b border-gray-400">
+        <div className="text-center space-y-0.5 pb-1.5 border-b border-gray-400">
           <h1 className="text-2xl font-bold tracking-tight text-blue-900 uppercase">Badroudine Bacar</h1>
           <div className="text-sm font-semibold text-gray-800">{printTitle}</div>
           <div className="text-[11px] text-gray-700 flex flex-wrap items-center justify-center gap-2.5 pt-0.5">
@@ -2549,17 +2550,17 @@ ${formattedParagraphs}
         </div>
 
         {/* Profil / Accroche */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 break-inside-avoid">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Professional Summary" : "Profil Professionnel"}
           </h2>
-          <p className="text-[11px] text-gray-800 leading-relaxed text-justify">
+          <p className="text-[10.5px] text-gray-800 leading-relaxed text-justify">
             {printSummary}
           </p>
         </div>
 
         {/* Formation & Certifications */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 break-inside-avoid">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Education & Certifications" : "Formation & Certifications"}
           </h2>
@@ -2591,15 +2592,15 @@ ${formattedParagraphs}
         </div>
 
         {/* Projets Techniques */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 break-inside-avoid">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Technical Projects & Key Achievements" : "Projets Techniques & Réalisations"}
           </h2>
-          <div className="space-y-2 text-[11px]">
+          <div className="space-y-1.5 text-[10.5px]">
             {printBullets.map((proj, idx) => (
               <div key={idx} className="space-y-0.5">
                 <div className="font-semibold text-gray-900">{proj.project}</div>
-                <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[10.5px]">
+                <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[10px]">
                   {proj.bullets.map((b, bIdx) => (
                     <li key={bIdx} className="leading-snug">{b}</li>
                   ))}
@@ -2610,17 +2611,17 @@ ${formattedParagraphs}
         </div>
 
         {/* Expérience Professionnelle */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 break-inside-avoid">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Professional Experience" : "Expérience Professionnelle"}
           </h2>
-          <div className="space-y-0.5 text-[11px]">
+          <div className="space-y-0.5 text-[10.5px]">
             <div className="flex justify-between items-baseline font-semibold text-gray-900">
               <span>{effectiveIsEn ? "Founder & Lead Software Developer (Entrepreneurial Internship PÉPITE)" : "Fondateur & Développeur Lead (Stage Entrepreneurial PÉPITE)"}</span>
               <span className="text-gray-600 font-normal">2025 - 2026</span>
             </div>
-            <div className="italic text-gray-700 text-[10px]">Étiquette Jaune (Micro-entreprise)</div>
-            <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[10.5px]">
+            <div className="italic text-gray-700 text-[9.5px]">Étiquette Jaune (Micro-entreprise)</div>
+            <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[10px]">
               {effectiveIsEn ? (
                 <>
                   <li>Accomplished integration of on-device Computer Vision models measured by text extraction speed, leveraging Google ML Kit Text Recognition (OCR).</li>
@@ -2637,11 +2638,11 @@ ${formattedParagraphs}
         </div>
 
         {/* Centres d'intérêt & Passions */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 break-inside-avoid">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
             {effectiveIsEn ? "Interests & Passions" : "Centres d'Intérêt & Passions"}
           </h2>
-          <div className="space-y-0.5 text-[10.5px] text-gray-800">
+          <div className="space-y-0.5 text-[10px] text-gray-800">
             <div>
               <span className="font-semibold text-gray-900">{effectiveIsEn ? "Game Modding & Video Games:" : "Modding & Jeux Vidéo :"} </span>
               <span>{effectiveIsEn ? "Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures)." : "Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données)."}</span>
