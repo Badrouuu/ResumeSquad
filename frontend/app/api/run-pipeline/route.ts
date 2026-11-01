@@ -42,7 +42,7 @@ Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et
 - Passions & Centres d'intérêt réels :
   * Modding de jeux vidéo (analyse approfondie et modification de mécaniques de gameplay, scripting, structures de données).
   * Jeux de stratégie & pratique compétitive en tournois One Piece TCG (théorie des jeux, optimisation de decks, calculs probabilistes et prise de décision sous incertitude).
-  * Passionné de jeux vidéo et de simulation interactive.
+  * Engagement associatif & Secourisme : Stagiaire bénévole en association d'entraide (animation, coordination terrain, esprit d'équipe) & Titulaire du Brevet de Premiers Secours (PSC1).
 
 === OFFRE D'EMPLOI CIBLÉE ===
 Entreprise : ${company}
@@ -64,10 +64,15 @@ ${jobText.slice(0, 4000)}
 
 === RÈGLE CONTRAINTE CONVENTION DE STAGE : VÉRIFICATION DU TÉLÉTRAVAIL (FULL REMOTE) ===
 - Badroudine effectue un stage PFE conventionné par son école d'ingénieurs (EILCO). Sa convention de stage INTERDIT le 100% Full Remote (le télétravail total sans présence physique n'est pas autorisé par l'école).
-- Analyse soigneusement le texte de l'offre pour détecter le mode de travail :
-  * "full_remote" : si l'offre est 100% à distance / télétravail complet (mots-clés : "full remote", "100% remote", "fully remote", "remote only", "100% télétravail", "télétravail total", "à distance uniquement").
-  * "hybrid" : présence sur site avec télétravail partiel (ex: 2 jours de remote).
-  * "onsite" : travail dans les locaux de l'entreprise.
+- RÈGLE DE PREUVE STRICTE & ANTI-HALLUCINATION (ZÉRO INVENTION) :
+  L'utilisateur exige de voir la PREUVE EXACTE issue du texte. Tu as interdiction formelle d'inventer qu'une offre est en full remote si le texte ne le stipule pas explicitement.
+  * "full_remote" : UNIQUEMENT si le texte mentionne explicitement que le poste est à 100% à distance / sans présence sur site requise (mots-clés : "100% remote", "fully remote", "remote only", "100% télétravail", "télétravail total", "à distance uniquement", "work from anywhere").
+  * ATTENTION AUX FAUX POSITIFS ET NÉGATIONS :
+    - Si l'offre mentionne "hybrid", "2-3 jours de télétravail", "présentiel", "on-site", "locaux de l'entreprise", "in office", OU si elle dit "No remote", "Not open to full remote" : Ce N'EST PAS du full remote ! Mets "workplaceType": "hybrid" ou "onsite" et "isFullRemote": false.
+    - Si l'offre ne précise pas de politique de télétravail ou si rien n'est dit : Mets "workplaceType": "onsite" ou "unspecified" et "isFullRemote": false.
+  * "remoteEvidenceQuote" :
+    - Si "isFullRemote": true : Tu DOIS OBLIGATOIREMENT citer mot à mot (verbatim) la phrase exacte issue du texte de l'offre prouvant le 100% télétravail.
+    - Si "isFullRemote": false : Cite la phrase exacte mentionnant la présence sur site ou le mode hybride si elle existe (ex: "Travail hybride 2-3 jours par semaine", "Poste basé à Genève dans nos locaux"). Si aucune mention dans le texte, renseigne "".
 - Si le mode est "full_remote", mets "isFullRemote": true et écris une note explicative d'alerte dans "remoteWarning" (ex: "Attention : cette offre est en 100% Full Remote. Ton école (EILCO) exige une présence sur site (hybride ou présentiel) pour valider ta convention de stage."). Sinon, "isFullRemote": false et "remoteWarning": "".
 
 === RÈGLE CONTRAINTE CONVENTION DE STAGE : MOBILITÉ INTERNATIONALE OBLIGATOIRE (HORS FRANCE) ===
@@ -110,8 +115,9 @@ ${jobText.slice(0, 4000)}
 Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 {
   "language": "en" | "fr",
-  "workplaceType": "full_remote" | "hybrid" | "onsite",
+  "workplaceType": "full_remote" | "hybrid" | "onsite" | "unspecified",
   "isFullRemote": boolean,
+  "remoteEvidenceQuote": "Extrait exact mot-à-mot tiré du texte de l'offre qui mentionne ou prouve le mode de travail (ou vide si non mentionné)",
   "remoteWarning": "string",
   "isInFrance": boolean,
   "franceWarning": "string",

@@ -86,6 +86,41 @@ Badroudine Bacar`;
 
 const DEFAULT_COVER_LETTER = DEFAULT_COVER_LETTER_FR;
 
+// Helper pour extraire la preuve textuelle exacte (verbatim quote) du mode de travail dans l'offre
+const findRemoteEvidenceSnippet = (text: string): { isRemote: boolean; quote: string | null } => {
+  if (!text) return { isRemote: false, quote: null };
+
+  // Découpage en phrases ou lignes pour cibler le contexte exact
+  const rawSegments = text
+    .split(/(?<=[.!?\n])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 5);
+
+  const fullRemoteRegex = /\b(full[- ]?remote|100%\s*(télétravail|remote)|fully[- ]?remote|remote[- ]?only|100%\s*à distance|télétravail complet|télétravail total|work from anywhere|remotely anywhere)\b/i;
+  const negativeRegex = /\b(no|not|non|aucun|interdit|pas de|neither|without|impossible|refus|incompatible|jamais)\b/i;
+
+  // 1. Chercher d'abord une preuve explicite de Full Remote
+  for (const seg of rawSegments) {
+    if (fullRemoteRegex.test(seg)) {
+      if (negativeRegex.test(seg)) {
+        // Négation explicite : l'offre refuse le full remote
+        return { isRemote: false, quote: seg.slice(0, 240) };
+      }
+      return { isRemote: true, quote: seg.slice(0, 240) };
+    }
+  }
+
+  // 2. Chercher des mentions de travail hybride ou sur site pour prouver la conformité EILCO
+  const presenceRegex = /\b(hybride|hybrid|présentiel|sur site|on[- ]?site|locaux|bureau|in[- ]?office|présence physique|2[- ]?3\s*jours?)\b/i;
+  for (const seg of rawSegments) {
+    if (presenceRegex.test(seg)) {
+      return { isRemote: false, quote: seg.slice(0, 240) };
+    }
+  }
+
+  return { isRemote: false, quote: null };
+};
+
 export default function Home() {
   const [currentView, setCurrentView] = useState<"generator" | "radar" | "tracker">("generator");
 
@@ -187,6 +222,7 @@ export default function Home() {
   const [extractMessage, setExtractMessage] = useState<{ type: "success" | "warning" | "error"; text: string } | null>(null);
   const [cvLanguage, setCvLanguage] = useState<"fr" | "en">("fr");
   const [fullRemoteWarning, setFullRemoteWarning] = useState<string | null>(null);
+  const [remoteEvidenceQuote, setRemoteEvidenceQuote] = useState<string | null>(null);
   const [franceWarning, setFranceWarning] = useState<string | null>(null);
   const [workplaceType, setWorkplaceType] = useState<"full_remote" | "hybrid" | "onsite" | null>(null);
 
@@ -362,17 +398,47 @@ Profil requis :
         if (data.atsScore) setAtsScore(data.atsScore);
         if (data.coverageRate) setCoverageRate(data.coverageRate);
 
-        // Détection Full Remote (contrainte de convention de stage EILCO)
-        const isClientFullRemote = /\b(full[- ]?remote|100%\s*(télétravail|remote)|fully[- ]?remote|remote[- ]?only|100%\s*à distance|télétravail complet|télétravail total)\b/i.test(activeText);
-        if (data.isFullRemote || isClientFullRemote) {
-          setFullRemoteWarning(
+        // Détection Full Remote & Preuve Textuelle Verbatim (Zero Invention / Anti-Hallucination)
+        const clientEvidence = findRemoteEvidenceSnippet(activeText);
+
+        let finalIsFullRemote = false;
+        let finalEvidenceQuote: string | null = null;
+        let finalWarning: string | null = null;
+
+        // Vérifier si la citation fournie par l'IA existe réellement dans le texte de l'annonce
+        const aiQuoteValid = Boolean(
+          data.remoteEvidenceQuote &&
+          typeof data.remoteEvidenceQuote === "string" &&
+          data.remoteEvidenceQuote.trim().length > 6 &&
+          activeText.toLowerCase().includes(data.remoteEvidenceQuote.trim().toLowerCase().slice(0, 25))
+        );
+
+        if (data.isFullRemote && (aiQuoteValid || clientEvidence.isRemote)) {
+          finalIsFullRemote = true;
+          finalEvidenceQuote = aiQuoteValid ? data.remoteEvidenceQuote : clientEvidence.quote;
+          finalWarning =
             data.remoteWarning ||
-              "Cette offre semble être en 100% Full Remote (télétravail total). Rappel convention : Ton école d'ingénieurs (EILCO) exige une présence physique sur site (hybride ou présentiel). Assure-toi de la flexibilité de l'employeur avant de postuler !"
-          );
+            "Cette offre stipule formellement un mode 100% Full Remote. Rappel convention EILCO : Une présence physique (hybride ou présentiel) est obligatoire pour valider votre stage PFE.";
+        } else if (clientEvidence.isRemote) {
+          // L'IA n'a pas détecté mais le texte contient une preuve formelle sans négation
+          finalIsFullRemote = true;
+          finalEvidenceQuote = clientEvidence.quote;
+          finalWarning =
+            "Cette offre contient une mention formelle de 100% Full Remote. Rappel convention EILCO : Une présence physique sur site (hybride ou présentiel) est obligatoire.";
+        } else {
+          // L'offre n'est PAS en full remote (évite les fausses alertes où le système inventait !)
+          finalIsFullRemote = false;
+          finalEvidenceQuote = aiQuoteValid ? data.remoteEvidenceQuote : clientEvidence.quote;
+        }
+
+        if (finalIsFullRemote) {
+          setFullRemoteWarning(finalWarning);
+          setRemoteEvidenceQuote(finalEvidenceQuote);
           setWorkplaceType("full_remote");
         } else {
           setFullRemoteWarning(null);
-          setWorkplaceType(data.workplaceType || "hybrid");
+          setRemoteEvidenceQuote(finalEvidenceQuote);
+          setWorkplaceType(data.workplaceType === "full_remote" ? "hybrid" : (data.workplaceType || (finalEvidenceQuote ? "hybrid" : "onsite")));
         }
 
         // Détection Mobilité Internationale Obligatoire (Stage Hors France Exigé par l'EILCO)
@@ -1478,9 +1544,9 @@ ${formattedParagraphs}
               </div>
             </div>
 
-            {/* ALERTE CONVENTION DE STAGE : 100% FULL REMOTE */}
+            {/* ALERTE CONVENTION DE STAGE : 100% FULL REMOTE AVEC PREUVE TEXTUELLE */}
             {fullRemoteWarning && (
-              <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-200 space-y-2 shadow-lg">
+              <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-200 space-y-3 shadow-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-bold text-sm text-amber-400">
                     <span className="text-lg">⚠️</span>
@@ -1493,11 +1559,61 @@ ${formattedParagraphs}
                 <p className="text-xs leading-relaxed text-amber-100">
                   {fullRemoteWarning}
                 </p>
-                <div className="flex items-center gap-2 text-[11px] text-amber-300 bg-amber-950/60 p-2.5 rounded-xl border border-amber-500/30">
-                  <span>💡</span>
-                  <span>
-                    <b>Action conseillée :</b> Ton école (EILCO) exige une présence physique. Demande au recruteur si une formule <b>hybride</b> (présence sur site 2-3 j/semaine) est envisageable avant d&apos;envoyer ta candidature.
+
+                {/* Preuve textuelle exacte issue de l'annonce */}
+                {remoteEvidenceQuote ? (
+                  <div className="p-3 rounded-xl bg-amber-950/80 border border-amber-500/40 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-300 uppercase tracking-wider">
+                      <span>🔍</span>
+                      <span>Extrait textuel prouvant le mode de travail :</span>
+                    </div>
+                    <blockquote className="border-l-2 border-amber-400 pl-3 italic text-xs text-amber-100 leading-relaxed font-mono">
+                      &ldquo;{remoteEvidenceQuote}&rdquo;
+                    </blockquote>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-amber-300/80 italic">
+                    ℹ️ Aucune phrase formelle n&apos;indique de télétravail total dans le texte. Vérifiez l&apos;offre ci-dessous.
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-500/20 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-amber-300">
+                    <span>💡</span>
+                    <span>
+                      <b>Action conseillée :</b> Ton école (EILCO) exige une présence physique. Demande au recruteur si une formule <b>hybride</b> est envisageable.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setFullRemoteWarning(null);
+                      setRemoteEvidenceQuote(null);
+                      setWorkplaceType("hybrid");
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-semibold border border-amber-500/30 transition flex items-center gap-1"
+                    title="Si l'offre n'est pas en full remote ou si c'est une fausse alerte, cliquez pour masquer"
+                  >
+                    <span>✕</span>
+                    <span>Masquer l&apos;alerte (l&apos;offre est en fait hybride / sur site)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* CONFIRMATION CONFORMITÉ : MODE PRÉSENTIEL OU HYBRIDE AVEC PREUVE */}
+            {!fullRemoteWarning && workplaceType && remoteEvidenceQuote && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold text-emerald-400">
+                    <span className="text-sm">✅</span>
+                    <span>Convention EILCO validée : Mode {workplaceType === "onsite" ? "Présentiel" : "Hybride"} détecté</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
+                    Conforme
                   </span>
+                </div>
+                <div className="p-2 rounded-lg bg-emerald-950/60 border border-emerald-500/20 text-[11px] text-emerald-100 italic font-mono">
+                  🔍 Extrait de l&apos;annonce : &ldquo;{remoteEvidenceQuote}&rdquo;
                 </div>
               </div>
             )}
