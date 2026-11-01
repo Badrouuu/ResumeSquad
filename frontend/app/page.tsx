@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { RADAR_JOB_OFFERS, DEEP_SEARCH_PORTALS, RadarJobOffer } from "./data/radarOffers";
+import { RADAR_JOB_OFFERS, DEEP_SEARCH_PORTALS, RadarJobOffer, getOfferTimestamp } from "./data/radarOffers";
 
 export type ApplicationStatus = "en_attente" | "entretien" | "offre" | "refus";
 
@@ -1034,43 +1034,98 @@ ${formattedParagraphs}
 
   const filteredApps = filterStatus === "all" ? applications : applications.filter((a) => a.status === filterStatus);
 
-  const allRadarOffers = [...liveOffers, ...RADAR_JOB_OFFERS];
+  // Helper pour identifier si une offre a déjà été postulée / suivie dans le Tracker
+  const findTrackedAppForOffer = (offer: RadarJobOffer, apps: TrackedApplication[]): TrackedApplication | undefined => {
+    const normStr = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const offerComp = normStr(offer.company);
+    if (!offerComp) return undefined;
+
+    return apps.find((app) => {
+      const appComp = normStr(app.company);
+      if (!appComp) return false;
+      return offerComp === appComp || offerComp.includes(appComp) || appComp.includes(offerComp);
+    });
+  };
+
+  // Basculer le suivi d'une offre directement depuis le Radar
+  const handleToggleTrackOffer = (offer: RadarJobOffer) => {
+    const existing = findTrackedAppForOffer(offer, applications);
+    if (existing) {
+      const updated = applications.filter((a) => a.id !== existing.id);
+      saveToLocalStorage(updated);
+    } else {
+      const newApp: TrackedApplication = {
+        id: `app-radar-${Date.now()}`,
+        company: offer.company,
+        title: offer.title,
+        appliedDate: new Date().toISOString().split("T")[0],
+        atsScore: 92,
+        status: "en_attente",
+        notes: `Candidature enregistrée depuis le Radar (${offer.country} - ${offer.location}). Lien : ${offer.url}`,
+      };
+      saveToLocalStorage([newApp, ...applications]);
+    }
+  };
+
+  // Déduplication : les offres en direct priment sur les offres de secours statiques
+  const allRadarOffers = (() => {
+    const seenCompanies = new Set(liveOffers.map((o) => o.company.toLowerCase().trim()));
+    const extraStatic = RADAR_JOB_OFFERS.filter(
+      (s) => !seenCompanies.has(s.company.toLowerCase().trim())
+    );
+    return [...liveOffers, ...extraStatic];
+  })();
 
   // Filtrage dynamique des offres du Radar (offres vérifiées + flux scanné en direct)
-  const filteredRadarOffers = allRadarOffers.filter((offer) => {
-    const matchesCountry =
-      radarCountryFilter === "all" || offer.country === radarCountryFilter;
-    const query = radarSearch.toLowerCase().trim();
-    const matchesSearch =
-      !query ||
-      offer.title.toLowerCase().includes(query) ||
-      offer.company.toLowerCase().includes(query) ||
-      offer.location.toLowerCase().includes(query) ||
-      offer.skills.some((s) => s.toLowerCase().includes(query)) ||
-      offer.description.toLowerCase().includes(query);
+  const filteredRadarOffers = allRadarOffers
+    .filter((offer) => {
+      const matchesCountry =
+        radarCountryFilter === "all" || offer.country === radarCountryFilter;
+      const query = radarSearch.toLowerCase().trim();
+      const matchesSearch =
+        !query ||
+        offer.title.toLowerCase().includes(query) ||
+        offer.company.toLowerCase().includes(query) ||
+        offer.location.toLowerCase().includes(query) ||
+        offer.skills.some((s) => s.toLowerCase().includes(query)) ||
+        offer.description.toLowerCase().includes(query);
 
-    let matchesTimeframe = true;
-    if (radarTimeframe === "24h") {
-      matchesTimeframe =
-        !!offer.postedAgo &&
-        (offer.postedAgo.includes("min") ||
-          offer.postedAgo.includes(" h") ||
-          offer.postedAgo.includes("heure"));
-    } else if (radarTimeframe === "3d") {
-      matchesTimeframe =
-        offer.isFresh !== false &&
-        (offer.isFresh === true ||
-          (!!offer.postedAgo &&
-            (offer.postedAgo.includes("min") ||
-              offer.postedAgo.includes(" h") ||
-              offer.postedAgo === "Hier" ||
-              offer.postedAgo.includes("1 jour") ||
-              offer.postedAgo.includes("2 jours") ||
-              offer.postedAgo.includes("3 jours"))));
-    }
+      let matchesTimeframe = true;
+      if (radarTimeframe === "24h") {
+        matchesTimeframe =
+          !!offer.postedAgo &&
+          (offer.postedAgo.includes("min") ||
+            offer.postedAgo.includes(" h") ||
+            offer.postedAgo.includes("heure"));
+      } else if (radarTimeframe === "3d") {
+        matchesTimeframe =
+          offer.isFresh !== false &&
+          (offer.isFresh === true ||
+            (!!offer.postedAgo &&
+              (offer.postedAgo.includes("min") ||
+                offer.postedAgo.includes(" h") ||
+                offer.postedAgo === "Hier" ||
+                offer.postedAgo.includes("1 jour") ||
+                offer.postedAgo.includes("2 jours") ||
+                offer.postedAgo.includes("3 jours"))));
+      }
 
-    return matchesCountry && matchesSearch && matchesTimeframe;
-  });
+      return matchesCountry && matchesSearch && matchesTimeframe;
+    })
+    .sort((a, b) => {
+      const isTrackedA = !!findTrackedAppForOffer(a, applications);
+      const isTrackedB = !!findTrackedAppForOffer(b, applications);
+
+      // Règle 1 : Les offres déjà postulées / suivies vont EN BAS de la liste
+      // Les offres non postulées restent EN HAUT
+      if (!isTrackedA && isTrackedB) return -1;
+      if (isTrackedA && !isTrackedB) return 1;
+
+      // Règle 2 : À l'intérieur de chaque groupe, tri strict par date/heure de publication
+      const timeA = getOfferTimestamp(a);
+      const timeB = getOfferTimestamp(b);
+      return timeB - timeA;
+    });
 
   // Scanner en direct les offres sur les marchés suisse et européen avec filtre de fraîcheur
   const handleScanLiveOffers = async (overrideTimeframe?: "24h" | "3d" | "7d" | "all") => {
@@ -2106,7 +2161,7 @@ ${formattedParagraphs}
 
               <div className="text-[11px] text-[#71717a] flex items-center gap-1">
                 <span>🔄 Tri :</span>
-                <span className="text-emerald-400 font-medium">du plus récent au plus ancien</span>
+                <span className="text-emerald-400 font-medium">Nouvelles offres en premier · Postulées en bas (par date)</span>
               </div>
             </div>
 
@@ -2149,131 +2204,176 @@ ${formattedParagraphs}
                   Aucune offre ne correspond à vos filtres actuels. Réinitialisez la recherche pour voir toutes les opportunités.
                 </div>
               ) : (
-                filteredRadarOffers.map((offer) => (
-                  <div
-                    key={offer.id}
-                    className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 flex flex-col justify-between hover:border-blue-500/40 transition hover:bg-[#1a1a1e] space-y-4"
-                  >
-                    <div className="space-y-3">
-                      {/* Entête de carte */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-white text-base">{offer.company}</span>
-                            <span className="text-xs px-2 py-0.5 rounded-md bg-[#27272a] text-[#f4f4f5] font-medium flex items-center gap-1">
-                              <span>{offer.countryFlag}</span>
-                              <span>{offer.location}</span>
+                filteredRadarOffers.map((offer) => {
+                  const trackedApp = findTrackedAppForOffer(offer, applications);
+                  return (
+                    <div
+                      key={offer.id}
+                      className={`rounded-2xl p-5 flex flex-col justify-between transition space-y-4 ${
+                        trackedApp
+                          ? "bg-[#141b16]/90 border-2 border-emerald-500/40 shadow-sm"
+                          : "bg-[#18181b] border border-[#27272a] hover:border-blue-500/40 hover:bg-[#1a1a1e]"
+                      }`}
+                    >
+                      {/* Bandeau d'indication si candidature déjà suivie / postulée */}
+                      {trackedApp && (
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+                          <span className="flex items-center gap-1.5">
+                            <span>✅</span>
+                            <span>Candidature Postulée</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/25 text-emerald-200 uppercase font-bold tracking-wide">
+                              {trackedApp.status === "en_attente" && "🟡 En attente"}
+                              {trackedApp.status === "entretien" && "🟣 Entretien"}
+                              {trackedApp.status === "offre" && "🟢 Offre reçue"}
+                              {trackedApp.status === "refus" && "🔴 Refus"}
                             </span>
+                          </span>
+                          <button
+                            onClick={() => {
+                              setCurrentView("tracker");
+                              setFilterStatus("all");
+                            }}
+                            className="text-[11px] text-emerald-400 hover:text-white underline font-medium ml-2"
+                          >
+                            Voir dans le Suivi ↗
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        {/* Entête de carte */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white text-base">{offer.company}</span>
+                              <span className="text-xs px-2 py-0.5 rounded-md bg-[#27272a] text-[#f4f4f5] font-medium flex items-center gap-1">
+                                <span>{offer.countryFlag}</span>
+                                <span>{offer.location}</span>
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-semibold text-blue-400 mt-1">{offer.title}</h4>
                           </div>
-                          <h4 className="text-sm font-semibold text-blue-400 mt-1">{offer.title}</h4>
+
+                          {/* Badges rémunération, fraîcheur & workplace */}
+                          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                            {/* Badge Date de Publication Toujours Visible */}
+                            <span
+                              className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm ${
+                                (offer.postedAgo || "").includes("min") ||
+                                (offer.postedAgo || "").includes(" h") ||
+                                (offer.postedAgo || "").includes("heure") ||
+                                offer.postedAgo === "Hier"
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                  : (offer.postedAgo || "").includes("jour")
+                                  ? "bg-teal-500/20 text-teal-300 border border-teal-500/30"
+                                  : "bg-blue-500/15 text-blue-300 border border-blue-500/30"
+                              }`}
+                              title="Date de publication détectée sur le flux du recruteur"
+                            >
+                              <span>
+                                {(offer.postedAgo || "").includes("min") ||
+                                (offer.postedAgo || "").includes(" h") ||
+                                (offer.postedAgo || "").includes("heure")
+                                  ? "🔥"
+                                  : (offer.postedAgo || "") === "Hier" || (offer.postedAgo || "").includes("jour")
+                                  ? "⚡"
+                                  : "📅"}
+                              </span>
+                              <span>{offer.postedAgo ? `Publié : ${offer.postedAgo}` : "Publié cette semaine"}</span>
+                            </span>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                                offer.workplace === "Présentiel"
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                              }`}
+                            >
+                              📍 {offer.workplace}
+                            </span>
+                            {offer.compensation && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
+                                💰 {offer.compensation}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Badges rémunération, fraîcheur & workplace */}
-                        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                          {/* Badge Date de Publication Toujours Visible */}
-                          <span
-                            className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm ${
-                              (offer.postedAgo || "").includes("min") ||
-                              (offer.postedAgo || "").includes(" h") ||
-                              (offer.postedAgo || "").includes("heure") ||
-                              offer.postedAgo === "Hier"
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                                : (offer.postedAgo || "").includes("jour")
-                                ? "bg-teal-500/20 text-teal-300 border border-teal-500/30"
-                                : "bg-blue-500/15 text-blue-300 border border-blue-500/30"
-                            }`}
-                            title="Date de publication détectée sur le flux du recruteur"
-                          >
-                            <span>
-                              {(offer.postedAgo || "").includes("min") ||
-                              (offer.postedAgo || "").includes(" h") ||
-                              (offer.postedAgo || "").includes("heure")
-                                ? "🔥"
-                                : (offer.postedAgo || "") === "Hier" || (offer.postedAgo || "").includes("jour")
-                                ? "⚡"
-                                : "📅"}
+                        {/* Stack technique */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {offer.skills.map((skill, sIdx) => (
+                            <span
+                              key={sIdx}
+                              className="text-[10px] px-2 py-0.5 rounded-md bg-[#09090b] text-[#a1a1aa] border border-[#27272a] font-mono"
+                            >
+                              {skill}
                             </span>
-                            <span>{offer.postedAgo ? `Publié : ${offer.postedAgo}` : "Publié cette semaine"}</span>
-                          </span>
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
-                              offer.workplace === "Présentiel"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                            }`}
-                          >
-                            📍 {offer.workplace}
-                          </span>
-                          {offer.compensation && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
-                              💰 {offer.compensation}
-                            </span>
-                          )}
+                          ))}
                         </div>
+
+                        {/* Aperçu du texte */}
+                        <p className="text-xs text-[#a1a1aa] line-clamp-3 bg-[#09090b] p-2.5 rounded-xl border border-[#27272a] font-mono leading-relaxed">
+                          {offer.description}
+                        </p>
                       </div>
 
-                      {/* Stack technique */}
-                      <div className="flex flex-wrap gap-1.5">
-                        {offer.skills.map((skill, sIdx) => (
-                          <span
-                            key={sIdx}
-                            className="text-[10px] px-2 py-0.5 rounded-md bg-[#09090b] text-[#a1a1aa] border border-[#27272a] font-mono"
-                          >
-                            {skill}
-                          </span>
-                        ))}
+                      {/* Boutons d'action */}
+                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#27272a]">
+                        <button
+                          onClick={() => handleImportRadarOffer(offer)}
+                          className="flex-1 min-w-[150px] py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-1.5"
+                        >
+                          <span>⚡ Importer & Adapter</span>
+                        </button>
+
+                        {/* Bouton pour marquer/démarquer directement comme postulé */}
+                        <button
+                          onClick={() => handleToggleTrackOffer(offer)}
+                          className={`px-3 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 flex-shrink-0 ${
+                            trackedApp
+                              ? "bg-emerald-500/20 hover:bg-red-500/20 text-emerald-300 hover:text-red-300 border border-emerald-500/30"
+                              : "bg-[#27272a] hover:bg-emerald-600/30 text-[#a1a1aa] hover:text-emerald-300 border border-[#3f3f46]"
+                          }`}
+                          title={trackedApp ? "Cliquez pour retirer du suivi" : "Marquer comme déjà postulé (déplace l'offre en bas de la liste)"}
+                        >
+                          <span>{trackedApp ? "✅ Déjà Postulé" : "📌 Marquer Postulé"}</span>
+                        </button>
+
+                        <a
+                          href={offer.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
+                          title="Lien direct vers l'offre officielle ou le portail carrière"
+                        >
+                          <span>🔗 Direct</span>
+                          <span>↗</span>
+                        </a>
+
+                        <a
+                          href={`https://www.google.com/search?q=${encodeURIComponent(getGoogleJobsQuery(offer.company, offer.title, offer.location))}&ibp=htl;jobs`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
+                          title="Ouvrir dans Google Jobs (agrégateur multi-sources officiel : ATS, LinkedIn, Indeed)"
+                        >
+                          <span>💼 Jobs</span>
+                          <span>↗</span>
+                        </a>
+
+                        <a
+                          href={`https://www.google.com/search?q=${encodeURIComponent(getCleanJobSearchQuery(offer.company, offer.title))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-2.5 bg-[#27272a] hover:bg-amber-500/20 hover:text-amber-300 text-[#a1a1aa] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
+                          title="Recherche ciblée Google sans filtre restrictif"
+                        >
+                          <span>🔎 Google</span>
+                          <span>↗</span>
+                        </a>
                       </div>
-
-                      {/* Aperçu du texte */}
-                      <p className="text-xs text-[#a1a1aa] line-clamp-3 bg-[#09090b] p-2.5 rounded-xl border border-[#27272a] font-mono leading-relaxed">
-                        {offer.description}
-                      </p>
                     </div>
-
-                    {/* Boutons d'action */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#27272a]">
-                      <button
-                        onClick={() => handleImportRadarOffer(offer)}
-                        className="flex-1 min-w-[170px] py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-1.5"
-                      >
-                        <span>⚡ Importer & Adapter (1-Clic)</span>
-                      </button>
-
-                      <a
-                        href={offer.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-2.5 bg-[#27272a] hover:bg-[#3f3f46] text-[#f4f4f5] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
-                        title="Lien direct vers l'offre officielle ou le portail carrière"
-                      >
-                        <span>🔗 Direct</span>
-                        <span>↗</span>
-                      </a>
-
-                      <a
-                        href={`https://www.google.com/search?q=${encodeURIComponent(getGoogleJobsQuery(offer.company, offer.title, offer.location))}&ibp=htl;jobs`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
-                        title="Ouvrir dans Google Jobs (agrégateur multi-sources officiel : ATS, LinkedIn, Indeed)"
-                      >
-                        <span>💼 Google Jobs</span>
-                        <span>↗</span>
-                      </a>
-
-                      <a
-                        href={`https://www.google.com/search?q=${encodeURIComponent(getCleanJobSearchQuery(offer.company, offer.title))}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-2.5 bg-[#27272a] hover:bg-amber-500/20 hover:text-amber-300 text-[#a1a1aa] rounded-xl text-xs font-medium transition flex items-center gap-1 flex-shrink-0"
-                        title="Recherche ciblée Google sans filtre restrictif"
-                      >
-                        <span>🔎 Google</span>
-                        <span>↗</span>
-                      </a>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

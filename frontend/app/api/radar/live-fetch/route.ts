@@ -90,6 +90,25 @@ async function fetchLinkedInGuestJobs(
         formattedDate.includes("1 jour") ||
         formattedDate.includes("2 jours");
 
+      // Calcul précis du timestamp pour tri chronologique strict
+      let offerTimestamp = Date.now() - 7 * 24 * 3600 * 1000;
+      const cleanTime = rawDate.toLowerCase().trim();
+      if (cleanTime.includes("min")) {
+        const m = cleanTime.match(/(\d+)/);
+        offerTimestamp = Date.now() - (m ? parseInt(m[1], 10) : 15) * 60 * 1000;
+      } else if (cleanTime.includes("hour") || cleanTime.includes("heure") || cleanTime.includes(" h")) {
+        const h = cleanTime.match(/(\d+)/);
+        offerTimestamp = Date.now() - (h ? parseInt(h[1], 10) : 1) * 3600 * 1000;
+      } else if (cleanTime.includes("yesterday") || cleanTime.includes("1 day") || cleanTime === "hier") {
+        offerTimestamp = Date.now() - 24 * 3600 * 1000;
+      } else if (cleanTime.includes("day") || cleanTime.includes("jour")) {
+        const d = cleanTime.match(/(\d+)/);
+        offerTimestamp = Date.now() - (d ? parseInt(d[1], 10) : 2) * 24 * 3600 * 1000;
+      } else if (cleanTime.includes("week") || cleanTime.includes("sem")) {
+        const w = cleanTime.match(/(\d+)/);
+        offerTimestamp = Date.now() - (w ? parseInt(w[1], 10) : 1) * 7 * 24 * 3600 * 1000;
+      }
+
       // Déduction dynamique des compétences techniques
       const lower = rawTitle.toLowerCase();
       const detectedSkills: string[] = ["Python"];
@@ -118,6 +137,7 @@ async function fetchLinkedInGuestJobs(
         url: jobUrl,
         postedAgo: formattedDate,
         isFresh: isUltraFresh,
+        timestamp: offerTimestamp,
         description: `Offre fraîche détectée en direct sur LinkedIn (${country}).
 Poste : ${rawTitle}
 Entreprise : ${rawCompany}
@@ -159,17 +179,23 @@ export async function GET(request: NextRequest) {
     const [
       linkedInChMl,
       linkedInChAi,
+      linkedInChGeneva,
+      linkedInChZurich,
       linkedInLux,
       linkedInBe,
-      linkedInDe,
+      linkedInDeMunich,
+      linkedInDeAll,
       swissDevJobs,
       germanJobs,
     ] = await Promise.allSettled([
       fetchLinkedInGuestJobs("Machine Learning Intern", "Switzerland", "Suisse", "🇨🇭", fTpr),
       fetchLinkedInGuestJobs("AI Engineer Intern", "Switzerland", "Suisse", "🇨🇭", fTpr),
+      fetchLinkedInGuestJobs("AI Intern", "Geneva", "Suisse", "🇨🇭", fTpr),
+      fetchLinkedInGuestJobs("Data Science Intern", "Zurich", "Suisse", "🇨🇭", fTpr),
       fetchLinkedInGuestJobs("Internship Machine Learning", "Luxembourg", "Luxembourg", "🇱🇺", fTpr),
       fetchLinkedInGuestJobs("Machine Learning Intern", "Brussels", "Belgique", "🇧🇪", fTpr),
       fetchLinkedInGuestJobs("Machine Learning Intern", "Munich", "Allemagne", "🇩🇪", fTpr),
+      fetchLinkedInGuestJobs("Deep Learning Intern", "Germany", "Allemagne", "🇩🇪", fTpr),
       // SwissDevJobs API
       (async () => {
         const res = await fetch("https://swissdevjobs.ch/api/jobsLight", {
@@ -187,21 +213,25 @@ export async function GET(request: NextRequest) {
             return isAi && isJunior && j.workplace !== "remote";
           })
           .slice(0, 6)
-          .map((j: any) => ({
-            id: `live-sdj-${j._id}`,
-            company: j.company,
-            title: j.name,
-            location: `${j.actualCity || j.cityCategory || "Suisse"}, Suisse`,
-            country: "Suisse" as const,
-            countryFlag: "🇨🇭",
-            workplace: (j.workplace === "office" ? "Présentiel" : "Hybride") as "Présentiel" | "Hybride",
-            compensation: j.annualSalaryFrom ? `${Math.round(j.annualSalaryFrom / 12).toLocaleString("fr-CH")} CHF / mois` : "Selon profil",
-            skills: (j.technologies || ["Python", "Machine Learning"]).slice(0, 6),
-            url: j.redirectJobUrl || `https://swissdevjobs.ch/jobs/${j.jobUrl}`,
-            postedAgo: "Cette semaine",
-            isFresh: true,
-            description: `Poste tech en direct en Suisse (${j.actualCity || j.cityCategory}). Stack: ${(j.technologies || []).join(", ")}. Entreprise: ${j.company}.`,
-          }));
+          .map((j: any) => {
+            const actTime = j.activeFrom ? new Date(j.activeFrom).getTime() : Date.now() - 3 * 24 * 3600 * 1000;
+            return {
+              id: `live-sdj-${j._id}`,
+              company: j.company,
+              title: j.name,
+              location: `${j.actualCity || j.cityCategory || "Suisse"}, Suisse`,
+              country: "Suisse" as const,
+              countryFlag: "🇨🇭",
+              workplace: (j.workplace === "office" ? "Présentiel" : "Hybride") as "Présentiel" | "Hybride",
+              compensation: j.annualSalaryFrom ? `${Math.round(j.annualSalaryFrom / 12).toLocaleString("fr-CH")} CHF / mois` : "Selon profil",
+              skills: (j.technologies || ["Python", "Machine Learning"]).slice(0, 6),
+              url: j.redirectJobUrl || `https://swissdevjobs.ch/jobs/${j.jobUrl}`,
+              postedAgo: "Cette semaine",
+              isFresh: true,
+              timestamp: actTime,
+              description: `Poste tech en direct en Suisse (${j.actualCity || j.cityCategory}). Stack: ${(j.technologies || []).join(", ")}. Entreprise: ${j.company}.`,
+            };
+          });
       })(),
       // GermanTechJobs API
       (async () => {
@@ -220,30 +250,37 @@ export async function GET(request: NextRequest) {
             return isAi && isJunior && j.workplace !== "remote";
           })
           .slice(0, 5)
-          .map((j: any) => ({
-            id: `live-gtj-${j._id}`,
-            company: j.company,
-            title: j.name,
-            location: `${j.actualCity || j.cityCategory || "Munich"}, Allemagne`,
-            country: "Allemagne" as const,
-            countryFlag: "🇩🇪",
-            workplace: (j.workplace === "office" ? "Présentiel" : "Hybride") as "Présentiel" | "Hybride",
-            compensation: j.annualSalaryFrom ? `${Math.round(j.annualSalaryFrom / 12).toLocaleString("de-DE")} € / mois` : "Selon convention",
-            skills: (j.technologies || ["Python", "Computer Vision"]).slice(0, 6),
-            url: j.redirectJobUrl || `https://germantechjobs.de/jobs/${j.jobUrl}`,
-            postedAgo: "Cette semaine",
-            isFresh: true,
-            description: `Opportunité en direct en Allemagne (${j.actualCity || j.cityCategory}). Stack: ${(j.technologies || []).join(", ")}. Entreprise: ${j.company}.`,
-          }));
+          .map((j: any) => {
+            const actTime = j.activeFrom ? new Date(j.activeFrom).getTime() : Date.now() - 3 * 24 * 3600 * 1000;
+            return {
+              id: `live-gtj-${j._id}`,
+              company: j.company,
+              title: j.name,
+              location: `${j.actualCity || j.cityCategory || "Munich"}, Allemagne`,
+              country: "Allemagne" as const,
+              countryFlag: "🇩🇪",
+              workplace: (j.workplace === "office" ? "Présentiel" : "Hybride") as "Présentiel" | "Hybride",
+              compensation: j.annualSalaryFrom ? `${Math.round(j.annualSalaryFrom / 12).toLocaleString("de-DE")} € / mois` : "Selon convention",
+              skills: (j.technologies || ["Python", "Computer Vision"]).slice(0, 6),
+              url: j.redirectJobUrl || `https://germantechjobs.de/jobs/${j.jobUrl}`,
+              postedAgo: "Cette semaine",
+              isFresh: true,
+              timestamp: actTime,
+              description: `Opportunité en direct en Allemagne (${j.actualCity || j.cityCategory}). Stack: ${(j.technologies || []).join(", ")}. Entreprise: ${j.company}.`,
+            };
+          });
       })(),
     ]);
 
     // Rassembler les résultats validés
     if (linkedInChMl.status === "fulfilled") liveOffers.push(...linkedInChMl.value);
     if (linkedInChAi.status === "fulfilled") liveOffers.push(...linkedInChAi.value);
+    if (linkedInChGeneva.status === "fulfilled") liveOffers.push(...linkedInChGeneva.value);
+    if (linkedInChZurich.status === "fulfilled") liveOffers.push(...linkedInChZurich.value);
     if (linkedInLux.status === "fulfilled") liveOffers.push(...linkedInLux.value);
     if (linkedInBe.status === "fulfilled") liveOffers.push(...linkedInBe.value);
-    if (linkedInDe.status === "fulfilled") liveOffers.push(...linkedInDe.value);
+    if (linkedInDeMunich.status === "fulfilled") liveOffers.push(...linkedInDeMunich.value);
+    if (linkedInDeAll.status === "fulfilled") liveOffers.push(...linkedInDeAll.value);
     if (swissDevJobs.status === "fulfilled") liveOffers.push(...swissDevJobs.value);
     if (germanJobs.status === "fulfilled") liveOffers.push(...germanJobs.value);
 
@@ -255,6 +292,9 @@ export async function GET(request: NextRequest) {
       seen.add(key);
       return true;
     });
+
+    // Tri strict et déterministe par heure de publication (de la plus récente à la plus ancienne)
+    deduplicatedOffers.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
     return NextResponse.json({
       success: true,

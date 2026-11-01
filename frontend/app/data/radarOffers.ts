@@ -12,6 +12,39 @@ export interface RadarJobOffer {
   description: string;
   postedAgo?: string;
   isFresh?: boolean;
+  timestamp?: number;
+}
+
+export function getOfferTimestamp(offer: RadarJobOffer): number {
+  if (offer.timestamp && offer.timestamp > 0) return offer.timestamp;
+  const raw = (offer.postedAgo || "").toLowerCase().trim();
+  const now = Date.now();
+  if (!raw) return now - 7 * 24 * 3600 * 1000;
+
+  if (raw.includes("min")) {
+    const m = raw.match(/(\d+)/);
+    const mins = m ? parseInt(m[1], 10) : 15;
+    return now - mins * 60 * 1000;
+  }
+  if (raw.includes("heure") || raw.includes("hour") || raw.includes(" h")) {
+    const h = raw.match(/(\d+)/);
+    const hours = h ? parseInt(h[1], 10) : 1;
+    return now - hours * 3600 * 1000;
+  }
+  if (raw.includes("hier") || raw.includes("yesterday") || raw.includes("1 jour") || raw.includes("1 day")) {
+    return now - 24 * 3600 * 1000;
+  }
+  if (raw.includes("jour") || raw.includes("day")) {
+    const d = raw.match(/(\d+)/);
+    const days = d ? parseInt(d[1], 10) : 2;
+    return now - days * 24 * 3600 * 1000;
+  }
+  if (raw.includes("sem") || raw.includes("week")) {
+    const w = raw.match(/(\d+)/);
+    const weeks = w ? parseInt(w[1], 10) : 1;
+    return now - weeks * 7 * 24 * 3600 * 1000;
+  }
+  return now - 7 * 24 * 3600 * 1000;
 }
 
 export interface DeepSearchPortal {
