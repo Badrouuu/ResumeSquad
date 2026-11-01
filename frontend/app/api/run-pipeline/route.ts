@@ -45,10 +45,16 @@ Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et
   * Engagement associatif & Secourisme : Stagiaire bénévole en association d'entraide (animation, coordination terrain, esprit d'équipe) & Titulaire du Brevet de Premiers Secours (PSC1).
 
 === OFFRE D'EMPLOI CIBLÉE ===
-Entreprise : ${company}
-Intitulé de poste : ${jobTitle}
+Entreprise fournie : ${company}
+Intitulé de poste fourni : ${jobTitle}
 Description / Missions :
-${jobText.slice(0, 4000)}
+${jobText.slice(0, 4500)}
+
+=== DÉTECTION ET ADAPTATION DU DESTINATAIRE (ANTI-INCOHÉRENCE & ZÉRO MÉLANGE) ===
+- Analyse le texte de l'offre d'emploi :
+  * Si l'entreprise fournie ("${company}") est une valeur par défaut ou générique (ex: "NeuroTech Solutions", "Entreprise Ciblée") alors que le texte de l'offre mentionne explicitement le nom d'une autre entreprise (ex: "À propos de...", "About [Company]", "Join [Company]", "Chez [Company]"), tu DOIS OBLIGATOIREMENT utiliser ce nom d'entreprise réel pour TOUS les livrables (CV, en-tête et corps de la lettre de motivation). Renseigne ce nom dans "detectedCompany". Si "${company}" est déjà le bon nom ou si aucun autre nom n'est détecté, renseigne "${company}".
+  * Renseigne l'intitulé de poste précis extrait de l'annonce dans "detectedJobTitle" (ou "${jobTitle}" s'il est déjà précis).
+
 
 === RÈGLE DE LANGUE IMPÉRATIVE (BILINGUISME INTELLIGENT ET ZÉRO MÉLANGE) ===
 - Analyse la langue de l'offre d'emploi (Description / Missions) :
@@ -115,6 +121,8 @@ ${jobText.slice(0, 4000)}
 Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 {
   "language": "en" | "fr",
+  "detectedCompany": "Nom réel de l'entreprise cible identifié dans le texte (ou '${company}')",
+  "detectedJobTitle": "Intitulé précis du poste cible (ou '${jobTitle}')",
   "workplaceType": "full_remote" | "hybrid" | "onsite" | "unspecified",
   "isFullRemote": boolean,
   "remoteEvidenceQuote": "Extrait exact mot-à-mot tiré du texte de l'offre qui mentionne ou prouve le mode de travail (ou vide si non mentionné)",
@@ -207,10 +215,25 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 
     parsedResult.language = resolvedLang;
 
-    // Garantir que versions contient au minimum la langue détectée
+    // Normaliser detectedCompany et detectedJobTitle
+    if (!parsedResult.detectedCompany || parsedResult.detectedCompany.trim().length === 0) {
+      parsedResult.detectedCompany = company;
+    }
+    if (!parsedResult.detectedJobTitle || parsedResult.detectedJobTitle.trim().length === 0) {
+      parsedResult.detectedJobTitle = jobTitle;
+    }
+
+    // Garantir que versions contient les deux langues et leurs cover letters
     if (!parsedResult.versions) {
       parsedResult.versions = {};
     }
+    if (!parsedResult.versions.fr) {
+      parsedResult.versions.fr = {};
+    }
+    if (!parsedResult.versions.en) {
+      parsedResult.versions.en = {};
+    }
+
     if (!parsedResult.versions[resolvedLang]) {
       parsedResult.versions[resolvedLang] = {
         tailoredTitle: parsedResult.tailoredTitle,
@@ -220,6 +243,17 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
       };
     } else if (!parsedResult.versions[resolvedLang].coverLetter && parsedResult.coverLetter) {
       parsedResult.versions[resolvedLang].coverLetter = parsedResult.coverLetter;
+    }
+
+    // Fallback solide pour que les deux versions bilingues de la lettre soient toujours remplies
+    if (!parsedResult.versions.fr.coverLetter && parsedResult.versions.en.coverLetter) {
+      parsedResult.versions.fr.coverLetter = parsedResult.coverLetter || parsedResult.versions.en.coverLetter;
+    }
+    if (!parsedResult.versions.en.coverLetter && parsedResult.versions.fr.coverLetter) {
+      parsedResult.versions.en.coverLetter = parsedResult.coverLetter || parsedResult.versions.fr.coverLetter;
+    }
+    if (!parsedResult.coverLetter) {
+      parsedResult.coverLetter = parsedResult.versions[resolvedLang]?.coverLetter || "";
     }
 
     // Normalisation typographique : bannir les tirets cadratins (—/–) au profit de tirets simples (-)

@@ -225,6 +225,38 @@ export default function Home() {
   const [remoteEvidenceQuote, setRemoteEvidenceQuote] = useState<string | null>(null);
   const [franceWarning, setFranceWarning] = useState<string | null>(null);
   const [workplaceType, setWorkplaceType] = useState<"full_remote" | "hybrid" | "onsite" | null>(null);
+  const [isLetterOutdated, setIsLetterOutdated] = useState(false);
+
+  // Auto-détection intelligente de l'entreprise et du titre lors de la saisie/collage de texte
+  const autoDetectCompanyAndTitleFromText = (text: string) => {
+    if (!text || text.length < 15) return;
+
+    // Détection de l'entreprise si encore générique ou par défaut
+    const isDefaultComp = !company || company.includes("NeuroTech Solutions") || company.includes("Entreprise Ciblée");
+    if (isDefaultComp) {
+      const compRegex = /(?:entreprise|société|company|employeur|chez|about)\s*[:\-–]\s*([A-Za-z0-9\s&.\-’']+)/i;
+      const compMatch = text.match(compRegex);
+      if (compMatch && compMatch[1]) {
+        const candidate = compMatch[1].trim().split(/\n|,|\./)[0].trim();
+        if (candidate.length >= 2 && candidate.length <= 40) {
+          setCompany(candidate);
+        }
+      }
+    }
+
+    // Détection du poste si encore par défaut
+    const isDefaultTitle = !jobTitle || jobTitle.includes("Stage PFE - AI") || jobTitle.includes("AI / Machine Learning Engineer");
+    if (isDefaultTitle) {
+      const titleRegex = /(?:poste|titre|intitulé|position|job\s*title|rôle)\s*[:\-–]\s*([A-Za-z0-9\s&.\-’'\/]+)/i;
+      const titleMatch = text.match(titleRegex);
+      if (titleMatch && titleMatch[1]) {
+        const candidateTitle = titleMatch[1].trim().split(/\n|,|\./)[0].trim();
+        if (candidateTitle.length >= 3 && candidateTitle.length <= 60) {
+          setJobTitle(candidateTitle);
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("resumesquad_applications");
@@ -277,6 +309,7 @@ export default function Home() {
         setJobText(data.raw_text);
         if (data.title) setJobTitle(data.title);
         if (data.company) setCompany(data.company);
+        setIsLetterOutdated(true);
         setExtractMessage({
           type: "success",
           text: `✅ Offre extraite avec succès (${data.raw_text.length} caractères) !`,
@@ -307,6 +340,7 @@ export default function Home() {
 
     setCompany(detectedComp);
     setJobTitle(detectedTitle);
+    setIsLetterOutdated(true);
     setJobText(`Offre extraite depuis : ${targetUrl}
 
 Missions principales :
@@ -374,17 +408,22 @@ Profil requis :
 
       const data = await res.json();
       if (res.ok && data.success) {
+        if (data.detectedCompany && data.detectedCompany !== activeCompany) {
+          setCompany(data.detectedCompany);
+        }
+        if (data.detectedJobTitle && data.detectedJobTitle !== activeTitle) {
+          setJobTitle(data.detectedJobTitle);
+        }
+
         if (data.versions) {
           setBilingualVersions((prev) => ({
             ...prev,
             ...data.versions,
           }));
-          if (data.versions.fr?.coverLetter || data.versions.en?.coverLetter) {
-            setCoverLetterVersions((prev) => ({
-              fr: data.versions.fr?.coverLetter || prev.fr,
-              en: data.versions.en?.coverLetter || prev.en,
-            }));
-          }
+          setCoverLetterVersions((prev) => ({
+            fr: data.versions.fr?.coverLetter || (data.language === "fr" && data.coverLetter ? data.coverLetter : prev.fr),
+            en: data.versions.en?.coverLetter || (data.language === "en" && data.coverLetter ? data.coverLetter : prev.en),
+          }));
         }
         if (data.language === "en" || data.language === "fr") {
           setCvLanguage(data.language);
@@ -393,8 +432,15 @@ Profil requis :
         if (data.tailoredTitle) setTailoredTitle(data.tailoredTitle);
         if (data.tailoredSummary) setTailoredSummary(data.tailoredSummary);
         if (data.projectBullets && data.projectBullets.length > 0) setProjectBullets(data.projectBullets);
-        const resolvedLetter = (data.versions && data.versions[data.language]?.coverLetter) || data.coverLetter;
+
+        const targetLetterLang = data.language === "en" || data.language === "fr" ? data.language : coverLetterLanguage;
+        const resolvedLetter =
+          (data.versions && data.versions[targetLetterLang]?.coverLetter) ||
+          data.coverLetter ||
+          (data.versions && (data.versions.fr?.coverLetter || data.versions.en?.coverLetter));
         if (resolvedLetter) setCoverLetter(resolvedLetter);
+
+        setIsLetterOutdated(false);
         if (data.atsScore) setAtsScore(data.atsScore);
         if (data.coverageRate) setCoverageRate(data.coverageRate);
 
@@ -1448,23 +1494,61 @@ ${formattedParagraphs}
               )}
 
               <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-[#a1a1aa] block mb-1">Poste & Entreprise</label>
-                  <input
-                    type="text"
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    className="w-full text-xs p-2.5 rounded-xl bg-[#09090b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500 transition"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-xs text-[#a1a1aa] block mb-1 font-medium">
+                      Entreprise ciblée <span className="text-blue-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={company}
+                      onChange={(e) => {
+                        setCompany(e.target.value);
+                        setIsLetterOutdated(true);
+                      }}
+                      placeholder="ex: Mistral AI, Rolex, CERN..."
+                      className="w-full text-xs p-2.5 rounded-xl bg-[#09090b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#a1a1aa] block mb-1 font-medium">
+                      Intitulé du poste <span className="text-blue-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={jobTitle}
+                      onChange={(e) => {
+                        setJobTitle(e.target.value);
+                        setIsLetterOutdated(true);
+                      }}
+                      placeholder="ex: Ingénieur IA & Machine Learning (Stage PFE)"
+                      className="w-full text-xs p-2.5 rounded-xl bg-[#09090b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500 transition"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="text-xs text-[#a1a1aa] block mb-1">Texte de l&apos;offre d&apos;emploi</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs text-[#a1a1aa] block font-medium">
+                      Texte de l&apos;offre d&apos;emploi <span className="text-blue-400">*</span>
+                    </label>
+                    {isLetterOutdated && (
+                      <span className="text-[10px] text-amber-400 font-medium">
+                        ⚠️ Modification non synchronisée
+                      </span>
+                    )}
+                  </div>
                   <textarea
                     rows={7}
                     value={jobText}
-                    onChange={(e) => setJobText(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl bg-[#09090b] border border-[#27272a] text-white font-mono leading-relaxed focus:outline-none focus:border-blue-500 transition resize-none"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setJobText(val);
+                      setIsLetterOutdated(true);
+                      autoDetectCompanyAndTitleFromText(val);
+                    }}
+                    placeholder="Collez ici l'intégralité du texte de l'annonce ou la description des missions..."
+                    className="w-full text-xs p-3 rounded-xl bg-[#09090b] border border-[#27272a] text-white font-mono leading-relaxed focus:outline-none focus:border-blue-500 transition resize-y"
                   />
                 </div>
 
@@ -1892,6 +1976,18 @@ ${formattedParagraphs}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
+                      {/* Bouton d'adaptation rapide */}
+                      <button
+                        type="button"
+                        onClick={() => handleRunPipeline()}
+                        disabled={isRunning}
+                        className="px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                        title="Adapter et régénérer instantanément la lettre de motivation à l'offre active"
+                      >
+                        <span>{isRunning ? "⏳" : "⚡"}</span>
+                        <span>{isRunning ? "Adaptation en cours..." : "Adapter à l'offre"}</span>
+                      </button>
+
                       {/* Sélecteur de langue bilingue */}
                       <div className="flex items-center gap-1 bg-[#18181b] border border-[#27272a] p-1 rounded-xl text-xs">
                         <span className="text-[10px] text-[#71717a] font-medium px-1.5">Langue :</span>
@@ -1950,6 +2046,29 @@ ${formattedParagraphs}
                     </div>
                   </div>
 
+                  {/* Alerte si le texte ou l'entreprise a changé sans actualisation */}
+                  {isLetterOutdated && !isRunning && (
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-lg">⚠️</span>
+                        <div>
+                          <div className="font-semibold text-xs text-white">Texte de l&apos;offre modifié</div>
+                          <div className="text-[11px] text-amber-300/90">
+                            La lettre ci-dessous n&apos;est pas encore adaptée aux dernières modifications pour <b className="text-white">{company}</b>. Cliquez pour l&apos;actualiser.
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRunPipeline()}
+                        disabled={isRunning}
+                        className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm shrink-0"
+                      >
+                        <span>⚡</span>
+                        <span>Actualiser la lettre</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Barre d'actions d'exportation */}
                   <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-[#18181b] border border-[#27272a]">
                     <div className="text-[11px] text-[#a1a1aa] flex items-center gap-1.5">
@@ -2005,39 +2124,63 @@ ${formattedParagraphs}
                     </div>
                   </div>
 
-                  {/* Contenu selon le mode sélectionné */}
-                  {coverLetterMode === "edit" && (
-                    <div className="relative">
-                      <textarea
-                        rows={16}
-                        value={coverLetter}
-                        onChange={(e) => handleCoverLetterChange(e.target.value)}
-                        className="w-full text-xs p-4 rounded-xl bg-[#09090b] border border-[#27272a] text-[#f4f4f5] font-sans leading-relaxed focus:outline-none focus:border-blue-500 transition resize-y"
-                        placeholder="Lettre de motivation générée automatiquement..."
-                      />
-                      <div className="flex justify-between items-center text-[10px] text-[#71717a] px-1 pt-1">
-                        <span>💡 Modifiez librement le texte. Vos modifications sont conservées pour la langue active ({coverLetterLanguage.toUpperCase()}).</span>
-                        <span>{coverLetter.length} caractères • {coverLetter.trim().split(/\s+/).filter(Boolean).length} mots</span>
+                  {/* Contenu selon le mode sélectionné ou état de chargement */}
+                  {isRunning ? (
+                    <div className="p-8 sm:p-12 rounded-xl bg-[#09090b] border border-blue-500/30 text-center space-y-4">
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-2xl animate-pulse">
+                        ✍️
+                      </div>
+                      <div className="space-y-1.5 max-w-md mx-auto">
+                        <div className="font-bold text-white text-sm">
+                          Rédaction et calibration de votre lettre en cours...
+                        </div>
+                        <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                          L&apos;escouade d&apos;agents IA analyse les missions de l&apos;offre pour <b className="text-blue-400">{company}</b> ({jobTitle}) et rédige votre lettre ultra-personnalisée avec zéro boilerplate.
+                        </p>
+                      </div>
+                      <div className="w-56 h-1.5 bg-[#27272a] rounded-full mx-auto overflow-hidden">
+                        <div className="w-full h-full bg-blue-500 rounded-full animate-pulse"></div>
+                      </div>
+                      <div className="text-[11px] text-[#71717a] italic">
+                        Synchronisation bilingue FR/EN en direct avec Gemini...
                       </div>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {coverLetterMode === "edit" && (
+                        <div className="relative">
+                          <textarea
+                            rows={16}
+                            value={coverLetter}
+                            onChange={(e) => handleCoverLetterChange(e.target.value)}
+                            className="w-full text-xs p-4 rounded-xl bg-[#09090b] border border-[#27272a] text-[#f4f4f5] font-sans leading-relaxed focus:outline-none focus:border-blue-500 transition resize-y"
+                            placeholder="Lettre de motivation générée automatiquement..."
+                          />
+                          <div className="flex justify-between items-center text-[10px] text-[#71717a] px-1 pt-1">
+                            <span>💡 Modifiez librement le texte. Vos modifications sont conservées pour la langue active ({coverLetterLanguage.toUpperCase()}).</span>
+                            <span>{coverLetter.length} caractères • {coverLetter.trim().split(/\s+/).filter(Boolean).length} mots</span>
+                          </div>
+                        </div>
+                      )}
 
-                  {coverLetterMode === "preview" && (
-                    <div className="p-8 sm:p-12 rounded-xl bg-white text-gray-900 border border-gray-200 shadow-xl font-sans max-w-3xl mx-auto">
-                      {renderFormattedCoverLetter(coverLetter)}
-                    </div>
-                  )}
+                      {coverLetterMode === "preview" && (
+                        <div className="p-8 sm:p-12 rounded-xl bg-white text-gray-900 border border-gray-200 shadow-xl font-sans max-w-3xl mx-auto">
+                          {renderFormattedCoverLetter(coverLetter)}
+                        </div>
+                      )}
 
-                  {coverLetterMode === "latex" && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-[#a1a1aa] text-[11px]">
-                        <span>Code LaTeX prêt à compiler :</span>
-                        <span className="text-emerald-400 font-medium">✓ Packages standard : geometry, hyperref, xcolor, parskip</span>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-[#f4f4f5] overflow-x-auto max-h-80 leading-relaxed">
+                      {coverLetterMode === "latex" && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[#a1a1aa] text-[11px]">
+                            <span>Code LaTeX prêt à compiler :</span>
+                            <span className="text-emerald-400 font-medium">✓ Packages standard : geometry, hyperref, xcolor, parskip</span>
+                          </div>
+                          <pre className="p-4 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-[#f4f4f5] overflow-x-auto max-h-80 leading-relaxed">
 {getCoverLetterTex()}
-                      </pre>
-                    </div>
+                          </pre>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
