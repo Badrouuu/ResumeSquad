@@ -227,6 +227,19 @@ export default function Home() {
   const [workplaceType, setWorkplaceType] = useState<"full_remote" | "hybrid" | "onsite" | null>(null);
   const [isLetterOutdated, setIsLetterOutdated] = useState(false);
 
+  // Suivi en temps réel des Tokens & Dépenses API
+  const [lastTokenUsage, setLastTokenUsage] = useState<{
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    estimatedCostEur: number;
+    estimatedCostUsd: number;
+    model: string;
+    isFreeTier: boolean;
+  } | null>(null);
+  const [cumulativeTokens, setCumulativeTokens] = useState<number>(0);
+  const [cumulativeRuns, setCumulativeRuns] = useState<number>(0);
+
   // Auto-détection intelligente de l'entreprise et du titre lors de la saisie/collage de texte
   const autoDetectCompanyAndTitleFromText = (text: string) => {
     if (!text || text.length < 10) return;
@@ -312,6 +325,18 @@ export default function Home() {
       }
     } catch (e) {
       console.error("Erreur chargement live offers localStorage", e);
+    }
+
+    // Chargement de l'historique des tokens et dépenses estimées
+    try {
+      const savedTokens = localStorage.getItem("resumesquad_cumulative_tokens");
+      if (savedTokens) setCumulativeTokens(parseInt(savedTokens, 10) || 0);
+      const savedRuns = localStorage.getItem("resumesquad_cumulative_runs");
+      if (savedRuns) setCumulativeRuns(parseInt(savedRuns, 10) || 0);
+      const savedLastUsage = localStorage.getItem("resumesquad_last_token_usage");
+      if (savedLastUsage) setLastTokenUsage(JSON.parse(savedLastUsage));
+    } catch (e) {
+      console.warn("Erreur chargement token stats localStorage", e);
     }
   }, []);
 
@@ -440,6 +465,26 @@ Profil requis :
 
       const data = await res.json();
       if (res.ok && data.success) {
+        // Enregistrement des statistiques de tokens et calcul des coûts
+        if (data.usage) {
+          setLastTokenUsage(data.usage);
+          try {
+            localStorage.setItem("resumesquad_last_token_usage", JSON.stringify(data.usage));
+            setCumulativeTokens((prevTokens) => {
+              const updatedTokens = (prevTokens || 0) + (data.usage.totalTokens || 0);
+              localStorage.setItem("resumesquad_cumulative_tokens", String(updatedTokens));
+              return updatedTokens;
+            });
+            setCumulativeRuns((prevRuns) => {
+              const updatedRuns = (prevRuns || 0) + 1;
+              localStorage.setItem("resumesquad_cumulative_runs", String(updatedRuns));
+              return updatedRuns;
+            });
+          } catch (e) {
+            console.warn("Erreur stockage tokens stats", e);
+          }
+        }
+
         if (data.detectedCompany && data.detectedCompany !== activeCompany) {
           setCompany(data.detectedCompany);
         }
@@ -1693,6 +1738,92 @@ ${formattedParagraphs}
                 <li><b className="text-white">Télécharger le CV :</b> Récupère ton fichier LaTeX (.tex) pour Overleaf.</li>
                 <li><b className="text-white">Postuler & Suivre :</b> Enregistre l&apos;offre dans ton CRM de candidatures.</li>
               </ol>
+            </div>
+
+            {/* Suivi des Tokens & Dépenses API */}
+            <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 text-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold text-white flex items-center gap-1.5">
+                  <span>💰</span> Consommation Tokens & Coût API
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Tier 100% Gratuit
+                </span>
+              </div>
+
+              {/* Métriques Dernière Génération vs Cumul */}
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-[#09090b] p-2.5 rounded-xl border border-[#27272a] space-y-1">
+                  <div className="text-[#a1a1aa] text-[10px] font-medium uppercase tracking-wider">Dernier Run</div>
+                  {lastTokenUsage ? (
+                    <div>
+                      <div className="text-white font-bold text-sm">
+                        {lastTokenUsage.totalTokens.toLocaleString()} <span className="text-[10px] text-[#a1a1aa] font-normal">tokens</span>
+                      </div>
+                      <div className="text-[#71717a] text-[10px] mt-0.5">
+                        In: {lastTokenUsage.promptTokens} | Out: {lastTokenUsage.completionTokens}
+                      </div>
+                      <div className="text-emerald-400 font-semibold text-[10px] mt-1">
+                        0.00 € <span className="text-[#71717a] line-through font-normal">({lastTokenUsage.estimatedCostEur.toFixed(4)} €)</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[#71717a] italic py-1">En attente de génération</div>
+                  )}
+                </div>
+
+                <div className="bg-[#09090b] p-2.5 rounded-xl border border-[#27272a] space-y-1">
+                  <div className="text-[#a1a1aa] text-[10px] font-medium uppercase tracking-wider">Cumul Session</div>
+                  <div>
+                    <div className="text-white font-bold text-sm">
+                      {cumulativeTokens.toLocaleString()} <span className="text-[10px] text-[#a1a1aa] font-normal">tokens</span>
+                    </div>
+                    <div className="text-[#71717a] text-[10px] mt-0.5">
+                      {cumulativeRuns} génération{cumulativeRuns > 1 ? "s" : ""} effectuée{cumulativeRuns > 1 ? "s" : ""}
+                    </div>
+                    <div className="text-emerald-400 font-semibold text-[10px] mt-1">
+                      0.00 € <span className="text-[#71717a] font-normal">(Quota offert)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Note explicative & Lien officiel */}
+              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[#a1a1aa] text-[11px] space-y-1.5 leading-relaxed">
+                <div className="flex items-center gap-1.5 text-blue-300 font-medium text-[11px]">
+                  <span>🛡️</span>
+                  <span>Garantie Zéro Facturation Google AI Studio</span>
+                </div>
+                <p className="text-[10px] text-[#cbd5e1]">
+                  Ta clé API fonctionne sur le <b>Plan Gratuit</b> de Google (sans carte bancaire requise). Tu bénéficies de <b>15 requêtes/minute</b> et jusqu&apos;à <b>1 500 requêtes/jour</b> à 0 €.
+                </p>
+                <div className="pt-1 flex items-center justify-between border-t border-blue-500/20 text-[10px]">
+                  <a
+                    href="https://aistudio.google.com/app/plan_information"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300 underline font-medium flex items-center gap-1"
+                  >
+                    <span>Vérifier mes quotas officiels Google AI Studio</span>
+                    <span>↗</span>
+                  </a>
+                  {cumulativeTokens > 0 && (
+                    <button
+                      onClick={() => {
+                        setCumulativeTokens(0);
+                        setCumulativeRuns(0);
+                        localStorage.removeItem("resumesquad_cumulative_tokens");
+                        localStorage.removeItem("resumesquad_cumulative_runs");
+                      }}
+                      className="text-[#71717a] hover:text-white transition"
+                      title="Réinitialiser le compteur de session"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

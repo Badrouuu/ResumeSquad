@@ -201,6 +201,18 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
       throw new Error("Réponse vide du modèle d'IA");
     }
 
+    // Extraction métadonnées de consommation de tokens officielle Gemini
+    const usageMeta = data.usageMetadata || {};
+    const promptTokens = Number(usageMeta.promptTokenCount || 0);
+    const completionTokens = Number(usageMeta.candidatesTokenCount || 0);
+    const totalTokens = Number(usageMeta.totalTokenCount || (promptTokens + completionTokens));
+
+    // Tarifs officiels Google Gemini Flash :
+    // Entrée : $0.075 / 1M tokens ($0.000075 / 1k tokens)
+    // Sortie : $0.30 / 1M tokens ($0.000300 / 1k tokens)
+    const estimatedCostUsd = (promptTokens * 0.075 + completionTokens * 0.30) / 1_000_000;
+    const estimatedCostEur = estimatedCostUsd * 0.92;
+
     const parsedResult = JSON.parse(candidate);
 
     // Détection stricte et normalisation de la langue pour bannir tout mélange Franglais
@@ -290,6 +302,15 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 
     return NextResponse.json({
       success: true,
+      usage: {
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        estimatedCostUsd: Number(estimatedCostUsd.toFixed(6)),
+        estimatedCostEur: Number(estimatedCostEur.toFixed(6)),
+        model: "gemini-flash",
+        isFreeTier: true,
+      },
       ...parsedResult,
     });
   } catch (error: any) {
