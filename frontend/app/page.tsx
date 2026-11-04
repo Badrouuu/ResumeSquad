@@ -122,7 +122,17 @@ const findRemoteEvidenceSnippet = (text: string): { isRemote: boolean; quote: st
 };
 
 export default function Home() {
-  const [currentView, setCurrentView] = useState<"generator" | "radar" | "tracker">("generator");
+  const [currentView, setCurrentView] = useState<"generator" | "radar" | "autopilot" | "tracker">("generator");
+
+  // États Auto-Pilot & Discord Webhook
+  const [discordWebhook, setDiscordWebhook] = useState("");
+  const [isAutopilotRunning, setIsAutopilotRunning] = useState(false);
+  const [autopilotLogs, setAutopilotLogs] = useState<string[]>([
+    "🤖 Module Auto-Pilot ResumeSquad initialisé.",
+    "💡 Renseigne ton Webhook Discord pour recevoir les alertes de blocage (Captcha) et les candidatures en direct sur ton smartphone.",
+  ]);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  const [webhookTestMessage, setWebhookTestMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Filtres et recherche pour le Radar d'offres
   const [radarCountryFilter, setRadarCountryFilter] = useState<string>("all");
@@ -335,14 +345,103 @@ export default function Home() {
       if (savedRuns) setCumulativeRuns(parseInt(savedRuns, 10) || 0);
       const savedLastUsage = localStorage.getItem("resumesquad_last_token_usage");
       if (savedLastUsage) setLastTokenUsage(JSON.parse(savedLastUsage));
+      const savedWebhook = localStorage.getItem("resumesquad_discord_webhook");
+      if (savedWebhook) setDiscordWebhook(savedWebhook);
     } catch (e) {
-      console.warn("Erreur chargement token stats localStorage", e);
+      console.warn("Erreur chargement token/webhook localStorage", e);
     }
   }, []);
 
   const saveToLocalStorage = (data: TrackedApplication[]) => {
     setApplications(data);
     localStorage.setItem("resumesquad_applications", JSON.stringify(data));
+  };
+
+  const handleSaveDiscordWebhook = (url: string) => {
+    setDiscordWebhook(url);
+    try {
+      localStorage.setItem("resumesquad_discord_webhook", url.trim());
+    } catch (e) {
+      console.warn("Erreur sauvegarde webhook", e);
+    }
+  };
+
+  const handleTestDiscordWebhook = async () => {
+    const trimmed = discordWebhook.trim();
+    if (!trimmed.startsWith("https://discord.com/api/webhooks/")) {
+      setWebhookTestMessage({
+        type: "error",
+        text: "URL invalide. L'URL doit commencer par https://discord.com/api/webhooks/",
+      });
+      return;
+    }
+    setIsTestingWebhook(true);
+    setWebhookTestMessage(null);
+    try {
+      const res = await fetch("/api/autopilot/notify-discord", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhookUrl: trimmed, type: "test" }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setWebhookTestMessage({
+          type: "success",
+          text: "✅ Notification de test transmise ! Regarde ton canal Discord.",
+        });
+      } else {
+        setWebhookTestMessage({
+          type: "error",
+          text: `❌ Échec Discord : ${data.error || "Vérifiez l'URL du webhook"}`,
+        });
+      }
+    } catch (err: any) {
+      setWebhookTestMessage({
+        type: "error",
+        text: `❌ Erreur de connexion : ${err.message}`,
+      });
+    } finally {
+      setIsTestingWebhook(false);
+    }
+  };
+
+  const handleRunAutopilotCycle = async () => {
+    setIsAutopilotRunning(true);
+    const startMsg = `[${new Date().toLocaleTimeString("fr-FR")}] 🚀 Démarrage du cycle d'exploration et adaptation automatique...`;
+    setAutopilotLogs((prev) => [...prev, startMsg]);
+
+    try {
+      const res = await fetch("/api/autopilot/cycle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          webhookUrl: discordWebhook.trim(),
+          appliedIds: applications.map((a) => a.id),
+          offers: liveOffers.length > 0 ? liveOffers : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.logs && Array.isArray(data.logs)) {
+        setAutopilotLogs((prev) => [...prev, ...data.logs]);
+      }
+
+      if (res.ok && data.success && Array.isArray(data.processedApplications) && data.processedApplications.length > 0) {
+        const newApps = [...applications, ...data.processedApplications];
+        saveToLocalStorage(newApps);
+        setAutopilotLogs((prev) => [
+          ...prev,
+          `[${new Date().toLocaleTimeString("fr-FR")}] 📊 ${data.processedApplications.length} nouvelle(s) candidature(s) enregistrée(s) dans ton Tracker !`,
+        ]);
+      }
+    } catch (err: any) {
+      setAutopilotLogs((prev) => [
+        ...prev,
+        `[${new Date().toLocaleTimeString("fr-FR")}] ❌ Erreur exécution cycle : ${err.message}`,
+      ]);
+    } finally {
+      setIsAutopilotRunning(false);
+    }
   };
 
   // V2 : Extraction automatique depuis une URL (via Route Next.js Vercel & fallback)
@@ -1525,6 +1624,20 @@ ${formattedParagraphs}
             <span>🔍 Radar d&apos;Offres PFE</span>
             <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
               {allRadarOffers.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setCurrentView("autopilot")}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+              currentView === "autopilot"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-[#a1a1aa] hover:text-white hover:bg-[#27272a]"
+            }`}
+          >
+            <span>🤖 Auto-Pilot (Bot)</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+              Live
             </span>
           </button>
           <button
@@ -2864,6 +2977,275 @@ ${formattedParagraphs}
                   );
                 })
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VUE 4 : AUTONOMOUS AGENT AUTO-PILOT & DISCORD ESCALATION                   */}
+      {/* ========================================================================= */}
+      {currentView === "autopilot" && (
+        <div className="space-y-6">
+          {/* Header Auto-Pilot */}
+          <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🤖</span>
+                  <h2 className="text-xl font-bold text-white">Mode Auto-Pilot & Escalade Discord</h2>
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+                    Autonome & Supervisé
+                  </span>
+                </div>
+                <p className="text-xs text-[#a1a1aa] leading-relaxed max-w-3xl">
+                  L&apos;agent autonome surveille en continu les offres d&apos;emploi internationales, applique les contraintes strictes de ta convention EILCO (Suisse, Luxembourg, Belgique, Allemagne • Hybride/Sur site), génère tes CVs au format STAR avec métriques chiffrées, et t&apos;envoie une notification instantanée sur Discord lorsqu&apos;une candidature est prête ou nécessite un arbitrage humain (Captchas, formulaires externes).
+                </p>
+              </div>
+
+              {/* Bouton d'action principal */}
+              <button
+                onClick={() => handleRunAutopilotCycle()}
+                disabled={isAutopilotRunning}
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 shadow-lg flex-shrink-0"
+              >
+                <span>{isAutopilotRunning ? "⏳" : "🚀"}</span>
+                <span>{isAutopilotRunning ? "Cycle Auto-Pilot en cours..." : "Lancer un Cycle Auto-Pilot"}</span>
+              </button>
+            </div>
+
+            {/* Badges des filtres et règles pré-programmées */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-[#27272a]">
+              <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Mobilité Internationale</div>
+                <div className="text-xs text-white font-semibold mt-1">🇨🇭 🇱🇺 🇧🇪 🇩🇪 (Hors France)</div>
+                <div className="text-[10px] text-emerald-400 mt-0.5">Validation EILCO 100%</div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Mode de Travail</div>
+                <div className="text-xs text-white font-semibold mt-1">Présentiel & Hybride</div>
+                <div className="text-[10px] text-amber-400 mt-0.5">100% Full Remote exclu</div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Moteur d&apos;Inférence</div>
+                <div className="text-xs text-white font-semibold mt-1">Gemini 2.5 Flash</div>
+                <div className="text-[10px] text-emerald-400 mt-0.5">0.00 € (Tier Gratuit)</div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Escalade Human-in-the-Loop</div>
+                <div className="text-xs text-white font-semibold mt-1">Discord Push Webhook</div>
+                <div className={`text-[10px] mt-0.5 ${discordWebhook ? "text-emerald-400 font-semibold" : "text-amber-400"}`}>
+                  {discordWebhook ? "🟢 Connecté" : "⚠️ Non configuré"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Colonne Gauche : Configuration Discord & Contrôles */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* Carte Configuration Discord Webhook */}
+              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <span>📲</span> Webhook Discord (Notifications Smartphone)
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20">
+                    Push Instantané
+                  </span>
+                </div>
+
+                <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                  Colle l&apos;URL d&apos;un Webhook de ton serveur Discord. Le bot t&apos;enverra une alerte en temps réel dès qu&apos;une offre est traitée ou si un formulaire bloque (Captcha).
+                </p>
+
+                <div className="space-y-2">
+                  <label className="text-[11px] text-[#71717a] block font-medium">
+                    URL du Webhook Discord :
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://discord.com/api/webhooks/..."
+                    value={discordWebhook}
+                    onChange={(e) => handleSaveDiscordWebhook(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-lg bg-[#09090b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500 font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <button
+                    onClick={() => handleTestDiscordWebhook()}
+                    disabled={isTestingWebhook || !discordWebhook}
+                    className="px-3 py-2 bg-[#27272a] hover:bg-[#3f3f46] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
+                  >
+                    <span>{isTestingWebhook ? "⏳" : "🔔"}</span>
+                    <span>{isTestingWebhook ? "Test en cours..." : "Tester le Webhook Discord"}</span>
+                  </button>
+
+                  <a
+                    href="https://support.discord.com/hc/fr/articles/228383668-Utiliser-les-Webhooks"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Comment créer un Webhook ? ↗
+                  </a>
+                </div>
+
+                {/* Message du test webhook */}
+                {webhookTestMessage && (
+                  <div
+                    className={`p-3 rounded-xl text-xs flex items-center justify-between border ${
+                      webhookTestMessage.type === "success"
+                        ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"
+                        : "bg-red-950/40 border-red-500/30 text-red-300"
+                    }`}
+                  >
+                    <span>{webhookTestMessage.text}</span>
+                    <button
+                      onClick={() => setWebhookTestMessage(null)}
+                      className="text-[#a1a1aa] hover:text-white text-xs px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Guide de fonctionnement du Démon Python */}
+              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <span>🐍</span> Lancer le Démon Python en Arrière-Plan
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono">
+                    CLI / Daemon
+                  </span>
+                </div>
+                <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                  Tu peux également faire tourner le bot de manière autonome 24h/24 dans ton terminal local :
+                </p>
+                <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-emerald-400 space-y-1">
+                  <div># Exécuter un cycle unique :</div>
+                  <div className="text-white select-all">python backend/auto_scout_and_apply.py --once</div>
+                  <div className="text-[#71717a] pt-1"># Tourner en continu toutes les 2 heures :</div>
+                  <div className="text-white select-all">python backend/auto_scout_and_apply.py --daemon --interval 120</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Colonne Droite : Console de Logs Live (Terminal Hacker) */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-[#a1a1aa] ml-2">autopilot-agent.log</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-[#71717a]">
+                      {autopilotLogs.length} ligne{autopilotLogs.length > 1 ? "s" : ""}
+                    </span>
+                    <button
+                      onClick={() => setAutopilotLogs([`[${new Date().toLocaleTimeString("fr-FR")}] Console réinitialisée.`])}
+                      className="text-[10px] px-2 py-0.5 rounded bg-[#27272a] text-[#a1a1aa] hover:text-white transition"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Fenêtre terminal */}
+                <div className="bg-[#09090b] border border-[#27272a] rounded-xl p-4 font-mono text-xs text-[#f4f4f5] h-[340px] overflow-y-auto space-y-1.5 shadow-inner scrollbar-thin scrollbar-thumb-zinc-700">
+                  {autopilotLogs.map((logLine, idx) => (
+                    <div
+                      key={idx}
+                      className={`leading-relaxed whitespace-pre-wrap ${
+                        logLine.includes("❌")
+                          ? "text-red-400"
+                          : logLine.includes("⚠️")
+                          ? "text-amber-300"
+                          : logLine.includes("🚀") || logLine.includes("🎉")
+                          ? "text-emerald-400 font-bold"
+                          : logLine.includes("🧠") || logLine.includes("🎯")
+                          ? "text-blue-300"
+                          : "text-[#d4d4d8]"
+                      }`}
+                    >
+                      {logLine}
+                    </div>
+                  ))}
+                  {isAutopilotRunning && (
+                    <div className="flex items-center gap-2 text-blue-400 animate-pulse pt-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                      <span>Traitement en cours...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Candidatures générées récemment */}
+              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <span>📋</span> Dernières Candidatures Prêtes / Traitées
+                  </h3>
+                  <button
+                    onClick={() => setCurrentView("tracker")}
+                    className="text-xs text-blue-400 hover:text-blue-300 underline font-medium"
+                  >
+                    Voir dans le CRM Tracker ({applications.length}) ↗
+                  </button>
+                </div>
+
+                {applications.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-[#71717a]">
+                    Aucune candidature enregistrée pour le moment. Lance un cycle Auto-Pilot ci-dessus !
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                    {applications.slice(-4).reverse().map((app) => (
+                      <div
+                        key={app.id}
+                        className="p-3 rounded-xl bg-[#09090b] border border-[#27272a] flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white truncate">{app.company}</span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">
+                              ATS: {app.atsScore}/100
+                            </span>
+                          </div>
+                          <div className="text-[#a1a1aa] text-[11px] truncate mt-0.5">{app.title}</div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {getStatusBadge(app.status)}
+                          <button
+                            onClick={() => {
+                              setCompany(app.company);
+                              setJobTitle(app.title);
+                              setCurrentView("generator");
+                            }}
+                            className="px-2 py-1 rounded bg-[#27272a] hover:bg-[#3f3f46] text-[11px] text-[#f4f4f5] transition"
+                            title="Ouvrir dans le générateur pour voir le CV et la lettre"
+                          >
+                            Ouvrir ↗
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
