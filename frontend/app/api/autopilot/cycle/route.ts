@@ -6,6 +6,7 @@ import {
 } from "@/app/data/radarOffers";
 import { runGeminiPipeline } from "@/app/api/run-pipeline/pipelineService";
 import { fetchLiveRadarOffers } from "@/app/api/radar/live-fetch/route";
+import { getUserPreferences } from "@/app/data/userPreferences";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -64,19 +65,25 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Filtrage linguistique strict (0 Token) & Éligibilité EILCO
+    // 3. Intégration de l'Apprentissage Actif (Préférences utilisateur Discord/App) & Filtrage EILCO
+    const userPreferences = await getUserPreferences();
+    log(`🧠 Apprentissage actif chargé : ${userPreferences.likedCompanies.length} entreprise(s) favorite(s), ${userPreferences.dislikedCompanies.length} écartée(s).`);
+
     let langRejections = 0;
     let eilcoRejections = 0;
+    let feedbackRejections = 0;
 
     const evaluatedOffers = unappliedOffers.map((offer) => {
-      const priority = calculateOfferPriority(offer);
+      const priority = calculateOfferPriority(offer, userPreferences);
       return { offer, priority };
     });
 
     const eligibleOffers = evaluatedOffers.filter(({ priority }) => {
       if (!priority.isEligible) {
         const reason = priority.rejectionReason || "";
-        if (
+        if (reason.includes("feedback") || reason.includes("écartée")) {
+          feedbackRejections++;
+        } else if (
           reason.includes("allemand") ||
           reason.includes("néerlandais") ||
           reason.includes("langue")
@@ -90,6 +97,9 @@ export async function POST(request: Request) {
       return true;
     });
 
+    if (feedbackRejections > 0) {
+      log(`🗳️ Apprentissage actif : ${feedbackRejections} offre(s) écartée(s) selon vos votes Discord passés.`);
+    }
     if (langRejections > 0) {
       log(`🌐 Filtrage linguistique : ${langRejections} offre(s) écartée(s) (allemand/néerlandais non parlés). Badroudine postule en FR 🇫🇷 ou EN 🇬🇧.`);
     }
@@ -177,9 +187,17 @@ export async function POST(request: Request) {
 
         processedApplications.push(newApp);
 
-        // 6. Escalade Discord Webhook
+        // 6. Escalade Discord Webhook avec Feedback Actif (Link Buttons & Liens direct)
         if (webhookUrl && webhookUrl.startsWith("https://discord.com/api/webhooks/")) {
           try {
+            const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+            const proto = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+            const origin = request.headers.get("origin") || "";
+            const baseUrl = origin || (host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"));
+
+            const likeFeedbackUrl = `${baseUrl}/api/autopilot/feedback?offerId=${encodeURIComponent(offer.id)}&vote=like&company=${encodeURIComponent(offer.company)}&title=${encodeURIComponent(offer.title)}`;
+            const dislikeFeedbackUrl = `${baseUrl}/api/autopilot/feedback?offerId=${encodeURIComponent(offer.id)}&vote=dislike&company=${encodeURIComponent(offer.company)}&title=${encodeURIComponent(offer.title)}`;
+
             await fetch(webhookUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -202,15 +220,45 @@ export async function POST(request: Request) {
                       { name: "🌍 Localisation", value: `${offer.location} (${offer.country})`, inline: true },
                       { name: "🌐 Langue", value: priority.detectedLang === "en" ? "Anglais 🇬🇧" : "Français 🇫🇷", inline: true },
                       { name: "⚡ Fraîcheur & Candidats", value: priority.priorityBadges.join(" • "), inline: false },
-                      { name: "🔗 Lien de l'offre", value: `[Ouvrir l'offre](${offer.url})`, inline: false },
+                      { name: "🔗 Offre officielle", value: `[Consulter sur le portail recruteur](${offer.url})`, inline: false },
+                      {
+                        name: "🗳️ Affiner le bot (Apprentissage en 1 clic)",
+                        value: `[👍 J'aime cette opportunité](${likeFeedbackUrl})  •  [👎 Pas pour moi](${dislikeFeedbackUrl})`,
+                        inline: false,
+                      },
                     ],
-                    footer: { text: "ResumeSquad • Autonomous Multi-Agent Loop" },
+                    footer: { text: "ResumeSquad • Autonomous Multi-Agent Loop (Active Learning)" },
                     timestamp: new Date().toISOString(),
+                  },
+                ],
+                components: [
+                  {
+                    type: 1, // Action Row
+                    components: [
+                      {
+                        type: 2, // Button
+                        style: 5, // Link
+                        label: "👍 J'aime cette offre",
+                        url: likeFeedbackUrl,
+                      },
+                      {
+                        type: 2, // Button
+                        style: 5, // Link
+                        label: "👎 Pas pour moi",
+                        url: dislikeFeedbackUrl,
+                      },
+                      {
+                        type: 2, // Button
+                        style: 5, // Link
+                        label: "🔗 Ouvrir l'offre",
+                        url: offer.url,
+                      },
+                    ],
                   },
                 ],
               }),
             });
-            log(`📲 Ping Discord envoyé avec succès pour ${offer.company} !`);
+            log(`📲 Ping Discord avec boutons de vote envoyé pour ${offer.company} !`);
           } catch (hookErr) {
             log(`⚠️ Erreur d'envoi du webhook Discord: ${hookErr}`);
           }

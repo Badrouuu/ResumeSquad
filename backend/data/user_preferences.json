@@ -1,0 +1,40 @@
+{
+  "likedOfferIds": [],
+  "dislikedOfferIds": [],
+  "likedCompanies": [
+    "Distalmotion",
+    "Sony AI",
+    "EPFL",
+    "CERN",
+    "Nvidia"
+  ],
+  "dislikedCompanies": [],
+  "likedKeywords": [
+    "computer vision",
+    "machine vision",
+    "deep learning",
+    "vision par ordinateur",
+    "pytorch",
+    "yolo",
+    "opencv",
+    "robotics",
+    "edge ai",
+    "mlops",
+    "rag",
+    "transformers"
+  ],
+  "dislikedKeywords": [
+    "wordpress",
+    "php",
+    "salesforce",
+    "drupal",
+    "prestashop",
+    "angularjs",
+    "cobol"
+  ],
+  "feedbackHistory": [],
+  "stats": {
+    "totalLikes": 0,
+    "totalDislikes": 0
+  }
+}

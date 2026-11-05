@@ -227,14 +227,49 @@ export interface OfferPriorityResult {
   priorityBadges: string[];
 }
 
+import { UserJobPreferences } from "./userPreferences";
+
 /**
  * Calcule le score de priorité d'une offre pour l'Auto-Pilot :
- * Favorise massivement les offres ultra-fraîches (< 24h) et avec très peu de candidats (< 10-25).
- * Élimine d'office les offres non rédigées en Français ou en Anglais.
+ * - Intègre les préférences apprises (RLHF / Active Learning) via votes Discord / App.
+ * - Favorise massivement les offres ultra-fraîches (< 24h) et avec très peu de candidats (< 10-25).
+ * - Élimine d'office les offres non rédigées en Français ou en Anglais.
  */
-export function calculateOfferPriority(offer: RadarJobOffer): OfferPriorityResult {
+export function calculateOfferPriority(
+  offer: RadarJobOffer,
+  preferences?: UserJobPreferences
+): OfferPriorityResult {
   const title = offer.title || "";
   const desc = offer.description || "";
+  const companyLower = (offer.company || "").toLowerCase().trim();
+
+  // Rejet direct si l'utilisateur a expressément écarté cette entreprise via Discord ou l'App
+  if (preferences?.dislikedCompanies?.some((c) => c.toLowerCase().trim() === companyLower)) {
+    return {
+      score: -9999,
+      isEligible: false,
+      rejectionReason: `Entreprise "${offer.company}" écartée suite à votre feedback (Discord / App).`,
+      detectedLang: "fr",
+      applicantsCount: 50,
+      isEarly: false,
+      isUltraFresh: false,
+      priorityBadges: ["🚫 Écartée (Feedback)"],
+    };
+  }
+
+  // Rejet direct si cette offre spécifique a déjà été dislikée
+  if (preferences?.dislikedOfferIds?.includes(offer.id)) {
+    return {
+      score: -9999,
+      isEligible: false,
+      rejectionReason: `Offre "${offer.title}" écartée suite à votre vote négatif.`,
+      detectedLang: "fr",
+      applicantsCount: 50,
+      isEarly: false,
+      isUltraFresh: false,
+      priorityBadges: ["🚫 Écartée (Feedback)"],
+    };
+  }
   const combined = `${title} ${desc}`;
 
   // 1. Détection de langue
@@ -399,6 +434,44 @@ export function calculateOfferPriority(offer: RadarJobOffer): OfferPriorityResul
   // Si offre purement web sans IA, reléguer derrière les vraies opportunités IA
   if (isPureWebFullStack) {
     score -= 60;
+  }
+
+  // F. Ajustement par Apprentissage Actif & Préférences Utilisateur
+  if (preferences) {
+    // 1. Bonus entreprise préférée ou offre likée
+    const isLikedCompany = preferences.likedCompanies.some(
+      (c) => c.toLowerCase().trim() === companyLower
+    );
+    const isLikedOffer = preferences.likedOfferIds.includes(offer.id);
+
+    if (isLikedCompany || isLikedOffer) {
+      score += 120;
+      priorityBadges.push("⭐️ Favori Appris");
+    }
+
+    // 2. Bonus mots-clés plébiscités (ex: vision, robotics, pytorch)
+    let keywordBonus = 0;
+    const combinedLower = combined.toLowerCase();
+    for (const kw of preferences.likedKeywords) {
+      if (kw && combinedLower.includes(kw.toLowerCase())) {
+        keywordBonus += 25;
+      }
+    }
+    if (keywordBonus > 0) {
+      score += Math.min(keywordBonus, 75);
+      priorityBadges.push("👍 Aligné Profil");
+    }
+
+    // 3. Pénalité mots-clés rejetés
+    let keywordPenalty = 0;
+    for (const kw of preferences.dislikedKeywords) {
+      if (kw && combinedLower.includes(kw.toLowerCase())) {
+        keywordPenalty += 45;
+      }
+    }
+    if (keywordPenalty > 0) {
+      score -= Math.min(keywordPenalty, 120);
+    }
   }
 
   // Badge langue certifié

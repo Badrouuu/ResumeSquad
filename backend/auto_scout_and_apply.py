@@ -36,6 +36,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 HISTORY_FILE = DATA_DIR / "applications_history.json"
+PREFERENCES_FILE = DATA_DIR / "user_preferences.json"
 
 # Chargement du .env
 ENV_FILE = BASE_DIR / ".env"
@@ -49,10 +50,29 @@ if ENV_FILE.exists():
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+SITE_URL = os.getenv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000")
 
 
-def send_discord_ping(webhook_url: str, title: str, description: str, color: int, fields: list):
-    """Envoie une notification riche sur Discord via Webhook."""
+def load_user_preferences() -> dict:
+    """Charge les préférences apprises (RLHF / Active Learning) depuis user_preferences.json."""
+    if PREFERENCES_FILE.exists():
+        try:
+            with open(PREFERENCES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "likedOfferIds": [],
+        "dislikedOfferIds": [],
+        "likedCompanies": ["Distalmotion", "Sony AI", "EPFL", "CERN", "Nvidia"],
+        "dislikedCompanies": [],
+        "likedKeywords": ["computer vision", "machine vision", "deep learning", "pytorch"],
+        "dislikedKeywords": ["wordpress", "php", "salesforce"],
+    }
+
+
+def send_discord_ping(webhook_url: str, title: str, description: str, color: int, fields: list, components: list = None):
+    """Envoie une notification riche sur Discord via Webhook avec Link Buttons."""
     if not webhook_url or not webhook_url.startswith("https://discord.com/api/webhooks/"):
         return False
     payload = {
@@ -64,11 +84,14 @@ def send_discord_ping(webhook_url: str, title: str, description: str, color: int
                 "description": description,
                 "color": color,
                 "fields": fields,
-                "footer": {"text": "ResumeSquad • Python Autonomous Worker"},
+                "footer": {"text": "ResumeSquad • Python Autonomous Worker (Active Learning)"},
                 "timestamp": datetime.utcnow().isoformat() + "Z",
             }
         ],
     }
+    if components:
+        payload["components"] = components
+
     try:
         req = urllib.request.Request(
             webhook_url,
@@ -258,6 +281,13 @@ def run_cycle(webhook_url: str):
         },
     ]
 
+    # Chargement des préférences d'apprentissage actif
+    prefs = load_user_preferences()
+    disliked_comps = [c.lower().strip() for c in prefs.get("dislikedCompanies", [])]
+    liked_comps = [c.lower().strip() for c in prefs.get("likedCompanies", [])]
+    disliked_ids = set(prefs.get("dislikedOfferIds", []))
+    print(f"🧠 Apprentissage actif : {len(liked_comps)} entreprise(s) favorite(s), {len(disliked_comps)} écartée(s).")
+
     for offer in SAMPLE_TARGETS:
         offer_id = offer["id"]
         company = offer["company"]
@@ -266,6 +296,11 @@ def run_cycle(webhook_url: str):
 
         if offer_id in applied_ids:
             print(f"⏩ Déjà traité : {company} ({title})")
+            continue
+
+        # 0. Filtre d'apprentissage actif (Votes négatifs passés)
+        if offer_id in disliked_ids or company.lower().strip() in disliked_comps:
+            print(f"🚫 Rejet par feedback : {company} a été écarté par vos votes passés.")
             continue
 
         # 1. Filtre linguistique strict (Badroudine : Français natif, Anglais C1)
@@ -307,8 +342,12 @@ def run_cycle(webhook_url: str):
             save_history(history)
             applied_ids.add(offer_id)
 
-            # Envoi Discord
+            # Envoi Discord avec Link Buttons et URLs de feedback
             if webhook_url:
+                import urllib.parse
+                like_url = f"{SITE_URL}/api/autopilot/feedback?offerId={urllib.parse.quote(offer_id)}&vote=like&company={urllib.parse.quote(company)}&title={urllib.parse.quote(title)}"
+                dislike_url = f"{SITE_URL}/api/autopilot/feedback?offerId={urllib.parse.quote(offer_id)}&vote=dislike&company={urllib.parse.quote(company)}&title={urllib.parse.quote(title)}"
+
                 title_msg = f"⚠️ [Auto-Pilot Action Requise] {company}" if is_blocked else f"🚀 [Auto-Pilot Candidature Prête] {company}"
                 desc_msg = "Formulaire externe sécurisé : validation en 1 clic requise." if is_blocked else "Candidature adaptée et préparée avec succès."
                 color = 0xf59e0b if is_blocked else 0x10b981
@@ -318,9 +357,24 @@ def run_cycle(webhook_url: str):
                     {"name": "🎯 Score ATS", "value": f"{score}/100", "inline": True},
                     {"name": "🌍 Lieu", "value": f"{offer['location']} ({offer['country']})", "inline": True},
                     {"name": "🔗 Lien de l'offre", "value": f"[Ouvrir le formulaire]({offer['url']})", "inline": False},
+                    {
+                        "name": "🗳️ Affiner le bot (Feedback en 1 clic)",
+                        "value": f"[👍 J'aime cette opportunité]({like_url})  •  [👎 Pas pour moi]({dislike_url})",
+                        "inline": False,
+                    },
                 ]
-                send_discord_ping(webhook_url, title_msg, desc_msg, color, fields)
-                print("   📲 Notification Discord transmise !")
+                components = [
+                    {
+                        "type": 1,
+                        "components": [
+                            {"type": 2, "style": 5, "label": "👍 J'aime cette offre", "url": like_url},
+                            {"type": 2, "style": 5, "label": "👎 Pas pour moi", "url": dislike_url},
+                            {"type": 2, "style": 5, "label": "🔗 Voir l'annonce", "url": offer["url"]},
+                        ],
+                    }
+                ]
+                send_discord_ping(webhook_url, title_msg, desc_msg, color, fields, components=components)
+                print("   📲 Notification Discord avec boutons de vote transmise !")
 
         except Exception as e:
             print(f"   ❌ Erreur de génération : {e}")

@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { RADAR_JOB_OFFERS, DEEP_SEARCH_PORTALS, RadarJobOffer, getOfferTimestamp } from "./data/radarOffers";
+import {
+  RADAR_JOB_OFFERS,
+  DEEP_SEARCH_PORTALS,
+  RadarJobOffer,
+  getOfferTimestamp,
+  calculateOfferPriority,
+} from "./data/radarOffers";
+import { UserJobPreferences } from "./data/userPreferences";
 
 export type ApplicationStatus = "en_attente" | "entretien" | "offre" | "refus";
 
@@ -134,6 +141,10 @@ export default function Home() {
   ]);
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [webhookTestMessage, setWebhookTestMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Préférences utilisateur apprises (RLHF / Active Learning via Discord & Radar)
+  const [userPreferences, setUserPreferences] = useState<UserJobPreferences | null>(null);
+  const [preferenceFeedbackToast, setPreferenceFeedbackToast] = useState<string | null>(null);
 
   // Filtres et recherche pour le Radar d'offres
   const [radarCountryFilter, setRadarCountryFilter] = useState<string>("all");
@@ -351,7 +362,128 @@ export default function Home() {
     } catch (e) {
       console.warn("Erreur chargement token/webhook localStorage", e);
     }
+
+    // Chargement des préférences d'apprentissage actif
+    fetchUserPreferences();
   }, []);
+
+  const fetchUserPreferences = async () => {
+    try {
+      const res = await fetch("/api/autopilot/preferences");
+      const data = await res.json();
+      if (res.ok && data.success && data.preferences) {
+        setUserPreferences(data.preferences);
+      }
+    } catch (e) {
+      console.warn("Erreur chargement préférences", e);
+    }
+  };
+
+  const handleVoteOffer = async (offer: RadarJobOffer, vote: "like" | "dislike") => {
+    // Notification toast temporaire
+    setPreferenceFeedbackToast(
+      vote === "like"
+        ? `👍 Vote enregistré : ${offer.company} est désormais dans vos favoris (+120 pts).`
+        : `👎 Vote enregistré : ${offer.company} sera écartée de vos prochaines recommandations (-350 pts).`
+    );
+    setTimeout(() => setPreferenceFeedbackToast(null), 4000);
+
+    // Mise à jour optimiste locale
+    if (userPreferences) {
+      const likedOfferIds = new Set(userPreferences.likedOfferIds);
+      const dislikedOfferIds = new Set(userPreferences.dislikedOfferIds);
+      const likedCompanies = new Set(userPreferences.likedCompanies);
+      const dislikedCompanies = new Set(userPreferences.dislikedCompanies);
+
+      if (vote === "like") {
+        likedOfferIds.add(offer.id);
+        dislikedOfferIds.delete(offer.id);
+        likedCompanies.add(offer.company);
+        for (const comp of Array.from(dislikedCompanies)) {
+          if (comp.toLowerCase() === offer.company.toLowerCase()) dislikedCompanies.delete(comp);
+        }
+      } else {
+        dislikedOfferIds.add(offer.id);
+        likedOfferIds.delete(offer.id);
+        dislikedCompanies.add(offer.company);
+        for (const comp of Array.from(likedCompanies)) {
+          if (comp.toLowerCase() === offer.company.toLowerCase()) likedCompanies.delete(comp);
+        }
+      }
+
+      setUserPreferences({
+        ...userPreferences,
+        likedOfferIds: Array.from(likedOfferIds),
+        dislikedOfferIds: Array.from(dislikedOfferIds),
+        likedCompanies: Array.from(likedCompanies),
+        dislikedCompanies: Array.from(dislikedCompanies),
+        stats: {
+          totalLikes: likedOfferIds.size,
+          totalDislikes: dislikedOfferIds.size,
+        },
+      });
+    }
+
+    try {
+      const res = await fetch("/api/autopilot/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          offerId: offer.id,
+          vote,
+          company: offer.company,
+          title: offer.title,
+          keywords: offer.skills,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.preferences) {
+        setUserPreferences(data.preferences);
+      }
+    } catch (e) {
+      console.warn("Erreur transmission feedback", e);
+    }
+  };
+
+  const handleRemovePreferenceCompany = async (companyName: string, type: "liked" | "disliked") => {
+    if (!userPreferences) return;
+    const updated = {
+      ...userPreferences,
+      likedCompanies:
+        type === "liked"
+          ? userPreferences.likedCompanies.filter((c) => c !== companyName)
+          : userPreferences.likedCompanies,
+      dislikedCompanies:
+        type === "disliked"
+          ? userPreferences.dislikedCompanies.filter((c) => c !== companyName)
+          : userPreferences.dislikedCompanies,
+    };
+    setUserPreferences(updated);
+    try {
+      await fetch("/api/autopilot/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+    } catch (e) {
+      console.warn("Erreur mise à jour préférences", e);
+    }
+  };
+
+  const handleResetPreferences = async () => {
+    if (!confirm("Voulez-vous réinitialiser l'apprentissage actif (favoris et exclusions) ?")) return;
+    try {
+      const res = await fetch("/api/autopilot/preferences", { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok && data.preferences) {
+        setUserPreferences(data.preferences);
+        setPreferenceFeedbackToast("🔄 Préférences et apprentissage réinitialisés aux valeurs d'origine.");
+        setTimeout(() => setPreferenceFeedbackToast(null), 3500);
+      }
+    } catch (e) {
+      console.warn("Erreur reset préférences", e);
+    }
+  };
 
   const saveToLocalStorage = (data: TrackedApplication[]) => {
     setApplications(data);
@@ -425,6 +557,7 @@ export default function Home() {
       });
 
       const data = await res.json();
+      fetchUserPreferences();
       if (data.logs && Array.isArray(data.logs)) {
         setAutopilotLogs((prev) => [...prev, ...data.logs]);
       }
@@ -1475,11 +1608,44 @@ ${formattedParagraphs}
       const isTrackedB = !!findTrackedAppForOffer(b, applications);
 
       // Règle 1 : Les offres déjà postulées / suivies vont EN BAS de la liste
-      // Les offres non postulées restent EN HAUT
       if (!isTrackedA && isTrackedB) return -1;
       if (isTrackedA && !isTrackedB) return 1;
 
-      // Règle 2 : À l'intérieur de chaque groupe, tri strict par date/heure de publication
+      // Règle 2 : Apprentissage Actif (Offres écartées en bas, favoris en haut)
+      const isDislikedA =
+        userPreferences?.dislikedOfferIds?.includes(a.id) ||
+        userPreferences?.dislikedCompanies?.some(
+          (c) => c.toLowerCase().trim() === a.company.toLowerCase().trim()
+        );
+      const isDislikedB =
+        userPreferences?.dislikedOfferIds?.includes(b.id) ||
+        userPreferences?.dislikedCompanies?.some(
+          (c) => c.toLowerCase().trim() === b.company.toLowerCase().trim()
+        );
+
+      if (!isDislikedA && isDislikedB) return -1;
+      if (isDislikedA && !isDislikedB) return 1;
+
+      const isLikedA =
+        userPreferences?.likedOfferIds?.includes(a.id) ||
+        userPreferences?.likedCompanies?.some(
+          (c) => c.toLowerCase().trim() === a.company.toLowerCase().trim()
+        );
+      const isLikedB =
+        userPreferences?.likedOfferIds?.includes(b.id) ||
+        userPreferences?.likedCompanies?.some(
+          (c) => c.toLowerCase().trim() === b.company.toLowerCase().trim()
+        );
+
+      if (isLikedA && !isLikedB) return -1;
+      if (!isLikedA && isLikedB) return 1;
+
+      // Règle 3 : Priorité stratégique calculée (IA/Vision, Fraîcheur, Mots-clés)
+      const priorityA = calculateOfferPriority(a, userPreferences || undefined).score;
+      const priorityB = calculateOfferPriority(b, userPreferences || undefined).score;
+      if (priorityB !== priorityA) return priorityB - priorityA;
+
+      // Règle 4 : Date/heure de publication
       const timeA = getOfferTimestamp(a);
       const timeB = getOfferTimestamp(b);
       return timeB - timeA;
@@ -1584,6 +1750,22 @@ ${formattedParagraphs}
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+      {/* Toast de confirmation de vote / apprentissage actif */}
+      {preferenceFeedbackToast && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md p-4 rounded-2xl bg-[#18181b]/95 backdrop-blur-md border border-emerald-500/50 shadow-2xl text-white text-xs flex items-center justify-between gap-3 animate-bounce">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🧠</span>
+            <span className="font-medium">{preferenceFeedbackToast}</span>
+          </div>
+          <button
+            onClick={() => setPreferenceFeedbackToast(null)}
+            className="text-[#a1a1aa] hover:text-white text-xs px-1 font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="no-print space-y-6">
         {/* Header avec Navigation Principale */}
       <header className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-[#27272a] gap-4">
@@ -2811,12 +2993,27 @@ ${formattedParagraphs}
               ) : (
                 filteredRadarOffers.map((offer) => {
                   const trackedApp = findTrackedAppForOffer(offer, applications);
+                  const isLiked =
+                    userPreferences?.likedOfferIds?.includes(offer.id) ||
+                    userPreferences?.likedCompanies?.some(
+                      (c) => c.toLowerCase().trim() === offer.company.toLowerCase().trim()
+                    );
+                  const isDisliked =
+                    userPreferences?.dislikedOfferIds?.includes(offer.id) ||
+                    userPreferences?.dislikedCompanies?.some(
+                      (c) => c.toLowerCase().trim() === offer.company.toLowerCase().trim()
+                    );
+
                   return (
                     <div
                       key={offer.id}
                       className={`rounded-2xl p-5 flex flex-col justify-between transition space-y-4 ${
                         trackedApp
                           ? "bg-[#141b16]/90 border-2 border-emerald-500/40 shadow-sm"
+                          : isLiked
+                          ? "bg-[#18181b] border-2 border-amber-500/50 shadow-md shadow-amber-500/10"
+                          : isDisliked
+                          ? "bg-[#18181b]/50 border border-red-500/30 opacity-60"
                           : "bg-[#18181b] border border-[#27272a] hover:border-blue-500/40 hover:bg-[#1a1a1e]"
                       }`}
                     >
@@ -2855,6 +3052,18 @@ ${formattedParagraphs}
                                 <span>{offer.countryFlag}</span>
                                 <span>{offer.location}</span>
                               </span>
+                              {isLiked && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                                  <span>⭐️</span>
+                                  <span>Favori</span>
+                                </span>
+                              )}
+                              {isDisliked && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-500/20 text-red-400 border border-red-500/40 flex items-center gap-1">
+                                  <span>🚫</span>
+                                  <span>Écarté</span>
+                                </span>
+                              )}
                             </div>
                             <h4 className="text-sm font-semibold text-blue-400 mt-1">{offer.title}</h4>
                             <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -2943,9 +3152,38 @@ ${formattedParagraphs}
 
                       {/* Boutons d'action */}
                       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#27272a]">
+                        {/* Vote interactif d'apprentissage actif */}
+                        <div className="flex items-center gap-1 bg-[#09090b] border border-[#27272a] rounded-xl p-1 flex-shrink-0">
+                          <button
+                            onClick={() => handleVoteOffer(offer, "like")}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                              isLiked
+                                ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                                : "text-[#a1a1aa] hover:text-white hover:bg-[#27272a]"
+                            }`}
+                            title="J'aime cette opportunité (priorise l'entreprise et affine les suggestions)"
+                          >
+                            <span>👍</span>
+                            <span className="text-[10px] hidden sm:inline">{isLiked ? "Aimé" : "J'aime"}</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleVoteOffer(offer, "dislike")}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                              isDisliked
+                                ? "bg-red-500/25 text-red-300 border border-red-500/40 shadow-sm"
+                                : "text-[#a1a1aa] hover:text-white hover:bg-[#27272a]"
+                            }`}
+                            title="Pas pour moi (écarte l'entreprise des prochains cycles Auto-Pilot)"
+                          >
+                            <span>👎</span>
+                            <span className="text-[10px] hidden sm:inline">{isDisliked ? "Écarté" : "Écarter"}</span>
+                          </button>
+                        </div>
+
                         <button
                           onClick={() => handleImportRadarOffer(offer)}
-                          className="flex-1 min-w-[150px] py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-1.5"
+                          className="flex-1 min-w-[120px] py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center gap-1.5"
                         >
                           <span>⚡ Importer & Adapter</span>
                         </button>
@@ -3169,6 +3407,98 @@ ${formattedParagraphs}
                     </button>
                   </div>
                 )}
+              </div>
+
+              {/* Carte Système d'Apprentissage Actif & Préférences Recruteurs */}
+              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <span>🧠</span> Apprentissage Actif & Préférences
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-semibold border border-emerald-500/20">
+                    RLHF en Temps Réel
+                  </span>
+                </div>
+
+                <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                  Chaque vote <strong className="text-emerald-400">👍 J&apos;aime</strong> ou <strong className="text-red-400">👎 Pas pour moi</strong> (reçu depuis Discord ou cliqué sur le Radar) réajuste immédiatement les poids de recommandation du bot.
+                </p>
+
+                {/* Compteurs de préférences */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="p-2.5 rounded-xl bg-[#09090b] border border-[#27272a]">
+                    <div className="text-[10px] text-[#71717a] font-semibold">Favorites (+120 pts)</div>
+                    <div className="text-xs font-bold text-emerald-400 mt-0.5">
+                      ⭐ {userPreferences?.likedCompanies.length || 0} entreprises
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-[#09090b] border border-[#27272a]">
+                    <div className="text-[10px] text-[#71717a] font-semibold">Écartées (-350 pts)</div>
+                    <div className="text-xs font-bold text-red-400 mt-0.5">
+                      🚫 {userPreferences?.dislikedCompanies.length || 0} entreprises
+                    </div>
+                  </div>
+                </div>
+
+                {/* Liste des entreprises aimées */}
+                {userPreferences && userPreferences.likedCompanies.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] text-[#a1a1aa] font-semibold block">Entreprises plébiscitées :</span>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                      {userPreferences.likedCompanies.map((comp) => (
+                        <span
+                          key={comp}
+                          className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center gap-1"
+                        >
+                          <span>{comp}</span>
+                          <button
+                            onClick={() => handleRemovePreferenceCompany(comp, "liked")}
+                            className="hover:text-white text-[9px] px-0.5 font-bold"
+                            title="Retirer des favoris"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Liste des entreprises écartées */}
+                {userPreferences && userPreferences.dislikedCompanies.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] text-[#a1a1aa] font-semibold block">Entreprises écartées :</span>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                      {userPreferences.dislikedCompanies.map((comp) => (
+                        <span
+                          key={comp}
+                          className="text-[10px] px-2 py-0.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-1"
+                        >
+                          <span>{comp}</span>
+                          <button
+                            onClick={() => handleRemovePreferenceCompany(comp, "disliked")}
+                            className="hover:text-white text-[9px] px-0.5 font-bold"
+                            title="Ne plus écarter"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-2 flex items-center justify-between border-t border-[#27272a]">
+                  <span className="text-[10px] text-[#71717a]">
+                    Stockage persistant : <code className="text-[#a1a1aa]">user_preferences.json</code>
+                  </span>
+                  <button
+                    onClick={handleResetPreferences}
+                    className="text-[10px] text-[#a1a1aa] hover:text-red-400 transition underline"
+                  >
+                    Réinitialiser
+                  </button>
+                </div>
               </div>
 
               {/* Guide de fonctionnement du Démon Python */}
