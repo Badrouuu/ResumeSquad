@@ -142,6 +142,10 @@ export default function Home() {
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [webhookTestMessage, setWebhookTestMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Bot Navigateur Playwright (Auto-Fill & Screenshots HITL)
+  const [autoBrowserApply, setAutoBrowserApply] = useState(true);
+  const [isBrowserFilling, setIsBrowserFilling] = useState(false);
+
   // Préférences utilisateur apprises (RLHF / Active Learning via Discord & Radar)
   const [userPreferences, setUserPreferences] = useState<UserJobPreferences | null>(null);
   const [preferenceFeedbackToast, setPreferenceFeedbackToast] = useState<string | null>(null);
@@ -553,6 +557,7 @@ export default function Home() {
           appliedIds: applications.map((a) => a.id),
           offers: liveOffers.length > 0 ? liveOffers : undefined,
           batchSize: targetBatch,
+          browserApply: autoBrowserApply,
         }),
       });
 
@@ -577,6 +582,39 @@ export default function Home() {
       ]);
     } finally {
       setIsAutopilotRunning(false);
+    }
+  };
+
+  const handleDirectBrowserFill = async (offer: RadarJobOffer) => {
+    if (!offer.url) return;
+    setIsBrowserFilling(true);
+    setPreferenceFeedbackToast(`🌐 Lancement de Chrome Playwright pour ${offer.company}...`);
+
+    try {
+      const res = await fetch("/api/autopilot/browser-fill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: offer.url,
+          company: offer.company,
+          title: offer.title,
+          webhookUrl: discordWebhook.trim(),
+          autoSubmit: false,
+          headless: false, // Ouvre Chrome visiblement sous les yeux de Badroudine !
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPreferenceFeedbackToast(`📸 Formulaire rempli pour ${offer.company} ! Capture transmise sur Discord.`);
+      } else {
+        setPreferenceFeedbackToast(`⚠️ ${data.error || "Formulaire requiert une intervention manuelle"}`);
+      }
+    } catch (err: any) {
+      setPreferenceFeedbackToast(`❌ Erreur navigateur : ${err.message}`);
+    } finally {
+      setIsBrowserFilling(false);
+      setTimeout(() => setPreferenceFeedbackToast(null), 5000);
     }
   };
 
@@ -3188,6 +3226,17 @@ ${formattedParagraphs}
                           <span>⚡ Importer & Adapter</span>
                         </button>
 
+                        {/* Bouton Playwright 1-Clic : Ouvre Chrome et remplit */}
+                        <button
+                          onClick={() => handleDirectBrowserFill(offer)}
+                          disabled={isBrowserFilling}
+                          className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition flex items-center justify-center gap-1.5 flex-shrink-0 disabled:opacity-50"
+                          title="Ouvrir Chrome, remplir automatiquement le formulaire et envoyer la capture sur Discord"
+                        >
+                          <span>🌐</span>
+                          <span>Auto-Fill Chrome</span>
+                        </button>
+
                         {/* Bouton pour marquer/démarquer directement comme postulé */}
                         <button
                           onClick={() => handleToggleTrackOffer(offer)}
@@ -3284,6 +3333,20 @@ ${formattedParagraphs}
                     </button>
                   ))}
                 </div>
+
+                {/* Toggle Auto-Fill Playwright & Screenshots */}
+                <button
+                  onClick={() => setAutoBrowserApply(!autoBrowserApply)}
+                  className={`text-xs px-3 py-2 rounded-xl font-bold border transition flex items-center gap-1.5 ${
+                    autoBrowserApply
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-sm"
+                      : "bg-[#09090b] border-[#27272a] text-[#71717a] hover:text-white"
+                  }`}
+                  title="Activer ou désactiver l'ouverture automatique de Chrome et l'envoi des captures d'écran sur Discord"
+                >
+                  <span>🌐</span>
+                  <span>Playwright : <strong className={autoBrowserApply ? "text-emerald-400" : "text-[#71717a]"}>{autoBrowserApply ? "ON" : "OFF"}</strong></span>
+                </button>
 
                 <button
                   onClick={() => handleRunAutopilotCycle()}

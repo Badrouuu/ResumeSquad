@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import path from "path";
+import { exec } from "child_process";
+import util from "util";
 import {
   RADAR_JOB_OFFERS,
   RadarJobOffer,
@@ -8,6 +11,7 @@ import { runGeminiPipeline } from "@/app/api/run-pipeline/pipelineService";
 import { fetchLiveRadarOffers } from "@/app/api/radar/live-fetch/route";
 import { getUserPreferences } from "@/app/data/userPreferences";
 
+const execPromise = util.promisify(exec);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 export async function POST(request: Request) {
@@ -23,8 +27,10 @@ export async function POST(request: Request) {
     const appliedIds: string[] = Array.isArray(body.appliedIds) ? body.appliedIds : [];
     const customOffers: RadarJobOffer[] = Array.isArray(body.offers) ? body.offers : [];
     const requestedBatch = typeof body.batchSize === "number" && body.batchSize > 0 ? body.batchSize : 5;
+    const browserApply = body.browserApply !== false;
 
     log("🤖 Démarrage du cycle Auto-Pilot ResumeSquad...");
+    log(`🌐 Auto-Fill Navigateur Playwright & Screenshots : ${browserApply ? "Activé ✅" : "Désactivé"}`);
 
     if (!GEMINI_API_KEY) {
       log("❌ Erreur : Clé GEMINI_API_KEY absente.");
@@ -164,6 +170,43 @@ export async function POST(request: Request) {
           log(`📄 Formulaire de candidature externe identifié.`);
         }
 
+        let screenshotTaken = false;
+        if (browserApply && !isLinkedInUrl && offer.url) {
+          log(`🌐 Lancement de Playwright pour ${offer.company} (Auto-Fill & Screenshot)...`);
+          try {
+            const cwd = process.cwd();
+            const scriptPathFromFrontend = path.resolve(cwd, "..", "backend", "app", "browser_applicant.py");
+            const scriptPathFromRoot = path.resolve(cwd, "backend", "app", "browser_applicant.py");
+            const scriptPath = require("fs").existsSync(scriptPathFromFrontend)
+              ? scriptPathFromFrontend
+              : scriptPathFromRoot;
+            const baseDir = path.dirname(path.dirname(scriptPath));
+
+            const cleanComp = offer.company.replace(/["\\]/g, "");
+            const cleanTit = offer.title.replace(/["\\]/g, "");
+
+            const cmd = [
+              "python",
+              `"${scriptPath}"`,
+              `--url "${offer.url}"`,
+              `--company "${cleanComp}"`,
+              `--title "${cleanTit}"`,
+              "--headless",
+              webhookUrl ? `--webhook "${webhookUrl}"` : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+
+            const { stdout } = await execPromise(cmd, { cwd: baseDir, timeout: 60000 });
+            if (stdout.includes("Capture enregistrée")) {
+              screenshotTaken = true;
+              log(`   📸 Capture d'écran pré-envoi générée et transmise sur Discord !`);
+            }
+          } catch (bErr: any) {
+            log(`   ℹ️ Note navigation : ${bErr.message?.slice(0, 60) || "Portail externe"}`);
+          }
+        }
+
         const newApp = {
           id: offer.id,
           company: offer.company,
@@ -171,7 +214,9 @@ export async function POST(request: Request) {
           appliedDate: new Date().toLocaleDateString("fr-FR"),
           atsScore: score,
           status: appStatus,
-          notes: actionRequired
+          notes: screenshotTaken
+            ? `📸 Formulaire pré-rempli par Playwright. Capture d'écran envoyée sur Discord pour validation.`
+            : actionRequired
             ? `⚠️ Action requise : ${blockReason}`
             : `Candidature générée automatiquement par Auto-Pilot. Mode : ${offer.workplace || "Hybride"}. ${priority.priorityBadges.join(" • ")}`,
           jobUrl: offer.url,
