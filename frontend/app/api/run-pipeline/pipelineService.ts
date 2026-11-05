@@ -211,23 +211,52 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
   "strategyNote": "string"
 }`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const FALLBACK_MODELS = [
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+  ];
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: systemPrompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.2,
-      },
-    }),
-  });
+  let res: Response | null = null;
+  let usedModel = FALLBACK_MODELS[0];
 
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Erreur API Gemini: ${res.status} - ${errText}`);
+  for (const modelName of FALLBACK_MODELS) {
+    usedModel = modelName;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.2,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        break;
+      }
+
+      if (res.status === 503 || res.status === 429) {
+        console.warn(`[Gemini API] Modèle ${modelName} en surcharge (${res.status}). Bascule sur modèle de secours...`);
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      } else {
+        const errText = await res.text();
+        console.warn(`[Gemini API] Erreur ${res.status} sur ${modelName}: ${errText}`);
+        continue;
+      }
+    } catch (fetchErr: any) {
+      console.warn(`[Gemini API] Échec sur ${modelName}:`, fetchErr.message);
+      continue;
+    }
+  }
+
+  if (!res || !res.ok) {
+    throw new Error("Échec de connexion à tous les modèles Gemini de secours. Veuillez réessayer dans quelques instants.");
   }
 
   const data = await res.json();

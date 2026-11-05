@@ -84,13 +84,7 @@ export async function POST(request: Request) {
       log(`✅ Filtres EILCO validés : ${offer.country} | Mode ${offer.workplace || "Hybride/Sur site"}`);
 
       // 4. Appel de l'Agent Gemini pour l'adaptation STAR et Cover Letter
-      log(`🧠 Inférence Gemini 2.5 Flash en cours pour ${offer.company}...`);
-
-      const pipelinePayload = {
-        job_text: offer.description || `${offer.title} chez ${offer.company}. Missions en IA, Data Science et développement Python.`,
-        job_title: offer.title,
-        company: offer.company,
-      };
+      log(`🧠 Inférence Gemini (Multi-Modèle avec Failover) en cours pour ${offer.company}...`);
 
       try {
         const pipelineData = await runGeminiPipeline({
@@ -179,6 +173,9 @@ export async function POST(request: Request) {
             log(`⚠️ Erreur d'envoi du webhook Discord: ${hookErr}`);
           }
         }
+
+        // Pause de 1.2s entre chaque génération pour respecter les quotas de burst API
+        await new Promise((r) => setTimeout(r, 1200));
       } catch (genErr: any) {
         log(`❌ Erreur traitement ${offer.company}: ${genErr.message}`);
       }

@@ -98,8 +98,12 @@ def save_history(history):
 
 
 def call_gemini(job_text: str, job_title: str, company: str):
-    """Interroge Gemini 2.5 Flash pour générer les livrables adaptés."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+    """Interroge Gemini avec bascule automatique (fallback) sur les modèles disponibles."""
+    fallback_models = [
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-3.5-flash-lite",
+    ]
     system_prompt = f"""Tu es l'escouade d'ingénieurs IA de ResumeSquad.
 Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et son alignement avec ZÉRO HALLUCINATION.
 
@@ -131,16 +135,35 @@ Génère une réponse JSON valide :
         "contents": [{"parts": [{"text": system_prompt}]}],
         "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2},
     }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(req_body).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        res_data = json.loads(resp.read().decode("utf-8"))
-        candidate = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-        return json.loads(candidate)
+
+    last_error = None
+    for model_name in fallback_models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+        for attempt in range(1, 3):
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(req_body).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    res_data = json.loads(resp.read().decode("utf-8"))
+                    candidate = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                    return json.loads(candidate)
+            except urllib.error.HTTPError as e:
+                last_error = e
+                if e.code in (503, 429):
+                    time.sleep(attempt * 1.0)
+                    continue
+                # Si erreur 404 (modèle non trouvé/déprécié), on passe immédiatement au modèle suivant
+                break
+            except Exception as e:
+                last_error = e
+                time.sleep(attempt * 1.0)
+                continue
+
+    raise RuntimeError(f"Échec de tous les modèles Gemini ({fallback_models}): {last_error}")
 
 
 def run_cycle(webhook_url: str):
@@ -245,6 +268,8 @@ def run_cycle(webhook_url: str):
 
         except Exception as e:
             print(f"   ❌ Erreur de génération : {e}")
+
+        time.sleep(2.0)
 
     print("\n✅ Fin du cycle d'exploration.")
 

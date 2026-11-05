@@ -37,3 +37,4 @@ yarn-error.log*
 
 # Scratch & temporary test scripts
 scratch/
+backend/data/applications_history.json
