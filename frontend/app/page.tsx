@@ -2854,6 +2854,26 @@ ${formattedParagraphs}
                               </span>
                             </div>
                             <h4 className="text-sm font-semibold text-blue-400 mt-1">{offer.title}</h4>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                              {/* Badge Langue */}
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                                {offer.language === "fr" || (offer.description && !offer.language && /\b(stage|missions|profil)\b/i.test(offer.description)) ? "🇫🇷 Français" : "🇬🇧 Anglais"}
+                              </span>
+                              {/* Badge Faible Concurrence */}
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                                (offer.applicantsCount || 10) <= 10
+                                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                  : (offer.applicantsCount || 10) <= 25
+                                  ? "bg-teal-500/15 text-teal-300 border-teal-500/30"
+                                  : "bg-zinc-800 text-zinc-300 border-zinc-700"
+                              }`}>
+                                {(offer.applicantsCount || 10) <= 10
+                                  ? `🎯 < 10 candidats (${offer.applicantsCount || 6})`
+                                  : (offer.applicantsCount || 10) <= 25
+                                  ? `🚀 Early (${offer.applicantsCount} postulants)`
+                                  : `👥 ${offer.applicantsCount} candidats`}
+                              </span>
+                            </div>
                           </div>
 
                           {/* Badges rémunération, fraîcheur & workplace */}
@@ -3016,28 +3036,40 @@ ${formattedParagraphs}
             </div>
 
             {/* Badges des filtres et règles pré-programmées */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-[#27272a]">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-6 pt-6 border-t border-[#27272a]">
               <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
-                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Mobilité Internationale</div>
-                <div className="text-xs text-white font-semibold mt-1">🇨🇭 🇱🇺 🇧🇪 🇩🇪 (Hors France)</div>
-                <div className="text-[10px] text-emerald-400 mt-0.5">Validation EILCO 100%</div>
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Mobilité EILCO</div>
+                <div className="text-xs text-white font-semibold mt-1">🇨🇭 🇱🇺 🇧🇪 🇩🇪</div>
+                <div className="text-[10px] text-emerald-400 mt-0.5">France exclue</div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Langues Cibles</div>
+                <div className="text-xs text-white font-semibold mt-1">🇫🇷 FR & 🇬🇧 EN</div>
+                <div className="text-[10px] text-emerald-400 mt-0.5">Allemand/NL filtrés</div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Priorité Traitement</div>
+                <div className="text-xs text-white font-semibold mt-1">⚡ &lt; 24h & 🎯 &lt; 25 cand.</div>
+                <div className="text-[10px] text-teal-400 mt-0.5">Top conversion ATS</div>
               </div>
 
               <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
                 <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Mode de Travail</div>
                 <div className="text-xs text-white font-semibold mt-1">Présentiel & Hybride</div>
-                <div className="text-[10px] text-amber-400 mt-0.5">100% Full Remote exclu</div>
+                <div className="text-[10px] text-amber-400 mt-0.5">100% Remote exclu</div>
               </div>
 
               <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
-                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Moteur d&apos;Inférence</div>
-                <div className="text-xs text-white font-semibold mt-1">Gemini 2.5 Flash</div>
-                <div className="text-[10px] text-emerald-400 mt-0.5">0.00 € (Tier Gratuit)</div>
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Moteur Inférence</div>
+                <div className="text-xs text-white font-semibold mt-1">Gemini Multi-Modèles</div>
+                <div className="text-[10px] text-emerald-400 mt-0.5">Failover Actif</div>
               </div>
 
               <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a]">
-                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Escalade Human-in-the-Loop</div>
-                <div className="text-xs text-white font-semibold mt-1">Discord Push Webhook</div>
+                <div className="text-[10px] text-[#71717a] uppercase font-bold tracking-wider">Escalade Discord</div>
+                <div className="text-xs text-white font-semibold mt-1">Push Smartphone</div>
                 <div className={`text-[10px] mt-0.5 ${discordWebhook ? "text-emerald-400 font-semibold" : "text-amber-400"}`}>
                   {discordWebhook ? "🟢 Connecté" : "⚠️ Non configuré"}
                 </div>

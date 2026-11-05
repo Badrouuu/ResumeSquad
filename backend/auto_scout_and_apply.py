@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import time
+import re
 import argparse
 import urllib.request
 import urllib.error
@@ -166,6 +167,45 @@ Génère une réponse JSON valide :
     raise RuntimeError(f"Échec de tous les modèles Gemini ({fallback_models}): {last_error}")
 
 
+def detect_offer_language(title: str, desc: str) -> str:
+    """Détecte si l'offre est en français, anglais, allemand ou néerlandais (0 token)."""
+    combined = f"{title} {desc}".lower()
+    de_markers = [
+        "und", "oder", "für", "mit", "im", "ihre aufgaben", "wir suchen",
+        "praktikum", "praktikant", "werkstudent", "anforderungen", "ab sofort", "m/w/d", "kenntnisse"
+    ]
+    nl_markers = ["en", "van", "het", "voor", "met", "wij zoeken", "jouw profiel", "functieomschrijving", "stagiair", "nederlands"]
+    fr_markers = ["le", "la", "les", "des", "dans", "pour", "avec", "stage", "stagiaire", "pfe", "missions", "profil recherché", "ingénieur"]
+    en_markers = ["the", "and", "with", "for", "internship", "intern", "responsibilities", "qualifications", "skills", "experience"]
+
+    de_score = sum(1 for m in de_markers if m in combined)
+    nl_score = sum(1 for m in nl_markers if m in combined)
+    fr_score = sum(1 for m in fr_markers if m in combined)
+    en_score = sum(1 for m in en_markers if m in combined)
+
+    if de_score >= 3 and de_score > en_score and de_score > fr_score:
+        return "de"
+    if nl_score >= 3 and nl_score > en_score and nl_score > fr_score:
+        return "nl"
+    if fr_score > en_score and fr_score >= 2:
+        return "fr"
+    return "en"
+
+
+def requires_non_en_fr(text: str) -> bool:
+    """Vérifie si l'offre exige une langue non maîtrisée (Allemand/Néerlandais)."""
+    t = text.lower()
+    patterns = [
+        r"\bfluent in german\b",
+        r"\bgerman is required\b",
+        r"\bsehr gute deutschkenntnisse\b",
+        r"\bfließend deutsch\b",
+        r"\bfluent in dutch\b",
+        r"\bnederlands vereist\b",
+    ]
+    return any(re.search(p, t) for p in patterns)
+
+
 def run_cycle(webhook_url: str):
     print("\n" + "=" * 65)
     print(f"🤖 [Auto-Pilot Cycle] Démarrage à {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -174,7 +214,7 @@ def run_cycle(webhook_url: str):
     history = load_history()
     applied_ids = {item.get("id") for item in history}
 
-    # Offres de démonstration et sources radar
+    # Offres cibles avec métriques de concurrence et fraîcheur
     SAMPLE_TARGETS = [
         {
             "id": "list_lu_ai_2027",
@@ -183,6 +223,8 @@ def run_cycle(webhook_url: str):
             "country": "Luxembourg",
             "location": "Esch-sur-Alzette",
             "workplace": "Hybride",
+            "applicants": 6,
+            "posted": "Hier",
             "url": "https://www.list.lu/en/jobs/",
             "desc": "Research internship focusing on multilingual NLP, foundation models and vector embeddings. Hybrid working model with modern offices.",
         },
@@ -193,6 +235,8 @@ def run_cycle(webhook_url: str):
             "country": "Suisse",
             "location": "Genève",
             "workplace": "Présentiel",
+            "applicants": 45,
+            "posted": "Cette semaine",
             "url": "https://careers.cern/job/12345",
             "desc": "Develop scalable Python pipelines for experimental data analysis using PyTorch and containerized workflows.",
         },
@@ -203,6 +247,8 @@ def run_cycle(webhook_url: str):
             "country": "Suisse",
             "location": "Lausanne",
             "workplace": "Hybride",
+            "applicants": 14,
+            "posted": "Il y a 2 jours",
             "url": "https://jobs.swisscom.ch/ai-intern",
             "desc": "Build generative AI assistants and microservices with FastAPI and Docker. 2 to 3 days remote per week allowed.",
         },
@@ -212,22 +258,28 @@ def run_cycle(webhook_url: str):
         offer_id = offer["id"]
         company = offer["company"]
         title = offer["title"]
+        desc = offer.get("desc", "")
 
         if offer_id in applied_ids:
             print(f"⏩ Déjà traité : {company} ({title})")
             continue
 
-        print(f"\n🔍 Traitement de l'offre : {company} — {title}")
-        print(f"   Pays : {offer['country']} | Mode : {offer['workplace']}")
+        # 1. Filtre linguistique strict (Badroudine : Français natif, Anglais C1)
+        lang = detect_offer_language(title, desc)
+        if lang not in ("fr", "en") or requires_non_en_fr(f"{title} {desc}"):
+            print(f"🚫 Rejet linguistique : {company} est rédigé en {lang.upper()} (Badroudine postule en FR ou EN uniquement).")
+            continue
 
-        # Filtre France
+        # 2. Filtre France
         if offer["country"].lower() == "france":
             print(f"   🚫 Rejet : Localisé en France (Mobilité EILCO non respectée).")
             continue
 
-        print("   🧠 Génération de la candidature avec Gemini 2.5 Flash...")
+        print(f"\n🔍 Traitement de l'offre : {company} — {title}")
+        print(f"   Pays : {offer['country']} | Mode : {offer['workplace']} | Langue : {lang.upper()} | Concurrence : ~{offer.get('applicants', 10)} candidats")
+        print("   🧠 Génération de la candidature avec Gemini (Multi-Modèles)...")
         try:
-            result = call_gemini(offer["desc"], title, company)
+            result = call_gemini(desc, title, company)
             score = result.get("atsScore", 90)
             print(f"   🎯 Candidature générée avec succès ! Score ATS : {score}/100")
 

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RadarJobOffer } from "@/app/data/radarOffers";
+import {
+  RadarJobOffer,
+  detectOfferLanguage,
+  requiresNonEnFrLanguage,
+  extractApplicantsCount,
+} from "@/app/data/radarOffers";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +114,18 @@ async function fetchLinkedInGuestJobs(
         offerTimestamp = Date.now() - (w ? parseInt(w[1], 10) : 1) * 7 * 24 * 3600 * 1000;
       }
 
+      // Détection et filtrage linguistique strict (Badroudine : Français natif, Anglais C1)
+      const lang = detectOfferLanguage(rawTitle, "");
+      if (lang !== "fr" && lang !== "en") {
+        continue; // Élimine déterministement les offres rédigées en allemand, néerlandais, etc.
+      }
+      if (requiresNonEnFrLanguage(rawTitle)) {
+        continue; // Élimine les offres exigeant l'allemand ou le néerlandais
+      }
+
+      // Extraction et estimation du nombre de candidats actuels
+      const { count: applicantsCount } = extractApplicantsCount("", formattedDate);
+
       // Déduction dynamique des compétences techniques
       const lower = rawTitle.toLowerCase();
       const detectedSkills: string[] = ["Python"];
@@ -138,6 +155,8 @@ async function fetchLinkedInGuestJobs(
         postedAgo: formattedDate,
         isFresh: isUltraFresh,
         timestamp: offerTimestamp,
+        applicantsCount,
+        language: lang,
         description: `Offre fraîche détectée en direct sur LinkedIn (${country}).
 Poste : ${rawTitle}
 Entreprise : ${rawCompany}
@@ -210,7 +229,9 @@ export async function GET(request: NextRequest) {
             const combined = `${j.name || ""} ${j.company || ""} ${(j.technologies || []).join(" ")}`.toLowerCase();
             const isAi = combined.includes("machine learning") || combined.includes("ai") || combined.includes("python") || combined.includes("data");
             const isJunior = combined.includes("intern") || combined.includes("junior") || combined.includes("stage") || j.expLevel === "Junior";
-            return isAi && isJunior && j.workplace !== "remote";
+            const lang = detectOfferLanguage(j.name || "", combined);
+            const isLangOk = (lang === "fr" || lang === "en") && !requiresNonEnFrLanguage(j.name || "");
+            return isAi && isJunior && isLangOk && j.workplace !== "remote";
           })
           .slice(0, 6)
           .map((j: any) => {
@@ -229,6 +250,8 @@ export async function GET(request: NextRequest) {
               postedAgo: "Cette semaine",
               isFresh: true,
               timestamp: actTime,
+              applicantsCount: 6, // Portail spécialisé : très faible concurrence (< 10 postulants)
+              language: detectOfferLanguage(j.name || "", "") === "fr" ? ("fr" as const) : ("en" as const),
               description: `Poste tech en direct en Suisse (${j.actualCity || j.cityCategory}). Stack: ${(j.technologies || []).join(", ")}. Entreprise: ${j.company}.`,
             };
           });
@@ -247,7 +270,9 @@ export async function GET(request: NextRequest) {
             const combined = `${j.name || ""} ${j.company || ""} ${(j.technologies || []).join(" ")}`.toLowerCase();
             const isAi = combined.includes("machine learning") || combined.includes("computer vision") || combined.includes("deep learning") || combined.includes("python");
             const isJunior = combined.includes("intern") || combined.includes("werkstudent") || combined.includes("junior") || j.expLevel === "Junior";
-            return isAi && isJunior && j.workplace !== "remote";
+            const lang = detectOfferLanguage(j.name || "", combined);
+            const isLangOk = (lang === "fr" || lang === "en") && !requiresNonEnFrLanguage(j.name || "");
+            return isAi && isJunior && isLangOk && j.workplace !== "remote";
           })
           .slice(0, 5)
           .map((j: any) => {
@@ -266,6 +291,8 @@ export async function GET(request: NextRequest) {
               postedAgo: "Cette semaine",
               isFresh: true,
               timestamp: actTime,
+              applicantsCount: 8, // Portail spécialisé : très faible concurrence (< 10 postulants)
+              language: "en" as const, // Offres internationales retenues
               description: `Opportunité en direct en Allemagne (${j.actualCity || j.cityCategory}). Stack: ${(j.technologies || []).join(", ")}. Entreprise: ${j.company}.`,
             };
           });

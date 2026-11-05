@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { RADAR_JOB_OFFERS, RadarJobOffer } from "@/app/data/radarOffers";
+import {
+  RADAR_JOB_OFFERS,
+  RadarJobOffer,
+  calculateOfferPriority,
+} from "@/app/data/radarOffers";
 import { runGeminiPipeline } from "@/app/api/run-pipeline/pipelineService";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -45,45 +49,66 @@ export async function POST(request: Request) {
       });
     }
 
+    // 3. Filtrage linguistique strict (0 Token) & Éligibilité EILCO
+    let langRejections = 0;
+    let eilcoRejections = 0;
+
+    const evaluatedOffers = unappliedOffers.map((offer) => {
+      const priority = calculateOfferPriority(offer);
+      return { offer, priority };
+    });
+
+    const eligibleOffers = evaluatedOffers.filter(({ priority }) => {
+      if (!priority.isEligible) {
+        const reason = priority.rejectionReason || "";
+        if (
+          reason.includes("allemand") ||
+          reason.includes("néerlandais") ||
+          reason.includes("langue")
+        ) {
+          langRejections++;
+        } else {
+          eilcoRejections++;
+        }
+        return false;
+      }
+      return true;
+    });
+
+    if (langRejections > 0) {
+      log(`🌐 Filtrage linguistique : ${langRejections} offre(s) écartée(s) (allemand/néerlandais non parlés). Badroudine postule en FR 🇫🇷 ou EN 🇬🇧.`);
+    }
+    if (eilcoRejections > 0) {
+      log(`🛡️ Filtrage EILCO : ${eilcoRejections} offre(s) non éligibles écartées (100% Full Remote ou France).`);
+    }
+
+    if (eligibleOffers.length === 0) {
+      log("⚠️ Aucune offre restante ne satisfait les critères d'éligibilité (Langue FR/EN + Présentiel/Hybride EILCO).");
+      return NextResponse.json({
+        success: true,
+        message: "Aucune offre éligible FR/EN pour ce cycle.",
+        processedApplications: [],
+        logs,
+      });
+    }
+
+    // 4. Tri par Priorité Stratégique (Ultra-fraîcheur < 24h & Faible concurrence < 10-25 candidats)
+    eligibleOffers.sort((a, b) => b.priority.score - a.priority.score);
+
+    const maxProcessPerCycle = Math.min(eligibleOffers.length, 3);
+    const topBatch = eligibleOffers.slice(0, maxProcessPerCycle);
+
+    log(`⚡ Priorisation stratégique activée : Sélection des ${maxProcessPerCycle} offre(s) les plus fraîches et à plus faible concurrence :`);
+    topBatch.forEach(({ offer, priority }, idx) => {
+      log(`   #${idx + 1} [Score ${priority.score}] ${offer.company} — ${offer.title} (${priority.priorityBadges.join(" | ")})`);
+    });
+
     const processedApplications: any[] = [];
-    const maxProcessPerCycle = Math.min(unappliedOffers.length, 3); // Limite à 3 par cycle pour respecter les quotas et ne pas saturer
 
-    log(`⚙️ Traitement de ${maxProcessPerCycle} offre(s) prioritaire(s) pour ce cycle...`);
-
-    for (let i = 0; i < maxProcessPerCycle; i++) {
-      const offer = unappliedOffers[i];
-      log(`\n--- [Candidature ${i + 1}/${maxProcessPerCycle}] : ${offer.company} (${offer.location}) ---`);
-
-      // 3. Filtres Déterministes durs (0 Token)
-      const locLower = (offer.location || "").toLowerCase();
-      const countryLower = (offer.country || "").toLowerCase();
-
-      // Règle EILCO : Mobilité internationale obligatoire (Hors France)
-      if (
-        countryLower === "france" ||
-        locLower.includes("paris") ||
-        locLower.includes("lyon") ||
-        locLower.includes("lille") ||
-        locLower.includes("france")
-      ) {
-        log(`🛡️ Rejet déterministe : ${offer.company} est localisé en France (${offer.location}). Incompatible avec la mobilité internationale.`);
-        continue;
-      }
-
-      // Règle EILCO : Rejet du 100% Full Remote (Présentiel ou Hybride autorisé)
-      const descLower = (offer.description || "").toLowerCase();
-      const is100Remote =
-        /\b(100%\s*(télétravail|remote)|fully[- ]?remote|remote[- ]?only|100%\s*à distance)\b/i.test(descLower) &&
-        !/\b(pas de|no|not)\b/i.test(descLower);
-
-      if (is100Remote) {
-        log(`🛡️ Rejet déterministe : ${offer.company} est en 100% Full Remote. Convention EILCO non valide.`);
-        continue;
-      }
-
-      log(`✅ Filtres EILCO validés : ${offer.country} | Mode ${offer.workplace || "Hybride/Sur site"}`);
-
-      // 4. Appel de l'Agent Gemini pour l'adaptation STAR et Cover Letter
+    for (let i = 0; i < topBatch.length; i++) {
+      const { offer, priority } = topBatch[i];
+      log(`\n--- [Candidature ${i + 1}/${topBatch.length}] : ${offer.company} (${offer.location}) ---`);
+      log(`🎯 Atouts ciblés : ${priority.priorityBadges.join(" • ")}`);
       log(`🧠 Inférence Gemini (Multi-Modèle avec Failover) en cours pour ${offer.company}...`);
 
       try {
@@ -123,7 +148,7 @@ export async function POST(request: Request) {
           status: appStatus,
           notes: actionRequired
             ? `⚠️ Action requise : ${blockReason}`
-            : `Candidature générée automatiquement par Auto-Pilot. Mode : ${offer.workplace || "Hybride"}.`,
+            : `Candidature générée automatiquement par Auto-Pilot. Mode : ${offer.workplace || "Hybride"}. ${priority.priorityBadges.join(" • ")}`,
           jobUrl: offer.url,
           country: offer.country,
           generatedData: {
@@ -160,6 +185,8 @@ export async function POST(request: Request) {
                       { name: "💼 Intitulé", value: offer.title, inline: true },
                       { name: "🎯 Score ATS", value: `${score}/100`, inline: true },
                       { name: "🌍 Localisation", value: `${offer.location} (${offer.country})`, inline: true },
+                      { name: "🌐 Langue", value: priority.detectedLang === "en" ? "Anglais 🇬🇧" : "Français 🇫🇷", inline: true },
+                      { name: "⚡ Fraîcheur & Candidats", value: priority.priorityBadges.join(" • "), inline: false },
                       { name: "🔗 Lien de l'offre", value: `[Ouvrir l'offre](${offer.url})`, inline: false },
                     ],
                     footer: { text: "ResumeSquad • Autonomous Multi-Agent Loop" },
