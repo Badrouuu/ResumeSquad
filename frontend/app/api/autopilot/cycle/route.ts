@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { RADAR_JOB_OFFERS, RadarJobOffer } from "@/app/data/radarOffers";
+import { runGeminiPipeline } from "@/app/api/run-pipeline/pipelineService";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -92,20 +93,12 @@ export async function POST(request: Request) {
       };
 
       try {
-        const origin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        // Appel interne direct de la route run-pipeline
-        const pipelineRes = await fetch(`${origin}/api/run-pipeline`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(pipelinePayload),
+        const pipelineData = await runGeminiPipeline({
+          jobText: offer.description || `${offer.title} chez ${offer.company}. Missions en IA, Data Science et développement Python.`,
+          jobTitle: offer.title,
+          company: offer.company,
         });
 
-        if (!pipelineRes.ok) {
-          log(`⚠️ Échec génération pipeline pour ${offer.company} (HTTP ${pipelineRes.status}).`);
-          continue;
-        }
-
-        const pipelineData = await pipelineRes.json();
         const score = pipelineData.atsScore || 90;
         log(`🎯 Score ATS calculé : ${score}/100. Puces STAR générées.`);
 
