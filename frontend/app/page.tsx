@@ -3512,13 +3512,21 @@ ${formattedParagraphs}
                   </span>
                 </div>
                 <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                  Tu peux également faire tourner le bot de manière autonome 24h/24 dans ton terminal local :
+                  Tu peux également faire tourner le bot et le navigateur Playwright de manière autonome dans ton terminal :
                 </p>
-                <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-emerald-400 space-y-1">
-                  <div># Exécuter un cycle unique :</div>
-                  <div className="text-white select-all">python backend/auto_scout_and_apply.py --once</div>
-                  <div className="text-[#71717a] pt-1"># Tourner en continu toutes les 2 heures :</div>
-                  <div className="text-white select-all">python backend/auto_scout_and_apply.py --daemon --interval 120</div>
+                <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-emerald-400 space-y-2">
+                  <div>
+                    <div className="text-[#a1a1aa] font-semibold"># 🌐 1. Pré-remplir une offre avec validation Screenshot :</div>
+                    <div className="text-white select-all text-[10px] break-all">python backend/app/browser_applicant.py --url "https://..." --company "Nom"</div>
+                  </div>
+                  <div>
+                    <div className="text-[#a1a1aa] font-semibold"># 🤖 2. Cycle Auto-Pilot complet avec ouverture de Chrome :</div>
+                    <div className="text-white select-all text-[10px]">python backend/auto_scout_and_apply.py --once --browser-apply</div>
+                  </div>
+                  <div>
+                    <div className="text-[#71717a]"># ⏳ 3. Tourner en démon en arrière-plan toutes les 2h :</div>
+                    <div className="text-[#a1a1aa] select-all text-[10px]">python backend/auto_scout_and_apply.py --daemon --interval 120</div>
+                  </div>
                 </div>
               </div>
             </div>

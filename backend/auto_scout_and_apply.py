@@ -233,7 +233,7 @@ def requires_non_en_fr(text: str) -> bool:
     return any(re.search(p, t) for p in patterns)
 
 
-def run_cycle(webhook_url: str):
+def run_cycle(webhook_url: str, browser_apply: bool = False):
     print("\n" + "=" * 65)
     print(f"🤖 [Auto-Pilot Cycle] Démarrage à {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 65)
@@ -376,6 +376,23 @@ def run_cycle(webhook_url: str):
                 send_discord_ping(webhook_url, title_msg, desc_msg, color, fields, components=components)
                 print("   📲 Notification Discord avec boutons de vote transmise !")
 
+            # Lancement optionnel du Bot Navigateur Playwright (Auto-Fill & Screenshot)
+            if browser_apply and not is_blocked:
+                try:
+                    from backend.app.browser_applicant import run_browser_applicant
+                    print(f"\n   🌐 Lancement de l'auto-remplissage Playwright pour {company}...")
+                    run_browser_applicant(
+                        url=offer["url"],
+                        company=company,
+                        title=title,
+                        headless=False,
+                        auto_submit=False,
+                        webhook_url=webhook_url,
+                        custom_cover_letter=result.get("coverLetter", ""),
+                    )
+                except Exception as browser_err:
+                    print(f"   ⚠️ Erreur navigateur Playwright : {browser_err}")
+
         except Exception as e:
             print(f"   ❌ Erreur de génération : {e}")
 
@@ -390,6 +407,7 @@ def main():
     parser.add_argument("--daemon", action="store_true", help="Tourner en boucle continue (mode démon)")
     parser.add_argument("--interval", type=int, default=120, help="Intervalle en minutes entre chaque cycle (défaut: 120)")
     parser.add_argument("--webhook", type=str, default=DISCORD_WEBHOOK_URL, help="URL du Webhook Discord")
+    parser.add_argument("--browser-apply", action="store_true", help="Ouvrir le navigateur Playwright pour pré-remplir le formulaire avec validation screenshot")
     args = parser.parse_args()
 
     webhook = args.webhook or DISCORD_WEBHOOK_URL
@@ -405,12 +423,12 @@ def main():
         print("ℹ️ Discord Webhook non renseigné (les alertes seront uniquement affichées en console).")
 
     if args.once or not args.daemon:
-        run_cycle(webhook)
+        run_cycle(webhook, browser_apply=args.browser_apply)
     else:
         print(f"⏳ Mode Démon activé. Le bot exécutera un cycle toutes les {args.interval} minutes.")
         try:
             while True:
-                run_cycle(webhook)
+                run_cycle(webhook, browser_apply=args.browser_apply)
                 print(f"\n💤 Mise en veille pour {args.interval} minutes...")
                 time.sleep(args.interval * 60)
         except KeyboardInterrupt:
