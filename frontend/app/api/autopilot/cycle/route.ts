@@ -5,6 +5,7 @@ import {
   calculateOfferPriority,
 } from "@/app/data/radarOffers";
 import { runGeminiPipeline } from "@/app/api/run-pipeline/pipelineService";
+import { fetchLiveRadarOffers } from "@/app/api/radar/live-fetch/route";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
     const webhookUrl = body.webhookUrl || process.env.DISCORD_WEBHOOK_URL;
     const appliedIds: string[] = Array.isArray(body.appliedIds) ? body.appliedIds : [];
     const customOffers: RadarJobOffer[] = Array.isArray(body.offers) ? body.offers : [];
+    const requestedBatch = typeof body.batchSize === "number" && body.batchSize > 0 ? body.batchSize : 5;
 
     log("🤖 Démarrage du cycle Auto-Pilot ResumeSquad...");
 
@@ -31,9 +33,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Récupération des offres candidates
-    const candidatePool = customOffers.length > 0 ? customOffers : RADAR_JOB_OFFERS;
-    log(`📡 Analyse de ${candidatePool.length} offres candidates en base...`);
+    // 1. Récupération des offres candidates (Scan live dynamique si vivier non fourni)
+    let candidatePool: RadarJobOffer[] = customOffers;
+    if (candidatePool.length === 0) {
+      log("📡 Déclenchement automatique du Radar Live (Suisse, Lux, Bel, All • IA, ML & Vision)...");
+      try {
+        const liveScanned = await fetchLiveRadarOffers("7d");
+        log(`📡 ${liveScanned.length} opportunités scannées en direct sur le marché européen.`);
+        // Fusionne les offres fraîches en direct avec les offres vérifiées
+        candidatePool = [...liveScanned, ...RADAR_JOB_OFFERS];
+      } catch (scanErr: any) {
+        log(`⚠️ Scan live indisponible, repli sur le vivier vérifié : ${scanErr.message}`);
+        candidatePool = RADAR_JOB_OFFERS;
+      }
+    } else {
+      log(`📡 Analyse de ${candidatePool.length} offres candidates en base...`);
+    }
 
     // 2. Filtrage des offres déjà traitées
     const unappliedOffers = candidatePool.filter((o) => !appliedIds.includes(o.id));
@@ -92,13 +107,13 @@ export async function POST(request: Request) {
       });
     }
 
-    // 4. Tri par Priorité Stratégique (Ultra-fraîcheur < 24h & Faible concurrence < 10-25 candidats)
+    // 4. Tri par Priorité Stratégique (IA & Machine Vision d'abord, Fraîcheur & Faible concurrence)
     eligibleOffers.sort((a, b) => b.priority.score - a.priority.score);
 
-    const maxProcessPerCycle = Math.min(eligibleOffers.length, 3);
+    const maxProcessPerCycle = Math.min(eligibleOffers.length, requestedBatch);
     const topBatch = eligibleOffers.slice(0, maxProcessPerCycle);
 
-    log(`⚡ Priorisation stratégique activée : Sélection des ${maxProcessPerCycle} offre(s) les plus fraîches et à plus faible concurrence :`);
+    log(`⚡ Priorisation stratégique activée : Traitement de ${maxProcessPerCycle} offre(s) prioritaires (IA, ML & Machine Vision) :`);
     topBatch.forEach(({ offer, priority }, idx) => {
       log(`   #${idx + 1} [Score ${priority.score}] ${offer.company} — ${offer.title} (${priority.priorityBadges.join(" | ")})`);
     });

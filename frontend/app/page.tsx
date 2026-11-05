@@ -127,6 +127,7 @@ export default function Home() {
   // États Auto-Pilot & Discord Webhook
   const [discordWebhook, setDiscordWebhook] = useState("");
   const [isAutopilotRunning, setIsAutopilotRunning] = useState(false);
+  const [autopilotBatchSize, setAutopilotBatchSize] = useState<number>(5);
   const [autopilotLogs, setAutopilotLogs] = useState<string[]>([
     "🤖 Module Auto-Pilot ResumeSquad initialisé.",
     "💡 Renseigne ton Webhook Discord pour recevoir les alertes de blocage (Captcha) et les candidatures en direct sur ton smartphone.",
@@ -405,9 +406,10 @@ export default function Home() {
     }
   };
 
-  const handleRunAutopilotCycle = async () => {
+  const handleRunAutopilotCycle = async (overrideBatchSize?: number) => {
     setIsAutopilotRunning(true);
-    const startMsg = `[${new Date().toLocaleTimeString("fr-FR")}] 🚀 Démarrage du cycle d'exploration et adaptation automatique...`;
+    const targetBatch = overrideBatchSize || autopilotBatchSize;
+    const startMsg = `[${new Date().toLocaleTimeString("fr-FR")}] 🚀 Démarrage du cycle d'exploration et adaptation automatique (${targetBatch} candidatures ciblées)...`;
     setAutopilotLogs((prev) => [...prev, startMsg]);
 
     try {
@@ -418,6 +420,7 @@ export default function Home() {
           webhookUrl: discordWebhook.trim(),
           appliedIds: applications.map((a) => a.id),
           offers: liveOffers.length > 0 ? liveOffers : undefined,
+          batchSize: targetBatch,
         }),
       });
 
@@ -3020,19 +3023,39 @@ ${formattedParagraphs}
                   </span>
                 </div>
                 <p className="text-xs text-[#a1a1aa] leading-relaxed max-w-3xl">
-                  L&apos;agent autonome surveille en continu les offres d&apos;emploi internationales, applique les contraintes strictes de ta convention EILCO (Suisse, Luxembourg, Belgique, Allemagne • Hybride/Sur site), génère tes CVs au format STAR avec métriques chiffrées, et t&apos;envoie une notification instantanée sur Discord lorsqu&apos;une candidature est prête ou nécessite un arbitrage humain (Captchas, formulaires externes).
+                  L&apos;agent autonome prospecte en direct les offres internationales en **IA, Machine Learning & Vision par Ordinateur** (Suisse, Luxembourg, Belgique, Allemagne • Hybride/Sur site), génère tes CVs au format STAR avec métriques chiffrées, et t&apos;envoie une notification instantanée sur Discord dès qu&apos;une candidature est prête ou nécessite un arbitrage humain.
                 </p>
               </div>
 
-              {/* Bouton d'action principal */}
-              <button
-                onClick={() => handleRunAutopilotCycle()}
-                disabled={isAutopilotRunning}
-                className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 shadow-lg flex-shrink-0"
-              >
-                <span>{isAutopilotRunning ? "⏳" : "🚀"}</span>
-                <span>{isAutopilotRunning ? "Cycle Auto-Pilot en cours..." : "Lancer un Cycle Auto-Pilot"}</span>
-              </button>
+              {/* Contrôles d'action : Sélecteur de volume & Bouton de lancement */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-1 bg-[#09090b] border border-[#27272a] rounded-xl p-1">
+                  <span className="text-[10px] text-[#71717a] font-semibold px-2">Volume :</span>
+                  {[3, 5, 8, 10].map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setAutopilotBatchSize(size)}
+                      className={`text-xs px-2.5 py-1 rounded-lg font-bold transition ${
+                        autopilotBatchSize === size
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-[#a1a1aa] hover:text-white hover:bg-[#27272a]"
+                      }`}
+                      title={`Traiter jusqu'à ${size} offres par cycle`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => handleRunAutopilotCycle()}
+                  disabled={isAutopilotRunning}
+                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition active:scale-[0.99] disabled:opacity-50 shadow-lg"
+                >
+                  <span>{isAutopilotRunning ? "⏳" : "🚀"}</span>
+                  <span>{isAutopilotRunning ? "Cycle en cours..." : `Lancer (${autopilotBatchSize} candidatures)`}</span>
+                </button>
+              </div>
             </div>
 
             {/* Badges des filtres et règles pré-programmées */}

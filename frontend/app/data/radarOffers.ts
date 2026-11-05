@@ -371,6 +371,36 @@ export function calculateOfferPriority(offer: RadarJobOffer): OfferPriorityResul
     score += 10;
   }
 
+  // E. Bonus Orientation : IA, ML & Computer Vision prioritaires (Full-Stack en soutien MLOps)
+  const isVision =
+    /\b(computer vision|machine vision|vision|image processing|opencv|yolo|segmentation|point cloud|detection|multimodal|ocr)\b/i.test(
+      combined
+    );
+  const isAiMlCore =
+    /\b(machine learning|deep learning|intelligence artificielle|artificial intelligence|ai|ml|nlp|llm|transformers|data science|reinforcement learning|neural)\b/i.test(
+      combined
+    );
+  const titleLower = (offer.title || "").toLowerCase();
+  const isPureWebFullStack =
+    /\b(full[- ]?stack developer|fullstack web|frontend developer|front[- ]?end|react developer|node developer|angular|vuejs|web developer)\b/i.test(
+      titleLower
+    ) &&
+    !isAiMlCore &&
+    !isVision;
+
+  if (isVision) {
+    score += 85;
+    priorityBadges.push("👁️ Machine Vision");
+  } else if (isAiMlCore) {
+    score += 65;
+    priorityBadges.push("🧠 Cœur IA/ML");
+  }
+
+  // Si offre purement web sans IA, reléguer derrière les vraies opportunités IA
+  if (isPureWebFullStack) {
+    score -= 60;
+  }
+
   // Badge langue certifié
   priorityBadges.push(detectedLang === "en" ? "🇬🇧 Anglais" : "🇫🇷 Français");
 
@@ -470,6 +500,52 @@ export const DEEP_SEARCH_PORTALS: DeepSearchPortal[] = [
 ];
 
 export const RADAR_JOB_OFFERS: RadarJobOffer[] = [
+  {
+    id: "distalmotion-epfl-edge-cv",
+    company: "Distalmotion (EPFL)",
+    title: "Edge AI & Computer Vision Intern – Real-Time Tracking & Deep Learning",
+    location: "Lausanne (Vaud), Suisse",
+    country: "Suisse",
+    countryFlag: "🇨🇭",
+    workplace: "Présentiel",
+    compensation: "4,200 CHF / mois",
+    skills: ["Python", "Computer Vision", "Machine Vision", "PyTorch", "OpenCV", "YOLO", "Edge AI", "TensorRT"],
+    url: "https://www.distalmotion.com/careers",
+    description: `Distalmotion (EPFL Innovation Park) - Lausanne, Switzerland.
+Role: Edge AI & Computer Vision Intern (6 months PFE dès mars/avril 2027).
+Missions :
+- Développer et optimiser des modèles de Vision par Ordinateur et Deep Learning temps réel pour le suivi d'instruments et la segmentation vidéo sous PyTorch et OpenCV.
+- Quantifier et accélérer les réseaux de neurones (YOLO, CNNs, Transformers visuels) sur cibles embarquées NVIDIA Jetson via TensorRT.
+- Concevoir des pipelines de prétraitement et d'augmentation d'images médicales à haute cadence.
+Profil : Élève-ingénieur en dernière année (Bac+5) spécialisé en Vision par Ordinateur, IA ou Robotique. Maîtrise de Python, OpenCV, PyTorch. Anglais courant.`,
+    postedAgo: "Il y a 2 heures",
+    isFresh: true,
+    applicantsCount: 4,
+    language: "fr",
+  },
+  {
+    id: "leica-geosystems-machine-vision",
+    company: "Leica Geosystems",
+    title: "Machine Vision & 3D Spatial Perception Intern",
+    location: "Heerbrugg (Saint-Gall), Suisse",
+    country: "Suisse",
+    countryFlag: "🇨🇭",
+    workplace: "Hybride",
+    compensation: "3,900 CHF / mois",
+    skills: ["Python", "Machine Vision", "Computer Vision", "OpenCV", "PyTorch", "3D Point Clouds", "CNNs"],
+    url: "https://leica-geosystems.com/about-us/careers",
+    description: `Leica Geosystems (Hexagon Group) - Heerbrugg, Switzerland.
+Role: Machine Vision & 3D Spatial Perception Intern (6 months PFE).
+Tasks:
+- Research, prototype and benchmark machine vision algorithms for automated surface defect inspection, visual odometry, and spatial perception.
+- Implement deep learning architectures with PyTorch and OpenCV for feature extraction, semantic segmentation and point cloud processing.
+- Containerize inference pipelines and integrate APIs for embedded sensor integration.
+Qualifications: Master's student in Computer Vision, Machine Learning, or Robotics. Strong knowledge of Python, NumPy, OpenCV, and PyTorch. Fluent in English.`,
+    postedAgo: "Il y a 4 heures",
+    isFresh: true,
+    applicantsCount: 6,
+    language: "en",
+  },
   {
     id: "roche-ai-metadata",
     company: "Roche",

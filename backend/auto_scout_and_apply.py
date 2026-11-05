@@ -109,10 +109,14 @@ def call_gemini(job_text: str, job_title: str, company: str):
 Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et son alignement avec ZÉRO HALLUCINATION.
 
 === PROFIL RÉEL DU CANDIDAT ===
-- Badroudine Bacar, Étudiant en dernière année d'école d'ingénieurs à l'EILCO (Bac+5 / Spécialité IA & Data Science).
+- Badroudine Bacar, Étudiant en dernière année d'école d'ingénieurs à l'EILCO (Bac+5 / Spécialité IA, Machine Learning & Vision par Ordinateur).
+- Positionnement : Ingénieur IA & Machine Learning (Deep Learning, Vision par Ordinateur / Machine Vision, NLP). Les compétences Full-Stack (FastAPI, React, Docker) sont au service de l'industrialisation des modèles (MLOps, serving API), non un profil web classique.
 - Issu de CPGE TSI au Lycée Antonin Artaud.
 - Anglais courant certifié C1 (TOEIC 905/990).
-- Projets réels : VectorWord (FastAPI, Docker, Word2Vec cosinus, latency < 40ms) & Pipeline RAG (Few-Shot Prompting, Pydantic, hallucination < 2%).
+- Projets réels :
+  1. VectorWord : API haute performance (FastAPI, Docker, Word2Vec cosinus, latency < 40ms).
+  2. Pipeline RAG : Few-Shot Prompting, Pydantic, hallucination < 2%, orchestration multi-agents.
+  3. Étiquette Jaune : Machine Vision & OCR mobile (Google ML Kit, OpenCV, détection temps réel).
 - Passions : Jeux de stratégie & théorie des jeux (One Piece TCG), Secourisme (PSC1) & bénévolat associatif.
 
 === OFFRE CIBLÉE ===

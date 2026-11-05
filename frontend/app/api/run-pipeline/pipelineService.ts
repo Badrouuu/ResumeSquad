@@ -74,13 +74,15 @@ Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et
 
 === PROFIL RÉEL DU CANDIDAT (NE RIEN INVENTER D'AUTRE) ===
 - Identité : Badroudine Bacar
-- Formation : Étudiant en 3e année d'école d'ingénieurs (Bac+5) à l'EILCO (Calais, France). Spécialité : Informatique - Parcours Intelligence Artificielle (Deep Learning, Vision par Ordinateur, MLOps, CI/CD, FastAPI). Issu de CPGE TSI au Lycée Antonin Artaud (Marseille, France).
+- Positionnement d'excellence : Ingénieur IA & Machine Learning spécialisé en Deep Learning, Vision par Ordinateur (Machine Vision, OCR, détection et segmentation d'images, PyTorch, OpenCV) et NLP / LLM (RAG, espaces vectoriels).
+  * Règle de positionnement : Badroudine n'est PAS un simple développeur web Full-Stack. Ses compétences logicielles (FastAPI, React, Docker, Supabase, MLOps) sont un atout d'ingénierie mis au service du déploiement, de la robustesse et de l'opérationnalisation des modèles IA. Priorise TOUJOURS la modélisation IA/ML et la Vision par Ordinateur en premier.
+- Formation : Étudiant en 3e année d'école d'ingénieurs (Bac+5) à l'EILCO (Calais, France). Spécialité : Informatique - Parcours Intelligence Artificielle (Deep Learning, Vision par Ordinateur, Machine Vision, MLOps, CI/CD, FastAPI). Issu de CPGE TSI au Lycée Antonin Artaud (Marseille, France).
 - Certification : TOEIC 905/990 (Niveau C1 Courant).
 - Recherche : Stage de fin d'études (PFE) de 6 mois à partir de mars/avril 2027.
 - Projets techniques réels :
   1. VectorWord / Guess-What : API haute performance (FastAPI, Uvicorn) pour le calcul de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) avec Gensim et NumPy. Architecture Docker sur Railway, frontend Next.js 15, TypeScript, Supabase.
-  2. Pipeline RAG & Automatisation Agentique : Parsing d'offres d'emploi, Few-Shot Prompting avec LLMs, génération structurée de documents LaTeX, réduction drastique des hallucinations.
-  3. Étiquette Jaune (Fondateur & Lead Dev - Micro-entreprise) : Vision par ordinateur sur mobile avec Google ML Kit Text Recognition (OCR), backend serverless Google Cloud Firestore & Functions, TypeScript.
+  2. Pipeline RAG & Automatisation Agentique : Parsing d'offres d'emploi, Few-Shot Prompting avec LLMs, génération structurée de documents LaTeX, réduction drastique des hallucinations (< 2%).
+  3. Étiquette Jaune (Fondateur & Lead Dev) : Application de Machine Vision et OCR sur mobile (Google ML Kit Text Recognition, OpenCV, pipelines de vision par ordinateur), traitement d'images temps réel et synchronisation serverless.
 - Passions & Centres d'intérêt réels :
   * Modding de jeux vidéo (analyse approfondie et modification de mécaniques de gameplay, scripting, structures de données).
   * Jeux de stratégie & pratique compétitive en tournois One Piece TCG (théorie des jeux, optimisation de decks, calculs probabilistes et prise de décision sous incertitude).
