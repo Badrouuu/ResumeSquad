@@ -180,6 +180,10 @@ class LinkedInBrowserAgent:
         if not self.page:
             return False
         try:
+            # 1. Vérification par jeton de session maître li_at
+            cookies = self.context.cookies() if self.context else []
+            has_li_at = any(c.get("name") == "li_at" and len(c.get("value", "")) > 15 for c in cookies)
+
             print("🔑 [Session] Vérification de la connexion à LinkedIn...")
             self.page.goto("https://www.linkedin.com/feed/", wait_until="domcontentloaded", timeout=25000)
             self.human_delay(2, 3)
@@ -188,10 +192,17 @@ class LinkedInBrowserAgent:
             if "login" in current_url or "authwall" in current_url or "signup" in current_url:
                 return False
 
-            logged_in_indicator = self.page.locator(".global-nav__me, .search-global-typeahead__input, nav.global-nav, a[href*='/in/']").first
+            logged_in_indicator = self.page.locator(
+                ".global-nav__me, .search-global-typeahead, nav.global-nav, a[href*='/in/'], .feed-identity-module"
+            ).first
             if logged_in_indicator.is_visible(timeout=5000):
                 print("✅ [Session] Authentification LinkedIn active et valide !")
                 return True
+
+            if has_li_at and "login" not in current_url and "authwall" not in current_url:
+                print("✅ [Session] Session confirmée via le jeton de sécurité 'li_at' !")
+                return True
+
             return True
         except Exception as e:
             print(f"⚠️ [Session] Avertissement vérification: {e}")
@@ -200,20 +211,23 @@ class LinkedInBrowserAgent:
     def wait_for_manual_login(self, timeout_sec: int = 300) -> bool:
         """
         Garde le navigateur ouvert et attend que l'utilisateur saisisse ses identifiants.
-        Sauvegarde automatiquement les cookies et le profil une fois connecté.
+        Détecte automatiquement la connexion via :
+        1. Le jeton maître 'li_at' dans les cookies de session (fiabilité 100%)
+        2. Les sélecteurs du DOM (.global-nav, barre de recherche, avatar de profil)
+        3. L'URL connectée (/feed, /in/, /home, etc.)
         """
-        if not self.page:
+        if not self.page or not self.context:
             return False
 
         print("\n" + "=" * 70)
         print("🔑 [ACTION REQUISE : CONNEXION À VOTRE COMPTE LINKEDIN]")
         print("La fenêtre Chromium est ouverte devant vous.")
         print("👉 1. Saisissez votre adresse email et votre mot de passe LinkedIn.")
-        print("👉 2. Validez le code de sécurité 2FA / CAPTCHA éventuel.")
-        print("👉 3. Le bot reste ouvert et détecte automatiquement votre connexion (5 min max)...")
+        print("👉 2. Validez le code de sécurité 2FA / CAPTCHA ou les fenêtres 'Ignorer/Plus tard'.")
+        print("👉 3. Le bot détecte automatiquement votre session dès que vous êtes connecté.")
         print("=" * 70 + "\n")
 
-        if "login" not in self.page.url:
+        if "login" not in self.page.url and "checkpoint" not in self.page.url:
             try:
                 self.page.goto("https://www.linkedin.com/login", wait_until="domcontentloaded", timeout=25000)
             except Exception:
@@ -228,33 +242,74 @@ class LinkedInBrowserAgent:
                     print("🛑 [Navigateur] Fenêtre fermée par l'utilisateur.")
                     return False
 
-                current_url = self.page.url
-                # Détection de l'accès à l'espace connecté
-                if any(x in current_url for x in ("/feed", "/mynetwork", "/jobs", "/in/", "/messaging")):
-                    is_me = self.page.locator(".global-nav__me, nav.global-nav, .search-global-typeahead, a[href*='/in/']").first.is_visible()
-                    if is_me or "/feed" in current_url:
-                        print("\n🎉 [Succès] Connexion LinkedIn confirmée !")
-                        # Sauvegarde des cookies pour persistance
-                        try:
-                            cookies = self.context.cookies()
-                            with open(self.cookies_path, "w", encoding="utf-8") as f:
-                                json.dump(cookies, f, indent=2)
-                            print(f"🍪 [Cookies] {len(cookies)} cookies exportés dans '{self.cookies_path}'.")
-                            print(f"📁 [Profil] Session sauvegardée dans '{self.user_data_dir}'.")
-                        except Exception as ce:
-                            print(f"ℹ️ [Note cookies]: {ce}")
-                        return True
+                # 1. Vérification par Cookie maître li_at (session LinkedIn active)
+                cookies = self.context.cookies()
+                has_li_at = any(c.get("name") == "li_at" and len(c.get("value", "")) > 15 for c in cookies)
 
-                # Message d'avancement toutes les 15 secondes
+                # 2. Vérification par URL sur toutes les pages ouvertes du contexte
+                urls = [p.url for p in self.context.pages if not p.is_closed()]
+                current_url = self.page.url
+                is_on_auth_page = any(
+                    any(term in u for term in ("/login", "/signup", "/uas/login", "/authwall"))
+                    for u in urls
+                )
+                is_on_app_page = any(
+                    any(term in u for term in ("/feed", "/mynetwork", "/jobs", "/in/", "/messaging", "/home", "/check/add-phone", "checkpoint/lg"))
+                    for u in urls
+                )
+
+                # 3. Vérification des éléments du DOM connectés
+                dom_connected = False
+                for p in self.context.pages:
+                    if not p.is_closed():
+                        try:
+                            loc = p.locator(
+                                ".global-nav__me, nav.global-nav, .search-global-typeahead, a[href*='/in/'], .feed-identity-module, [data-control-name='nav.settings_signout']"
+                            ).first
+                            if loc.is_visible(timeout=400):
+                                dom_connected = True
+                                break
+                        except Exception:
+                            pass
+
+                # Déclenchement dès que le jeton li_at est là ET qu'on n'est plus sur la page de login,
+                # OU dès que le DOM connecté est visible
+                if (has_li_at and not is_on_auth_page) or dom_connected or (has_li_at and is_on_app_page):
+                    print("\n🎉 [Succès] Connexion LinkedIn confirmée !")
+
+                    # Redirection proactive vers /feed si resté sur une page intermédiaire
+                    if not is_on_auth_page and "/feed" not in current_url:
+                        try:
+                            print("🧭 [Navigation] Accès au fil d'actualité LinkedIn (/feed)...")
+                            self.page.goto("https://www.linkedin.com/feed/", wait_until="domcontentloaded", timeout=15000)
+                            time.sleep(2)
+                        except Exception:
+                            pass
+
+                    # Sauvegarde des cookies pour réutilisation transparente
+                    try:
+                        clean_cookies = self.context.cookies()
+                        with open(self.cookies_path, "w", encoding="utf-8") as f:
+                            json.dump(clean_cookies, f, indent=2)
+                        print(f"🍪 [Cookies] {len(clean_cookies)} cookies exportés dans '{self.cookies_path}'.")
+                        print(f"📁 [Profil] Session sauvegardée dans '{self.user_data_dir}'.")
+                    except Exception as ce:
+                        print(f"ℹ️ [Note cookies]: {ce}")
+                    return True
+
+                # Message d'avancement toutes les 10 secondes
                 elapsed = int(time.time() - start_time)
-                if elapsed - last_logged >= 15:
+                if elapsed - last_logged >= 10:
                     last_logged = elapsed
                     rem = int(timeout_sec - elapsed)
-                    print(f"⏳ En attente de votre connexion... ({rem}s restantes)")
+                    if has_li_at:
+                        print(f"⏳ Jeton de connexion détecté ! Finalisation de la session... ({rem}s restantes)")
+                    else:
+                        print(f"⏳ En attente de votre connexion... ({rem}s restantes)")
 
             except Exception:
                 pass
-            time.sleep(2)
+            time.sleep(1.5)
 
         print("⏱️ [Délai dépassé] Temps d'attente de connexion expiré (5 minutes).")
         return False
