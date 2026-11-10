@@ -465,9 +465,20 @@ class LinkedInBrowserAgent:
                 show_more.click()
                 time.sleep(0.5)
 
-            desc_elem = self.page.locator(".jobs-description__content, .jobs-box__html-content, #job-details").first
-            if desc_elem.is_visible():
-                return desc_elem.inner_text().strip()
+            for sel in [
+                ".jobs-description__content",
+                ".jobs-box__html-content",
+                "#job-details",
+                ".jobs-description",
+                "article",
+                "main#workspace",
+                "main",
+            ]:
+                desc_elem = self.page.locator(sel).first
+                if desc_elem.is_visible():
+                    text = desc_elem.inner_text().strip()
+                    if len(text) > 50:
+                        return text
             return ""
         except Exception as e:
             print(f"⚠️ [Description] Erreur extraction texte offre: {e}")
