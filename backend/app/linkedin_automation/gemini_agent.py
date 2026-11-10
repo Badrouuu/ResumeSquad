@@ -13,6 +13,9 @@ import re
 from pathlib import Path
 from typing import Optional, Tuple
 
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 try:
     from google import genai
     from google.genai import types
@@ -20,11 +23,13 @@ try:
 except ImportError:
     HAS_GOOGLE_GENAI = False
 
-try:
-    import google.generativeai as legacy_genai
-    HAS_LEGACY_GENAI = True
-except ImportError:
-    HAS_LEGACY_GENAI = False
+HAS_LEGACY_GENAI = False
+if not HAS_GOOGLE_GENAI:
+    try:
+        import google.generativeai as legacy_genai
+        HAS_LEGACY_GENAI = True
+    except ImportError:
+        pass
 
 try:
     from reportlab.lib.pagesizes import letter

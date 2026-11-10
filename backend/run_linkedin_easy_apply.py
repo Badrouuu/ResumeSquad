@@ -52,6 +52,11 @@ def main():
         help="Localisation géographique (défaut : 'France')",
     )
     parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Exécute un seul cycle de candidatures puis s'arrête (par défaut si --daemon n'est pas spécifié)",
+    )
+    parser.add_argument(
         "--daemon",
         action="store_true",
         help="Exécute le worker en boucle perpétuelle d'arrière-plan",
