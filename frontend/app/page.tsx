@@ -346,7 +346,12 @@ export default function Home() {
       if (savedLive) {
         const parsed = JSON.parse(savedLive);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].postedAgo) {
-          setLiveOffers(parsed);
+          // Filtrage proactif : élimine les offres devenues inéligibles (ex: Business Analyst, saturées > 60 candidats)
+          const strictlyEligible = parsed.filter((o) => {
+            const p = calculateOfferPriority(o);
+            return p.isEligible;
+          });
+          setLiveOffers(strictlyEligible);
         }
       }
     } catch (e) {
@@ -549,13 +554,18 @@ export default function Home() {
     setAutopilotLogs((prev) => [...prev, startMsg]);
 
     try {
+      const strictlyEligibleOffers = liveOffers.filter((o) => {
+        const p = calculateOfferPriority(o, userPreferences || undefined);
+        return p.isEligible;
+      });
+
       const res = await fetch("/api/autopilot/cycle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           webhookUrl: discordWebhook.trim(),
           appliedIds: applications.map((a) => a.id),
-          offers: liveOffers.length > 0 ? liveOffers : undefined,
+          offers: strictlyEligibleOffers.length > 0 ? strictlyEligibleOffers : undefined,
           batchSize: targetBatch,
           browserApply: autoBrowserApply,
         }),
@@ -1637,6 +1647,14 @@ ${formattedParagraphs}
                 offer.postedAgo.includes("1 jour") ||
                 offer.postedAgo.includes("2 jours") ||
                 offer.postedAgo.includes("3 jours"))));
+      }
+
+      // Règle d'éligibilité stricte : écarte les offres hors domaine IA ou saturées (>60 candidats)
+      if (!query) {
+        const priority = calculateOfferPriority(offer, userPreferences || undefined);
+        if (!priority.isEligible) {
+          return false;
+        }
       }
 
       return matchesCountry && matchesSearch && matchesTimeframe;

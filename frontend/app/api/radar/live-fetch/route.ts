@@ -4,6 +4,8 @@ import {
   detectOfferLanguage,
   requiresNonEnFrLanguage,
   extractApplicantsCount,
+  isTechAiDomain,
+  isDirectAtsOrPortal,
 } from "@/app/data/radarOffers";
 
 export const dynamic = "force-dynamic";
@@ -123,8 +125,31 @@ async function fetchLinkedInGuestJobs(
         continue; // Élimine les offres exigeant l'allemand ou le néerlandais
       }
 
+      // Filtrage strict : éliminer déterministement les offres non-tech (Business Analyst, Finance, Audit, etc.)
+      if (!isTechAiDomain(rawTitle, rawCompany)) {
+        continue;
+      }
+
+      // Rejet des agrégateurs / cabinets connus pour poster des rôles de comptabilité/finance/audit
+      const rawCompLower = rawCompany.toLowerCase();
+      if (
+        rawCompLower.includes("acca") ||
+        rawCompLower.includes("kpmg") ||
+        rawCompLower.includes("pwc") ||
+        rawCompLower.includes("deloitte") ||
+        rawCompLower.includes("ey ") ||
+        rawCompLower.includes("ernst & young")
+      ) {
+        if (!rawTitle.toLowerCase().includes("machine learning") && !rawTitle.toLowerCase().includes("computer vision")) {
+          continue;
+        }
+      }
+
       // Extraction et estimation du nombre de candidats actuels
-      const { count: applicantsCount } = extractApplicantsCount("", formattedDate);
+      const { count: applicantsCount } = extractApplicantsCount(rawTitle, formattedDate);
+      if (applicantsCount > 60) {
+        continue; // Écarte directement les offres saturées (>60 candidats)
+      }
 
       // Déduction dynamique des compétences techniques
       const lower = rawTitle.toLowerCase();
@@ -189,26 +214,27 @@ export async function fetchLiveRadarOffers(timeframeParam: string = "7d"): Promi
 
   const liveOffers: RadarJobOffer[] = [];
 
-  // Exécution concurrente multi-pays, multi-mots-clés (IA, ML, Computer Vision, MLOps)
+  // Exécution concurrente multi-pays, requêtes booléennes strictes (IA, ML, Computer Vision, MLOps)
   const results = await Promise.allSettled([
     // Suisse : ML, AI, Vision
-    fetchLinkedInGuestJobs("Machine Learning Intern", "Switzerland", "Suisse", "🇨🇭", fTpr),
-    fetchLinkedInGuestJobs("AI Engineer Intern", "Switzerland", "Suisse", "🇨🇭", fTpr),
-    fetchLinkedInGuestJobs("Computer Vision Intern", "Switzerland", "Suisse", "🇨🇭", fTpr),
-    fetchLinkedInGuestJobs("AI Intern", "Geneva", "Suisse", "🇨🇭", fTpr),
-    fetchLinkedInGuestJobs("Data Science Intern", "Zurich", "Suisse", "🇨🇭", fTpr),
-    fetchLinkedInGuestJobs("Computer Vision Intern", "Zurich", "Suisse", "🇨🇭", fTpr),
-    // Luxembourg : ML & Applied AI
-    fetchLinkedInGuestJobs("Internship Machine Learning", "Luxembourg", "Luxembourg", "🇱🇺", fTpr),
-    fetchLinkedInGuestJobs("AI Intern", "Luxembourg", "Luxembourg", "🇱🇺", fTpr),
+    fetchLinkedInGuestJobs('"Machine Learning" Intern', "Switzerland", "Suisse", "🇨🇭", fTpr),
+    fetchLinkedInGuestJobs('"Computer Vision" Intern', "Switzerland", "Suisse", "🇨🇭", fTpr),
+    fetchLinkedInGuestJobs('"AI Engineer" Intern', "Switzerland", "Suisse", "🇨🇭", fTpr),
+    fetchLinkedInGuestJobs('"Deep Learning" Intern', "Zurich", "Suisse", "🇨🇭", fTpr),
+    fetchLinkedInGuestJobs('"Machine Vision" Intern', "Switzerland", "Suisse", "🇨🇭", fTpr),
+    fetchLinkedInGuestJobs('"NLP" Intern', "Geneva", "Suisse", "🇨🇭", fTpr),
+    // Luxembourg : ML & Computer Vision
+    fetchLinkedInGuestJobs('"Machine Learning" Intern', "Luxembourg", "Luxembourg", "🇱🇺", fTpr),
+    fetchLinkedInGuestJobs('"Computer Vision" Intern', "Luxembourg", "Luxembourg", "🇱🇺", fTpr),
+    fetchLinkedInGuestJobs('"AI" Internship', "Luxembourg", "Luxembourg", "🇱🇺", fTpr),
     // Belgique : ML & Computer Vision
-    fetchLinkedInGuestJobs("Machine Learning Intern", "Brussels", "Belgique", "🇧🇪", fTpr),
-    fetchLinkedInGuestJobs("Computer Vision Intern", "Brussels", "Belgique", "🇧🇪", fTpr),
+    fetchLinkedInGuestJobs('"Machine Learning" Intern', "Brussels", "Belgique", "🇧🇪", fTpr),
+    fetchLinkedInGuestJobs('"Computer Vision" Intern', "Brussels", "Belgique", "🇧🇪", fTpr),
     // Allemagne : ML, Deep Learning & Machine Vision
-    fetchLinkedInGuestJobs("Machine Learning Intern", "Munich", "Allemagne", "🇩🇪", fTpr),
-    fetchLinkedInGuestJobs("Computer Vision Intern", "Munich", "Allemagne", "🇩🇪", fTpr),
-    fetchLinkedInGuestJobs("Machine Vision Intern", "Germany", "Allemagne", "🇩🇪", fTpr),
-    fetchLinkedInGuestJobs("Deep Learning Intern", "Germany", "Allemagne", "🇩🇪", fTpr),
+    fetchLinkedInGuestJobs('"Machine Learning" Intern', "Munich", "Allemagne", "🇩🇪", fTpr),
+    fetchLinkedInGuestJobs('"Computer Vision" Intern', "Munich", "Allemagne", "🇩🇪", fTpr),
+    fetchLinkedInGuestJobs('"Machine Vision" Intern', "Germany", "Allemagne", "🇩🇪", fTpr),
+    fetchLinkedInGuestJobs('"Deep Learning" Intern', "Germany", "Allemagne", "🇩🇪", fTpr),
     // SwissDevJobs API
     (async () => {
       const res = await fetch("https://swissdevjobs.ch/api/jobsLight", {

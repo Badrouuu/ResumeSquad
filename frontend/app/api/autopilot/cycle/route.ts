@@ -78,17 +78,23 @@ export async function POST(request: Request) {
     let langRejections = 0;
     let eilcoRejections = 0;
     let feedbackRejections = 0;
+    let domainRejections = 0;
+    let competitionRejections = 0;
 
     const evaluatedOffers = unappliedOffers.map((offer) => {
       const priority = calculateOfferPriority(offer, userPreferences);
       return { offer, priority };
     });
 
-    const eligibleOffers = evaluatedOffers.filter(({ priority }) => {
+    const eligibleOffers = evaluatedOffers.filter(({ priority, offer }) => {
       if (!priority.isEligible) {
         const reason = priority.rejectionReason || "";
         if (reason.includes("feedback") || reason.includes("écartée")) {
           feedbackRejections++;
+        } else if (reason.includes("non technique") || reason.includes("hors domaine") || reason.includes("Hors Métier")) {
+          domainRejections++;
+        } else if (reason.includes("saturée") || reason.includes("postulants")) {
+          competitionRejections++;
         } else if (
           reason.includes("allemand") ||
           reason.includes("néerlandais") ||
@@ -104,7 +110,13 @@ export async function POST(request: Request) {
     });
 
     if (feedbackRejections > 0) {
-      log(`🗳️ Apprentissage actif : ${feedbackRejections} offre(s) écartée(s) selon vos votes Discord passés.`);
+      log(`🗳️ Apprentissage actif : ${feedbackRejections} offre(s) écartée(s) selon vos votes passés.`);
+    }
+    if (domainRejections > 0) {
+      log(`🎯 Filtrage métier strict : ${domainRejections} offre(s) hors IA/ML/Vision écartées (Business Analyst, Finance, Audit, etc.).`);
+    }
+    if (competitionRejections > 0) {
+      log(`🔥 Filtrage anti-saturation : ${competitionRejections} offre(s) écartées (> 60 postulants). Priorité aux offres fraîches.`);
     }
     if (langRejections > 0) {
       log(`🌐 Filtrage linguistique : ${langRejections} offre(s) écartée(s) (allemand/néerlandais non parlés). Badroudine postule en FR 🇫🇷 ou EN 🇬🇧.`);
@@ -114,22 +126,22 @@ export async function POST(request: Request) {
     }
 
     if (eligibleOffers.length === 0) {
-      log("⚠️ Aucune offre restante ne satisfait les critères d'éligibilité (Langue FR/EN + Présentiel/Hybride EILCO).");
+      log("⚠️ Aucune offre restante ne satisfait les critères d'éligibilité (Cœur IA/Vision + Fraîcheur + Langue FR/EN + Présentiel/Hybride EILCO).");
       return NextResponse.json({
         success: true,
-        message: "Aucune offre éligible FR/EN pour ce cycle.",
+        message: "Aucune offre éligible IA/Vision pour ce cycle.",
         processedApplications: [],
         logs,
       });
     }
 
-    // 4. Tri par Priorité Stratégique (IA & Machine Vision d'abord, Fraîcheur & Faible concurrence)
+    // 4. Tri par Priorité Stratégique (ATS Direct auto-remplissables, IA & Machine Vision d'abord, Fraîcheur & Faible concurrence)
     eligibleOffers.sort((a, b) => b.priority.score - a.priority.score);
 
     const maxProcessPerCycle = Math.min(eligibleOffers.length, requestedBatch);
     const topBatch = eligibleOffers.slice(0, maxProcessPerCycle);
 
-    log(`⚡ Priorisation stratégique activée : Traitement de ${maxProcessPerCycle} offre(s) prioritaires (IA, ML & Machine Vision) :`);
+    log(`⚡ Priorisation stratégique activée : Traitement de ${maxProcessPerCycle} offre(s) prioritaires (ATS Direct, IA/Vision, Fraîcheur) :`);
     topBatch.forEach(({ offer, priority }, idx) => {
       log(`   #${idx + 1} [Score ${priority.score}] ${offer.company} — ${offer.title} (${priority.priorityBadges.join(" | ")})`);
     });

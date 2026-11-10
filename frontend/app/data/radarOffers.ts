@@ -175,24 +175,49 @@ export function extractApplicantsCount(
 ): { count: number; isEarly: boolean } {
   const lower = rawText.toLowerCase();
 
-  // 1. Mentions explicites
-  if (lower.includes("be an early applicant") || lower.includes("premier postulant") || lower.includes("early applicant")) {
+  // 1. Mentions explicites d'alerte forte concurrence (ex: 100+ personnes, >100 postulants)
+  if (
+    lower.includes("100 personnes") ||
+    lower.includes("100+ applicants") ||
+    lower.includes("over 100") ||
+    lower.includes("plus de 100") ||
+    lower.includes("> 100") ||
+    lower.includes("over 200") ||
+    lower.includes("200+ applicants") ||
+    lower.includes("plus de 200")
+  ) {
+    return { count: 120, isEarly: false };
+  }
+
+  // 2. Early applicant signals
+  if (
+    lower.includes("be an early applicant") ||
+    lower.includes("premier postulant") ||
+    lower.includes("premiers postulants") ||
+    lower.includes("early applicant")
+  ) {
     return { count: 5, isEarly: true };
   }
 
-  const underMatch = lower.match(/(?:under|moins de)\s*(\d+)\s*(?:applicants|candidats|postulants)/);
+  const underMatch = lower.match(/(?:under|moins de)\s*(\d+)\s*(?:applicants|candidats|postulants|personnes)/);
   if (underMatch) {
     const val = parseInt(underMatch[1], 10);
     return { count: Math.max(1, Math.round(val / 2)), isEarly: val <= 25 };
   }
 
-  const numMatch = lower.match(/(\d+)\s*(?:applicants|candidats|postulants|bewerbungen)/);
+  const overMatch = lower.match(/(?:over|plus de|plus que|>|\+ de)\s*(\d+)\s*(?:applicants|candidats|postulants|personnes)/);
+  if (overMatch) {
+    const val = parseInt(overMatch[1], 10);
+    return { count: val + 20, isEarly: false };
+  }
+
+  const numMatch = lower.match(/(\d+)\s*(?:applicants|candidats|postulants|personnes|bewerbungen)/);
   if (numMatch) {
     const val = parseInt(numMatch[1], 10);
     return { count: val, isEarly: val <= 25 };
   }
 
-  // 2. Estimation selon la fraîcheur temporelle si non précisé
+  // 3. Estimation selon la fraîcheur temporelle si non précisé
   const ago = (postedAgo || "").toLowerCase();
   if (ago.includes("min") || ago.includes("quelques")) {
     return { count: 4, isEarly: true }; // Moins de 10 candidats
@@ -214,6 +239,172 @@ export function extractApplicantsCount(
   }
 
   return { count: 40, isEarly: false };
+}
+
+/**
+ * Détecte si un lien pointe directement vers un ATS d'entreprise ou portail direct
+ * où Playwright peut naviguer et auto-remplir les formulaires sans Authwall LinkedIn.
+ */
+export function isDirectAtsOrPortal(url: string = ""): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  if (lower.includes("linkedin.com")) return false;
+
+  const directPatterns = [
+    "greenhouse.io",
+    "lever.co",
+    "smartrecruiters.com",
+    "ashbyhq.com",
+    "workable.com",
+    "personio.",
+    "workday.",
+    "taleo.net",
+    "icims.com",
+    "swissdevjobs.ch",
+    "germantechjobs.de",
+    "join.com",
+    "jobup.ch",
+    "careers.",
+    "/careers",
+    "/jobs",
+    "recruitee.com",
+    "bamboohr.com",
+    "moovijob.com",
+    "list.lu",
+    "cern.ch",
+    "epfl.ch",
+    "ethz.ch",
+  ];
+  return directPatterns.some((pattern) => lower.includes(pattern));
+}
+
+/**
+ * Vérifie si une offre relève strictement du domaine IA, Machine Learning, Computer Vision ou Data Science.
+ * Élimine drastiquement les métiers non techniques (Business Analyst, Finance, Audit, Commercial, RH, Marketing, etc.).
+ */
+export function isTechAiDomain(
+  title: string = "",
+  description: string = "",
+  skills: string[] = []
+): boolean {
+  const titleLower = title.toLowerCase().trim();
+  const combined = `${title} ${description} ${skills.join(" ")}`.toLowerCase();
+
+  // 1. MOTS-CLÉS DE REJET FORMEL (Métiers business, finance, audit, support, admin, etc.)
+  const nonTechBlacklist = [
+    /\bbusiness analyst\b/i,
+    /\bfinancial analyst\b/i,
+    /\bfinance intern\b/i,
+    /\bfinancial controller\b/i,
+    /\bfinance\b/i,
+    /\baccounting\b/i,
+    /\baccountant\b/i,
+    /\bcomptable\b/i,
+    /\bcomptabilit[ée]\b/i,
+    /\baudit\b/i,
+    /\bauditor\b/i,
+    /\btax\b/i,
+    /\btaxes\b/i,
+    /\bcommercial\b/i,
+    /\bsales\b/i,
+    /\bvendeur\b/i,
+    /\bbusiness develop(?:er|ment)\b/i,
+    /\bbizdev\b/i,
+    /\baccount executive\b/i,
+    /\bmarketing\b/i,
+    /\bdigital marketing\b/i,
+    /\bseo\b/i,
+    /\bsea\b/i,
+    /\bcommunication\b/i,
+    /\bcommunity manager\b/i,
+    /\bhuman resources\b/i,
+    /\bressources humaines\b/i,
+    /\bhr intern\b/i,
+    /\brecruiter\b/i,
+    /\brecrutement\b/i,
+    /\btalent acquisition\b/i,
+    /\bjuriste\b/i,
+    /\blegal\b/i,
+    /\bjuridique\b/i,
+    /\bcompliance\b/i,
+    /\bconformit[ée]\b/i,
+    /\bsupply chain\b/i,
+    /\blogistique\b/i,
+    /\bachats\b/i,
+    /\bprocurement\b/i,
+    /\bscrum master\b/i,
+    /\bproduct owner\b/i,
+    /\bcustomer support\b/i,
+    /\bcustomer success\b/i,
+    /\bsupport client\b/i,
+    /\bhelpdesk\b/i,
+    /\boffice manager\b/i,
+    /\badministrat(?:ion|if|ive)\b/i,
+  ];
+
+  for (const regex of nonTechBlacklist) {
+    if (regex.test(titleLower)) {
+      // Exception UNIQUE si le titre contient explicitement un titre d'ingénieur/chercheur IA
+      const isExplicitAiEngineer =
+        /\b(machine learning engineer|ai engineer|computer vision engineer|deep learning engineer|mlops engineer|ai researcher|chercheur ia)\b/i.test(
+          titleLower
+        );
+      if (!isExplicitAiEngineer) {
+        return false;
+      }
+    }
+  }
+
+  // 2. MOTS-CLÉS DE CONFIRMATION IA / ML / VISION
+  const aiKeywords = [
+    "machine learning",
+    "deep learning",
+    "computer vision",
+    "machine vision",
+    "artificial intelligence",
+    "intelligence artificielle",
+    "vision par ordinateur",
+    "traitement d'images",
+    "image processing",
+    "nlp",
+    "natural language processing",
+    "traitement automatique du langage",
+    "llm",
+    "llms",
+    "transformers",
+    "reinforcement learning",
+    "neural",
+    "data science",
+    "data scientist",
+    "mlops",
+    "edge ai",
+    "pytorch",
+    "tensorflow",
+    "opencv",
+    "yolo",
+    "robotics",
+    "robotique",
+    "autonomous",
+    "point cloud",
+    "point clouds",
+    "perception 3d",
+    "3d perception",
+  ];
+
+  const hasAiSignal = aiKeywords.some((kw) => combined.includes(kw));
+
+  // 3. SIGNAL DANS LE TITRE
+  const hasAiInTitle =
+    /\b(ai|ia|ml|vision|deep learning|machine learning|data scientist|data science|computer vision|machine vision|robotics|mlops|nlp|algorithm|perception|generative ai)\b/i.test(
+      titleLower
+    );
+
+  const isTechRoleTitle =
+    /\b(intern|internship|stage|stagiaire|pfe|engineer|ing[ée]nieur|researcher|chercheur|developer|d[ée]veloppeur|scientist)\b/i.test(
+      titleLower
+    );
+
+  return (hasAiInTitle && isTechRoleTitle) || (hasAiSignal && isTechRoleTitle && !/\b(business|finance|sales|marketing|hr|rh)\b/i.test(titleLower));
 }
 
 export interface OfferPriorityResult {
@@ -342,11 +533,40 @@ export function calculateOfferPriority(
     };
   }
 
+  // Rejet strict si métier non technique ou hors domaine IA / Machine Learning / Computer Vision
+  if (!isTechAiDomain(title, desc, offer.skills)) {
+    return {
+      score: -9999,
+      isEligible: false,
+      rejectionReason:
+        "Rôle non technique ou hors domaine IA / Machine Learning / Computer Vision (ex: Business Analyst, Finance, Audit, Commercial, RH). Réservé aux stages PFE d'ingénieur IA.",
+      detectedLang,
+      applicantsCount: 50,
+      isEarly: false,
+      isUltraFresh: false,
+      priorityBadges: ["🚫 Hors Métier IA"],
+    };
+  }
+
   // 2. Métriques de candidats et fraîcheur
   const { count: applicantsCount, isEarly } =
     typeof offer.applicantsCount === "number"
       ? { count: offer.applicantsCount, isEarly: offer.applicantsCount <= 25 }
-      : extractApplicantsCount(desc, offer.postedAgo);
+      : extractApplicantsCount(`${desc} ${title}`, offer.postedAgo);
+
+  // Rejet strict si concurrence saturée (> 60 postulants ou mention explicite 100+ personnes)
+  if (applicantsCount > 60) {
+    return {
+      score: -9999,
+      isEligible: false,
+      rejectionReason: `Concurrence saturée (${applicantsCount} postulants > 60). L'Auto-Pilot privilégie les opportunités fraîches à fort taux de conversion.`,
+      detectedLang,
+      applicantsCount,
+      isEarly: false,
+      isUltraFresh: false,
+      priorityBadges: [`🚫 Saturée (${applicantsCount} postulants)`],
+    };
+  }
 
   const rawAgo = (offer.postedAgo || "").toLowerCase();
   const isUltraFresh =
@@ -381,18 +601,30 @@ export function calculateOfferPriority(
 
   // B. Bonus Faible Concurrence (< 10 ou < 25 candidats)
   if (applicantsCount <= 10) {
-    score += 130;
+    score += 140;
     priorityBadges.push(`🎯 Très peu de candidats (${applicantsCount})`);
   } else if (applicantsCount <= 25) {
-    score += 80;
+    score += 90;
     priorityBadges.push(`🚀 Early Applicant (${applicantsCount} postulants)`);
-  } else if (applicantsCount <= 50) {
+  } else if (applicantsCount <= 45) {
     score += 30;
-  } else if (applicantsCount > 100) {
+  } else if (applicantsCount > 50) {
     score -= 40;
   }
 
-  // C. Pays prioritaires
+  // C. Bonus ATS Direct (Playwright Auto-Fill) vs Malus Authwall LinkedIn
+  const isDirectPortal = isDirectAtsOrPortal(offer.url);
+  const isLinkedIn = (offer.url || "").toLowerCase().includes("linkedin.com");
+
+  if (isDirectPortal) {
+    score += 90;
+    priorityBadges.push("🌐 ATS Direct (Auto-Fill)");
+  } else if (isLinkedIn) {
+    score -= 40;
+    priorityBadges.push("⚠️ Authwall LinkedIn");
+  }
+
+  // D. Pays prioritaires
   if (offer.country === "Suisse") {
     score += 25;
   } else if (offer.country === "Luxembourg") {
@@ -401,12 +633,12 @@ export function calculateOfferPriority(
     score += 15;
   }
 
-  // D. Mode de travail
+  // E. Mode de travail
   if (offer.workplace === "Hybride") {
     score += 10;
   }
 
-  // E. Bonus Orientation : IA, ML & Computer Vision prioritaires (Full-Stack en soutien MLOps)
+  // F. Bonus Orientation : IA, ML & Computer Vision prioritaires (Full-Stack en soutien MLOps)
   const isVision =
     /\b(computer vision|machine vision|vision|image processing|opencv|yolo|segmentation|point cloud|detection|multimodal|ocr)\b/i.test(
       combined
@@ -424,10 +656,10 @@ export function calculateOfferPriority(
     !isVision;
 
   if (isVision) {
-    score += 85;
+    score += 95;
     priorityBadges.push("👁️ Machine Vision");
   } else if (isAiMlCore) {
-    score += 65;
+    score += 75;
     priorityBadges.push("🧠 Cœur IA/ML");
   }
 
@@ -436,7 +668,7 @@ export function calculateOfferPriority(
     score -= 60;
   }
 
-  // F. Ajustement par Apprentissage Actif & Préférences Utilisateur
+  // G. Ajustement par Apprentissage Actif & Préférences Utilisateur
   if (preferences) {
     // 1. Bonus entreprise préférée ou offre likée
     const isLikedCompany = preferences.likedCompanies.some(
@@ -515,11 +747,11 @@ export const DEEP_SEARCH_PORTALS: DeepSearchPortal[] = [
     category: "Suisse",
   },
   {
-    name: "LinkedIn Luxembourg (Stage Data / IA - Frais < 7j)",
+    name: "LinkedIn Luxembourg (Stage IA/ML - Frais < 7j)",
     country: "Luxembourg",
     countryFlag: "🇱🇺",
-    description: "Flux en direct des opportunités récentes (< 7 jours) en Machine Learning, Data et IA au Luxembourg.",
-    url: "https://www.linkedin.com/jobs/search/?keywords=internship+%28%22Machine+Learning%22+OR+%22Data%22+OR+%22AI%22%29&location=Luxembourg&sortBy=DD&f_TPR=r604800",
+    description: "Flux en direct des opportunités récentes (< 7 jours) en Machine Learning, Computer Vision et IA au Luxembourg.",
+    url: "https://www.linkedin.com/jobs/search/?keywords=internship+%28%22Machine+Learning%22+OR+%22Computer+Vision%22+OR+%22AI+Engineer%22%29&location=Luxembourg&sortBy=DD&f_TPR=r604800",
     category: "Luxembourg",
   },
   {

@@ -233,6 +233,33 @@ def requires_non_en_fr(text: str) -> bool:
     return any(re.search(p, t) for p in patterns)
 
 
+def is_tech_ai_domain(title: str, desc: str = "") -> bool:
+    """Vérifie si l'offre relève du domaine IA/ML/Vision et élimine les rôles non techniques."""
+    t = title.lower()
+    combined = f"{title} {desc}".lower()
+
+    non_tech_patterns = [
+        r"\bbusiness analyst\b", r"\bfinancial analyst\b", r"\bfinance\b", r"\baccounting\b",
+        r"\baudit\b", r"\bauditor\b", r"\btax\b", r"\bcommercial\b", r"\bsales\b",
+        r"\bmarketing\b", r"\bhuman resources\b", r"\bhr\b", r"\brecruiter\b",
+        r"\bjuriste\b", r"\blegal\b", r"\bcompliance\b", r"\bsupply chain\b",
+        r"\bscrum master\b", r"\bproduct owner\b", r"\bcustomer support\b"
+    ]
+    for p in non_tech_patterns:
+        if re.search(p, t):
+            if not re.search(r"\b(machine learning engineer|ai engineer|computer vision engineer|deep learning engineer)\b", t):
+                return False
+
+    ai_keywords = [
+        "machine learning", "deep learning", "computer vision", "machine vision",
+        "artificial intelligence", "intelligence artificielle", "nlp", "llm",
+        "data science", "data scientist", "mlops", "pytorch", "opencv", "yolo", "robotics"
+    ]
+    has_ai = any(kw in combined for kw in ai_keywords)
+    is_tech = bool(re.search(r"\b(intern|internship|stage|pfe|engineer|ingénieur|researcher|developer)\b", t))
+    return has_ai and is_tech
+
+
 def run_cycle(webhook_url: str, browser_apply: bool = False):
     print("\n" + "=" * 65)
     print(f"🤖 [Auto-Pilot Cycle] Démarrage à {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -303,13 +330,24 @@ def run_cycle(webhook_url: str, browser_apply: bool = False):
             print(f"🚫 Rejet par feedback : {company} a été écarté par vos votes passés.")
             continue
 
-        # 1. Filtre linguistique strict (Badroudine : Français natif, Anglais C1)
+        # 1. Filtre strict domaine IA / Machine Learning / Computer Vision
+        if not is_tech_ai_domain(title, desc):
+            print(f"🚫 Rejet domaine métier : {company} ({title}) n'est pas un poste d'ingénieur IA/ML/Vision.")
+            continue
+
+        # 2. Filtre anti-saturation concurrence (> 60 candidats)
+        applicants = offer.get("applicants", 10)
+        if applicants > 60:
+            print(f"🚫 Rejet saturation : {company} compte {applicants} postulants (> 60). Priorité aux opportunités fraîches.")
+            continue
+
+        # 3. Filtre linguistique strict (Badroudine : Français natif, Anglais C1)
         lang = detect_offer_language(title, desc)
         if lang not in ("fr", "en") or requires_non_en_fr(f"{title} {desc}"):
             print(f"🚫 Rejet linguistique : {company} est rédigé en {lang.upper()} (Badroudine postule en FR ou EN uniquement).")
             continue
 
-        # 2. Filtre France
+        # 4. Filtre France
         if offer["country"].lower() == "france":
             print(f"   🚫 Rejet : Localisé en France (Mobilité EILCO non respectée).")
             continue
