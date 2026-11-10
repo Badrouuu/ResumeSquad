@@ -184,14 +184,11 @@ class LinkedInBrowserAgent:
             self.page.goto("https://www.linkedin.com/feed/", wait_until="domcontentloaded", timeout=25000)
             self.human_delay(2, 3)
 
-            # Si redirection vers login ou page d'accueil d'invité
             current_url = self.page.url
             if "login" in current_url or "authwall" in current_url or "signup" in current_url:
-                print("⚠️ [Session] Non connecté. Veuillez vous connecter une première fois manuellement dans le navigateur.")
                 return False
 
-            # Présence de l'icône de profil ou de la barre de recherche globale
-            logged_in_indicator = self.page.locator(".global-nav__me, .search-global-typeahead__input, nav.global-nav").first
+            logged_in_indicator = self.page.locator(".global-nav__me, .search-global-typeahead__input, nav.global-nav, a[href*='/in/']").first
             if logged_in_indicator.is_visible(timeout=5000):
                 print("✅ [Session] Authentification LinkedIn active et valide !")
                 return True
@@ -199,6 +196,68 @@ class LinkedInBrowserAgent:
         except Exception as e:
             print(f"⚠️ [Session] Avertissement vérification: {e}")
             return False
+
+    def wait_for_manual_login(self, timeout_sec: int = 300) -> bool:
+        """
+        Garde le navigateur ouvert et attend que l'utilisateur saisisse ses identifiants.
+        Sauvegarde automatiquement les cookies et le profil une fois connecté.
+        """
+        if not self.page:
+            return False
+
+        print("\n" + "=" * 70)
+        print("🔑 [ACTION REQUISE : CONNEXION À VOTRE COMPTE LINKEDIN]")
+        print("La fenêtre Chromium est ouverte devant vous.")
+        print("👉 1. Saisissez votre adresse email et votre mot de passe LinkedIn.")
+        print("👉 2. Validez le code de sécurité 2FA / CAPTCHA éventuel.")
+        print("👉 3. Le bot reste ouvert et détecte automatiquement votre connexion (5 min max)...")
+        print("=" * 70 + "\n")
+
+        if "login" not in self.page.url:
+            try:
+                self.page.goto("https://www.linkedin.com/login", wait_until="domcontentloaded", timeout=25000)
+            except Exception:
+                pass
+
+        start_time = time.time()
+        last_logged = 0
+
+        while time.time() - start_time < timeout_sec:
+            try:
+                if self.page.is_closed():
+                    print("🛑 [Navigateur] Fenêtre fermée par l'utilisateur.")
+                    return False
+
+                current_url = self.page.url
+                # Détection de l'accès à l'espace connecté
+                if any(x in current_url for x in ("/feed", "/mynetwork", "/jobs", "/in/", "/messaging")):
+                    is_me = self.page.locator(".global-nav__me, nav.global-nav, .search-global-typeahead, a[href*='/in/']").first.is_visible()
+                    if is_me or "/feed" in current_url:
+                        print("\n🎉 [Succès] Connexion LinkedIn confirmée !")
+                        # Sauvegarde des cookies pour persistance
+                        try:
+                            cookies = self.context.cookies()
+                            with open(self.cookies_path, "w", encoding="utf-8") as f:
+                                json.dump(cookies, f, indent=2)
+                            print(f"🍪 [Cookies] {len(cookies)} cookies exportés dans '{self.cookies_path}'.")
+                            print(f"📁 [Profil] Session sauvegardée dans '{self.user_data_dir}'.")
+                        except Exception as ce:
+                            print(f"ℹ️ [Note cookies]: {ce}")
+                        return True
+
+                # Message d'avancement toutes les 15 secondes
+                elapsed = int(time.time() - start_time)
+                if elapsed - last_logged >= 15:
+                    last_logged = elapsed
+                    rem = int(timeout_sec - elapsed)
+                    print(f"⏳ En attente de votre connexion... ({rem}s restantes)")
+
+            except Exception:
+                pass
+            time.sleep(2)
+
+        print("⏱️ [Délai dépassé] Temps d'attente de connexion expiré (5 minutes).")
+        return False
 
     # =========================================================================
     # ÉTAPE 2 : SCRAPING DE LA FILE D'ATTENTE (SOURCING EASY APPLY)

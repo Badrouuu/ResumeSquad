@@ -110,11 +110,20 @@ class LinkedInEasyApplyOrchestrator:
 
         # Vérification de l'authentification
         is_logged_in = self.browser_agent.verify_linkedin_login()
-        if not is_logged_in and self.headless:
-            print("❌ [Arrêt] La session n'est pas connectée et le mode headless est activé.")
-            print("💡 Lancez d'abord le script sans '--headless' pour vous connecter à LinkedIn une seule fois.")
-            self.browser_agent.close()
-            return 0
+        if not is_logged_in:
+            if self.headless:
+                print("❌ [Arrêt] La session n'est pas connectée et le mode headless est activé.")
+                print("💡 Lancez d'abord la commande de connexion interactive (la fenêtre restera ouverte) :")
+                print("   python backend/run_linkedin_easy_apply.py --login")
+                self.browser_agent.close()
+                return 0
+            else:
+                # Mode visuel : le bot attend que l'utilisateur saisisse ses identifiants
+                logged_in_ok = self.browser_agent.wait_for_manual_login(timeout_sec=300)
+                if not logged_in_ok:
+                    print("❌ [Arrêt] Connexion non effectuée. Arrêt du cycle.")
+                    self.browser_agent.close()
+                    return 0
 
         # Scraping de la file d'attente Easy Apply
         queue = self.browser_agent.search_easy_apply_jobs(
@@ -233,3 +242,14 @@ class LinkedInEasyApplyOrchestrator:
         except KeyboardInterrupt:
             print("\n🛑 [Arrêt Manuel] Interruption reçue. Arrêt propre du worker.")
             self.browser_agent.close()
+
+    def interactive_login(self, timeout_sec: int = 300) -> bool:
+        """Lance une fenêtre visuelle et attend patiemment que l'utilisateur saisisse ses identifiants."""
+        print("\n" + "=" * 70)
+        print("🌐 [Mode Connexion LinkedIn Interactive]")
+        print("=" * 70)
+        self.browser_agent.headless = False
+        self.browser_agent.initialize_session()
+        ok = self.browser_agent.wait_for_manual_login(timeout_sec=timeout_sec)
+        self.browser_agent.close()
+        return ok

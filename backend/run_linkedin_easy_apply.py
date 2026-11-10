@@ -108,6 +108,11 @@ def main():
         help="Chemin vers un fichier cookies.json exporté",
     )
     parser.add_argument(
+        "--login",
+        action="store_true",
+        help="Ouvre le navigateur et attend que vous vous connectiez manuellement à LinkedIn (session enregistrée)",
+    )
+    parser.add_argument(
         "--cv-pdf",
         type=str,
         default=None,
@@ -128,6 +133,10 @@ def main():
         max_delay=args.max_delay,
         max_applications_per_cycle=args.max_apps,
     )
+
+    if args.login:
+        orchestrator.interactive_login()
+        return
 
     if args.daemon:
         orchestrator.run_daemon(cycle_interval_minutes=args.interval)
