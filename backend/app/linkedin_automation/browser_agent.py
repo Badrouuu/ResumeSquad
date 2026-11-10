@@ -19,6 +19,14 @@ import random
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
+# Encodage console Windows pour éviter UnicodeEncodeError avec les emojis
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
+
 from playwright.sync_api import sync_playwright, Page, BrowserContext, ElementHandle, TimeoutError as PlaywrightTimeoutError
 
 class LinkedInBrowserAgent:
@@ -99,20 +107,29 @@ class LinkedInBrowserAgent:
             try:
                 with open(self.cookies_path, "r", encoding="utf-8") as f:
                     cookies = json.load(f)
-                    # Normalisation des cookies pour Playwright
                     clean_cookies = []
                     for c in cookies:
+                        if not c.get("name") or c.get("value") is None:
+                            continue
                         cookie = {
-                            "name": c.get("name"),
-                            "value": c.get("value"),
+                            "name": c["name"],
+                            "value": c["value"],
                             "domain": c.get("domain", ".linkedin.com"),
                             "path": c.get("path", "/"),
                         }
                         if "sameSite" in c and c["sameSite"] in ("Strict", "Lax", "None"):
                             cookie["sameSite"] = c["sameSite"]
-                        clean_cookies.append(cookie)
-                    self.context.add_cookies(clean_cookies)
-                    print(f"🍪 [Cookies] {len(clean_cookies)} cookies injectés avec succès.")
+                        if "secure" in c:
+                            cookie["secure"] = bool(c["secure"])
+                        if "httpOnly" in c:
+                            cookie["httpOnly"] = bool(c["httpOnly"])
+                        try:
+                            self.context.add_cookies([cookie])
+                            clean_cookies.append(cookie)
+                        except Exception:
+                            pass
+                    if clean_cookies:
+                        print(f"🍪 [Cookies] {len(clean_cookies)} cookies injectés avec succès.")
             except Exception as e:
                 print(f"⚠️ [Cookies] Erreur chargement cookies.json: {e}")
 
@@ -354,11 +371,14 @@ class LinkedInBrowserAgent:
         self.human_delay(2.5, 4.0)
         self.human_scroll(min_scrolls=3, max_scrolls=6)
 
-        # Sélection des cartes d'offres
+        # Sélection des cartes d'offres (support LinkedIn 2026 connecté et interfaces classiques)
         cards_selectors = [
+            "[componentkey*='job-card-component-ref-']",
+            "div[role='button'][componentkey*='job-card']",
             ".jobs-search-results-list ul li[data-occludable-job-id]",
             ".scaffold-layout__list-container li.jobs-search-results__list-item",
             "div.job-card-container",
+            "li[data-occludable-job-id]",
         ]
 
         found_cards = []
@@ -370,39 +390,52 @@ class LinkedInBrowserAgent:
 
         print(f"📋 [Sourcing] {len(found_cards)} carte(s) d'emploi identifiée(s) sur la page.")
 
+        seen_ids = set()
+        import re
+
         for card in found_cards:
             if len(jobs_queue) >= max_jobs:
                 break
             try:
-                # Extraction du Job ID
-                raw_id = card.get_attribute("data-occludable-job-id") or ""
+                # 1. Extraction du Job ID
+                raw_id = ""
+                comp_key = card.get_attribute("componentkey") or ""
+                if "job-card-component-ref-" in comp_key:
+                    raw_id = comp_key.split("job-card-component-ref-")[-1].strip()
+
                 if not raw_id:
-                    link_elem = card.locator("a.job-card-list__title--link, a.job-card-container__link").first
+                    raw_id = card.get_attribute("data-job-id") or card.get_attribute("data-occludable-job-id") or ""
+
+                if not raw_id:
+                    link_elem = card.locator("a[href*='/jobs/view/'], a.job-card-list__title--link").first
                     href = link_elem.get_attribute("href") or ""
-                    # /jobs/view/1234567890/
                     if "/view/" in href:
                         raw_id = href.split("/view/")[1].split("/")[0].split("?")[0]
 
-                if not raw_id or raw_id in applied_ids:
+                if not raw_id or raw_id in applied_ids or raw_id in seen_ids:
                     continue
 
-                # Extraction du titre
-                title_elem = card.locator(".job-card-list__title, strong, a.job-card-list__title--link").first
-                title = title_elem.inner_text().strip() if title_elem.is_visible() else "Poste IA / Data"
+                # 2. Extraction structurée Titre, Entreprise, Lieu
+                full_text = card.inner_text().strip()
+                lines = [
+                    l.strip()
+                    for l in full_text.split("\n")
+                    if l.strip() and not l.strip().startswith("Consulté") and not l.strip().startswith("Promu")
+                ]
 
-                # Extraction de l'entreprise
-                company_elem = card.locator(".job-card-container__primary-description, .artdeco-entity-lockup__subtitle").first
-                company = company_elem.inner_text().strip() if company_elem.is_visible() else "Entreprise Internationale"
+                raw_title = lines[0] if lines else "Poste IA / Data"
+                clean_title = re.sub(r"^(Sélectionné,\s*|Nouveau\s*|Recherche\s*)", "", raw_title, flags=re.IGNORECASE)
+                clean_title = re.sub(r"\(offre d’emploi vérifiée\)", "", clean_title, flags=re.IGNORECASE).strip()
 
-                # Extraction du lieu
-                loc_elem = card.locator(".job-card-container__metadata-item").first
-                loc = loc_elem.inner_text().strip() if loc_elem.is_visible() else location
+                company = lines[1] if len(lines) > 1 else "Entreprise Internationale"
+                loc = lines[2] if len(lines) > 2 else location
 
                 job_url = f"https://www.linkedin.com/jobs/view/{raw_id}/"
+                seen_ids.add(raw_id)
 
                 jobs_queue.append({
                     "id": raw_id,
-                    "title": title,
+                    "title": clean_title,
                     "company": company,
                     "location": loc,
                     "url": job_url,
