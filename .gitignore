@@ -38,5 +38,7 @@ yarn-error.log*
 # Scratch & temporary test scripts
 scratch/
 backend/data/applications_history.json
+backend/data/linkedin_user_profile/
+backend/data/cookies.json
 backend/output/screenshots/
 backend/output/*.pdf

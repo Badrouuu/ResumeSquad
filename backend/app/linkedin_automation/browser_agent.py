@@ -269,9 +269,10 @@ class LinkedInBrowserAgent:
         location: str = "France",
         max_jobs: int = 15,
         applied_ids: Optional[set] = None,
+        easy_apply_only: bool = True,
     ) -> List[Dict[str, Any]]:
         """
-        Navigue sur LinkedIn Jobs avec filtre 'Candidature simplifiée' (f_AL=true),
+        Navigue sur LinkedIn Jobs avec ou sans filtre 'Candidature simplifiée' (f_AL=true),
         scanne la liste des offres fraîches et extrait les métadonnées.
         """
         if not self.page:
@@ -281,17 +282,19 @@ class LinkedInBrowserAgent:
         jobs_queue: List[Dict[str, Any]] = []
 
         # Construction de l'URL avec filtres :
-        # f_AL=true : Easy Apply / Candidature simplifiée uniquement
+        # f_AL=true : Easy Apply uniquement (si easy_apply_only=True)
         # sortBy=DD : Tri par date décroissante (offres fraîches)
         import urllib.parse
         encoded_kw = urllib.parse.quote(keywords)
         encoded_loc = urllib.parse.quote(location)
+        al_param = "&f_AL=true" if easy_apply_only else ""
         search_url = (
             f"https://www.linkedin.com/jobs/search/?keywords={encoded_kw}"
-            f"&location={encoded_loc}&f_AL=true&sortBy=DD"
+            f"&location={encoded_loc}{al_param}&sortBy=DD"
         )
 
-        print(f"\n🔍 [Sourcing] Navigation vers les offres Easy Apply : {keywords} ({location})")
+        filter_label = "Easy Apply uniquement" if easy_apply_only else "Toutes offres (Easy Apply + Portails Externes)"
+        print(f"\n🔍 [Sourcing] Navigation vers les offres LinkedIn ({filter_label}) : {keywords} ({location})")
         self.page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
         self.human_delay(2.5, 4.0)
         self.human_scroll(min_scrolls=3, max_scrolls=6)
@@ -381,6 +384,80 @@ class LinkedInBrowserAgent:
         except Exception as e:
             print(f"⚠️ [Description] Erreur extraction texte offre: {e}")
             return ""
+
+    def detect_job_apply_type(self) -> Dict[str, Any]:
+        """
+        Détermine si l'offre sur la page courante est 'easy_apply' ou 'external',
+        et extrait l'élément interactif correspondant.
+        """
+        if not self.page:
+            return {"type": "none"}
+
+        # 1. Vérification Easy Apply (Candidature simplifiée)
+        for sel in [
+            "button.jobs-apply-button:has-text('Candidature simplifiée')",
+            "button.jobs-apply-button:has-text('Easy Apply')",
+            "button:has-text('Candidature simplifiée')",
+            "button:has-text('Easy Apply')",
+        ]:
+            elem = self.page.locator(sel).first
+            if elem.is_visible():
+                return {"type": "easy_apply", "locator": elem}
+
+        # 2. Vérification bouton externe (Apply on company website)
+        for sel in [
+            "a.jobs-apply-button",
+            "button.jobs-apply-button",
+            "a[href*='linkedin.com/jobs/view/externalApply']",
+            "button:has-text('Postuler')",
+            "button:has-text('Apply')",
+            "a:has-text('Postuler')",
+            "a:has-text('Apply')",
+        ]:
+            elem = self.page.locator(sel).first
+            if elem.is_visible():
+                href = elem.get_attribute("href") or ""
+                return {"type": "external", "href": href, "locator": elem}
+
+        return {"type": "unknown"}
+
+    def extract_external_apply_url(self) -> Optional[str]:
+        """
+        Extrait l'URL externe de postulation sur le site recruteur en inspectant le lien
+        ou en observant la redirection d'onglet.
+        """
+        if not self.page:
+            return None
+        try:
+            # 1. Lien direct href dans le bouton externe
+            for sel in [
+                "a.jobs-apply-button[href]",
+                "a[data-job-id][href*='apply']",
+                "a[href*='externalApply']",
+                "a:has-text('Postuler')[href]",
+                "a:has-text('Apply')[href]",
+            ]:
+                link = self.page.locator(sel).first
+                if link.is_visible():
+                    href = link.get_attribute("href")
+                    if href and href.startswith("http"):
+                        return href
+
+            # 2. Clic sur bouton externe avec attente d'ouverture d'un nouvel onglet
+            ext_btn = self.page.locator(
+                "button.jobs-apply-button, button:has-text('Postuler'), button:has-text('Apply')"
+            ).first
+            if ext_btn.is_visible():
+                with self.page.expect_popup(timeout=8000) as popup_info:
+                    ext_btn.click()
+                popup_page = popup_info.value
+                popup_page.wait_for_load_state("domcontentloaded", timeout=12000)
+                ext_url = popup_page.url
+                popup_page.close()
+                return ext_url
+        except Exception as e:
+            print(f"ℹ️ [Externe] Détection URL via popup : {e}")
+        return None
 
     def submit_easy_apply(
         self,

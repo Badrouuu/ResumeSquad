@@ -118,6 +118,11 @@ def main():
         default=None,
         help="Chemin vers le CV PDF à joindre (défaut : backend/output/CV_Badroudine_Bacar.pdf)",
     )
+    parser.add_argument(
+        "--all-jobs",
+        action="store_true",
+        help="Postule à TOUTES les offres (Candidatures simplifiées ET sites carrières externes ATS)",
+    )
 
     args = parser.parse_args()
 
@@ -132,6 +137,7 @@ def main():
         min_delay=args.min_delay,
         max_delay=args.max_delay,
         max_applications_per_cycle=args.max_apps,
+        all_jobs=args.all_jobs,
     )
 
     if args.login:

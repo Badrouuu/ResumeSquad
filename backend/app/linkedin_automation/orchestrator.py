@@ -38,6 +38,7 @@ class LinkedInEasyApplyOrchestrator:
         min_delay: int = 180,
         max_delay: int = 400,
         max_applications_per_cycle: int = 10,
+        all_jobs: bool = False,
     ):
         self.keywords = keywords
         self.location = location
@@ -46,6 +47,7 @@ class LinkedInEasyApplyOrchestrator:
         self.min_delay = min_delay
         self.max_delay = max_delay
         self.max_applications = max_applications_per_cycle
+        self.all_jobs = all_jobs
 
         # Chemins des données et artefacts
         base_dir = Path(__file__).resolve().parent.parent.parent
@@ -125,16 +127,17 @@ class LinkedInEasyApplyOrchestrator:
                     self.browser_agent.close()
                     return 0
 
-        # Scraping de la file d'attente Easy Apply
+        # Scraping de la file d'attente (Easy Apply uniquement ou Toutes Offres)
         queue = self.browser_agent.search_easy_apply_jobs(
             keywords=self.keywords,
             location=self.location,
             max_jobs=self.max_applications,
             applied_ids=applied_ids,
+            easy_apply_only=not self.all_jobs,
         )
 
         if not queue:
-            print("✅ [Worker] Aucune nouvelle offre Easy Apply à traiter pour le moment.")
+            print("✅ [Worker] Aucune nouvelle offre à traiter pour le moment.")
             self.browser_agent.close()
             return 0
 
@@ -171,14 +174,41 @@ class LinkedInEasyApplyOrchestrator:
             # Exportation immédiate en PDF pour l'upload
             letter_pdf_path = self.gemini_agent.export_pdf(letter_text, title, company, output_dir=str(self.output_dir))
 
-            # 3. Postulation automatique via Playwright
-            result = self.browser_agent.submit_easy_apply(
-                job_info=job,
-                cv_pdf_path=self.cv_pdf_path,
-                cover_letter_pdf_path=letter_pdf_path,
-                dry_run=self.dry_run,
-                screenshots_dir=str(self.screenshots_dir),
-            )
+            # 3. Détection du type de postulation : Easy Apply ou Portail Externe
+            apply_type_info = self.browser_agent.detect_job_apply_type()
+            apply_type = apply_type_info.get("type", "easy_apply")
+
+            if apply_type == "external":
+                print(f"   🌐 [Site Externe / ATS Détecté] Redirection vers le portail recruteur pour {company}...")
+                ext_url = self.browser_agent.extract_external_apply_url() or job_url
+                try:
+                    from app.browser_applicant import run_browser_applicant
+                    applicant_res = run_browser_applicant(
+                        url=ext_url,
+                        company=company,
+                        title=title,
+                        headless=self.headless,
+                        auto_submit=not self.dry_run,
+                        webhook_url=self.discord_notifier.webhook_url,
+                        custom_cover_letter=letter_text,
+                    )
+                    result = {
+                        "success": applicant_res.get("success", False),
+                        "screenshot": applicant_res.get("screenshot"),
+                        "mode": "external_portal",
+                    }
+                except Exception as ext_err:
+                    print(f"   ⚠️ Erreur remplissage externe Playwright : {ext_err}")
+                    result = {"success": False, "error": str(ext_err)}
+            else:
+                # 3b. Postulation automatique LinkedIn Easy Apply via Playwright
+                result = self.browser_agent.submit_easy_apply(
+                    job_info=job,
+                    cv_pdf_path=self.cv_pdf_path,
+                    cover_letter_pdf_path=letter_pdf_path,
+                    dry_run=self.dry_run,
+                    screenshots_dir=str(self.screenshots_dir),
+                )
 
             if result.get("success"):
                 processed_count += 1
