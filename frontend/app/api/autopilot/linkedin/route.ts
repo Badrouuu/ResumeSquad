@@ -95,8 +95,8 @@ export async function POST(request: Request) {
       dryRun = false,
       headless = false,
       maxApps = 3,
-      minDelay = 120,
-      maxDelay = 240,
+      minDelay = 15,
+      maxDelay = 35,
       excludeFrance = true,
     } = body;
 

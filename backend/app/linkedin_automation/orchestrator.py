@@ -35,8 +35,8 @@ class LinkedInEasyApplyOrchestrator:
         webhook_url: Optional[str] = None,
         headless: bool = False,
         dry_run: bool = False,
-        min_delay: int = 180,
-        max_delay: int = 400,
+        min_delay: int = 15,
+        max_delay: int = 35,
         max_applications_per_cycle: int = 10,
         all_jobs: bool = False,
         exclude_france: bool = True,
@@ -257,8 +257,11 @@ class LinkedInEasyApplyOrchestrator:
                 processed_count += 1
                 screenshot_path = result.get("screenshot")
 
-                # Calcul du délai aléatoire de sécurité humaine (180 à 400 secondes)
-                sleep_delay = random.randint(self.min_delay, self.max_delay)
+                # Calcul du délai aléatoire entre postulations
+                if self.dry_run:
+                    sleep_delay = random.randint(2, 5)
+                else:
+                    sleep_delay = random.randint(self.min_delay, self.max_delay)
 
                 # 4. Déclenchement de la notification Discord
                 self.discord_notifier.notify_application_success(
@@ -284,16 +287,10 @@ class LinkedInEasyApplyOrchestrator:
                 })
                 self.save_history(history)
 
-                # 5. Temporisation humaine aléatoire anti-rate-limit
+                # 5. Temporisation entre deux postulations
                 if idx < len(queue) and processed_count < self.max_applications:
-                    print(f"⏳ [Sécurité Anti-Bot] Pause humaine de {sleep_delay}s (~{sleep_delay // 60} min) avant la prochaine offre...")
-                    # Décompte progressif
-                    start_sleep = time.time()
-                    while time.time() - start_sleep < sleep_delay:
-                        remaining = int(sleep_delay - (time.time() - start_sleep))
-                        if remaining % 60 == 0 and remaining > 0:
-                            print(f"   ⏱️ Reprise dans {remaining // 60} min...")
-                        time.sleep(min(10, max(1, remaining)))
+                    print(f"⏳ [Pause de Sécurité] {sleep_delay}s avant la prochaine offre...")
+                    time.sleep(sleep_delay)
             else:
                 print(f"   ❌ Échec candidature {company}: {result.get('error', 'Erreur inconnue')}")
 

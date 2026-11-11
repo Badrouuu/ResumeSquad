@@ -99,14 +99,19 @@ def main():
     parser.add_argument(
         "--min-delay",
         type=int,
-        default=180,
-        help="Délai minimal de sécurité entre deux postulations en secondes (défaut : 180s = 3 min)",
+        default=15,
+        help="Délai minimal entre deux postulations en secondes (défaut : 15s)",
     )
     parser.add_argument(
         "--max-delay",
         type=int,
-        default=400,
-        help="Délai maximal de sécurité entre deux postulations en secondes (défaut : 400s = ~6.5 min)",
+        default=35,
+        help="Délai maximal entre deux postulations en secondes (défaut : 35s)",
+    )
+    parser.add_argument(
+        "--turbo",
+        action="store_true",
+        help="Mode ultra-rapide (5 à 12 secondes entre chaque postulation)",
     )
     parser.add_argument(
         "--user-data-dir",
@@ -139,6 +144,9 @@ def main():
 
     args = parser.parse_args()
 
+    min_delay = 5 if args.turbo else args.min_delay
+    max_delay = 12 if args.turbo else args.max_delay
+
     orchestrator = LinkedInEasyApplyOrchestrator(
         keywords=args.keywords,
         location=args.location,
@@ -147,8 +155,8 @@ def main():
         cookies_path=args.cookies_file,
         headless=args.headless,
         dry_run=args.dry_run,
-        min_delay=args.min_delay,
-        max_delay=args.max_delay,
+        min_delay=min_delay,
+        max_delay=max_delay,
         max_applications_per_cycle=args.max_apps,
         all_jobs=args.all_jobs,
         exclude_france=args.exclude_france,

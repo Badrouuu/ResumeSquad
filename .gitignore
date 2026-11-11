@@ -44,3 +44,4 @@ backend/output/screenshots/
 backend/output/*.pdf
 backend/data/*.pid
 backend/data/*.log
+backend/data/linkedin_applications_history.json

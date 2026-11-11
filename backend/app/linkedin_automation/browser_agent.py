@@ -296,12 +296,19 @@ class LinkedInBrowserAgent:
                 # 2. Vérification par URL sur toutes les pages ouvertes du contexte
                 urls = [p.url for p in self.context.pages if not p.is_closed()]
                 current_url = self.page.url
+
+                # Termes signalant une page d'authentification ou de vérification de sécurité en cours
+                auth_terms = (
+                    "/login", "/signup", "/uas/login", "/authwall",
+                    "checkpoint/challenge", "checkpoint/v2", "checkpoint/rp",
+                    "/checkpoint/", "security/challenge", "captcha", "challenge"
+                )
                 is_on_auth_page = any(
-                    any(term in u for term in ("/login", "/signup", "/uas/login", "/authwall"))
+                    any(term in u.lower() for term in auth_terms)
                     for u in urls
                 )
                 is_on_app_page = any(
-                    any(term in u for term in ("/feed", "/mynetwork", "/jobs", "/in/", "/messaging", "/home", "/check/add-phone", "checkpoint/lg"))
+                    any(term in u for term in ("/feed", "/mynetwork", "/jobs", "/in/", "/messaging", "/home"))
                     for u in urls
                 )
 
@@ -319,9 +326,8 @@ class LinkedInBrowserAgent:
                         except Exception:
                             pass
 
-                # Déclenchement dès que le jeton li_at est là ET qu'on n'est plus sur la page de login,
-                # OU dès que le DOM connecté est visible
-                if (has_li_at and not is_on_auth_page) or dom_connected or (has_li_at and is_on_app_page):
+                # Déclenchement UNIQUEMENT si on est réellement sorti des pages de login/checkpoint
+                if (dom_connected and not is_on_auth_page) or (has_li_at and not is_on_auth_page and is_on_app_page):
                     print("\n🎉 [Succès] Connexion LinkedIn confirmée !")
 
                     # Redirection proactive vers /feed si resté sur une page intermédiaire
@@ -349,10 +355,12 @@ class LinkedInBrowserAgent:
                 if elapsed - last_logged >= 10:
                     last_logged = elapsed
                     rem = int(timeout_sec - elapsed)
-                    if has_li_at:
-                        print(f"⏳ Jeton de connexion détecté ! Finalisation de la session... ({rem}s restantes)")
+                    if any("checkpoint" in u.lower() or "challenge" in u.lower() for u in urls):
+                        print(f"🛡️ [Vérification Sécurité / 2FA] Code ou validation e-mail détecté. Veuillez valider sur l'écran ! ({rem}s restantes)")
+                    elif has_li_at:
+                        print(f"⏳ Jeton détecté, finalisation de la session en cours... ({rem}s restantes)")
                     else:
-                        print(f"⏳ En attente de votre connexion... ({rem}s restantes)")
+                        print(f"⏳ En attente de vos identifiants LinkedIn... ({rem}s restantes)")
 
             except Exception:
                 pass
