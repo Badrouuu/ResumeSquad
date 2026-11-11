@@ -146,6 +146,20 @@ export default function Home() {
   const [autoBrowserApply, setAutoBrowserApply] = useState(true);
   const [isBrowserFilling, setIsBrowserFilling] = useState(false);
 
+  // Agent Autonome LinkedIn & Portails Carrières (Contrôle 1-Clic Direct)
+  const [isLinkedInBotRunning, setIsLinkedInBotRunning] = useState(false);
+  const [linkedInBotPid, setLinkedInBotPid] = useState<number | null>(null);
+  const [linkedInBotLogs, setLinkedInBotLogs] = useState<string[]>([
+    "🤖 Agent LinkedIn & Portails Carrières initialisé. Prêt pour la prospection et postulation 100% autonome.",
+  ]);
+  const [linkedInKeywords, setLinkedInKeywords] = useState("Machine Learning Stage");
+  const [linkedInLocation, setLinkedInLocation] = useState("France");
+  const [linkedInAllJobs, setLinkedInAllJobs] = useState(true);
+  const [linkedInDryRun, setLinkedInDryRun] = useState(false);
+  const [linkedInHeadless, setLinkedInHeadless] = useState(false);
+  const [linkedInMaxApps, setLinkedInMaxApps] = useState<number>(3);
+  const [isStoppingLinkedInBot, setIsStoppingLinkedInBot] = useState(false);
+
   // Préférences utilisateur apprises (RLHF / Active Learning via Discord & Radar)
   const [userPreferences, setUserPreferences] = useState<UserJobPreferences | null>(null);
   const [preferenceFeedbackToast, setPreferenceFeedbackToast] = useState<string | null>(null);
@@ -625,6 +639,84 @@ export default function Home() {
     } finally {
       setIsBrowserFilling(false);
       setTimeout(() => setPreferenceFeedbackToast(null), 5000);
+    }
+  };
+
+  // =========================================================================
+  // GESTION DU BOT AUTONOME LINKEDIN (PLAYWRIGHT WORKER)
+  // =========================================================================
+  const checkLinkedInBotStatus = async () => {
+    try {
+      const res = await fetch("/api/autopilot/linkedin");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsLinkedInBotRunning(data.running);
+        setLinkedInBotPid(data.pid || null);
+        if (data.logs && Array.isArray(data.logs) && data.logs.length > 0) {
+          setLinkedInBotLogs(data.logs);
+        }
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    checkLinkedInBotStatus();
+    const interval = setInterval(() => {
+      checkLinkedInBotStatus();
+    }, isLinkedInBotRunning ? 2000 : 8000);
+    return () => clearInterval(interval);
+  }, [isLinkedInBotRunning]);
+
+  const handleStartLinkedInBot = async () => {
+    setIsLinkedInBotRunning(true);
+    setLinkedInBotLogs((prev) => [
+      ...prev,
+      `[${new Date().toLocaleTimeString("fr-FR")}] 🚀 Démarrage de l'agent LinkedIn (${linkedInKeywords} - ${linkedInLocation})...`,
+    ]);
+    try {
+      const res = await fetch("/api/autopilot/linkedin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keywords: linkedInKeywords,
+          location: linkedInLocation,
+          allJobs: linkedInAllJobs,
+          dryRun: linkedInDryRun,
+          headless: linkedInHeadless,
+          maxApps: linkedInMaxApps,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsLinkedInBotRunning(true);
+        setLinkedInBotPid(data.pid);
+        setPreferenceFeedbackToast(`🚀 Bot LinkedIn lancé en tâche de fond (PID: ${data.pid}) !`);
+        checkLinkedInBotStatus();
+      } else {
+        setIsLinkedInBotRunning(false);
+        setPreferenceFeedbackToast(`⚠️ ${data.error || "Erreur de lancement"}`);
+      }
+    } catch (e: any) {
+      setIsLinkedInBotRunning(false);
+      setPreferenceFeedbackToast(`❌ Erreur connexion API : ${e.message}`);
+    }
+  };
+
+  const handleStopLinkedInBot = async () => {
+    setIsStoppingLinkedInBot(true);
+    try {
+      const res = await fetch("/api/autopilot/linkedin", { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsLinkedInBotRunning(false);
+        setLinkedInBotPid(null);
+        setPreferenceFeedbackToast("🛑 Bot LinkedIn arrêté avec succès.");
+        checkLinkedInBotStatus();
+      }
+    } catch (e: any) {
+      setPreferenceFeedbackToast(`⚠️ Erreur arrêt bot: ${e.message}`);
+    } finally {
+      setIsStoppingLinkedInBot(false);
     }
   };
 
@@ -3582,31 +3674,172 @@ ${formattedParagraphs}
                 </div>
               </div>
 
-              {/* Guide de fonctionnement du Démon Python */}
-              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm space-y-3">
+              {/* Panneau de Contrôle 1-Clic : Bot Autonome LinkedIn & Portails */}
+              <div className="bg-[#18181b] border border-blue-500/30 rounded-2xl p-5 shadow-lg space-y-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                    <span>🐍</span> Lancer le Démon Python en Arrière-Plan
-                  </h3>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono">
-                    CLI / Daemon
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🤖</span>
+                    <div>
+                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        Bot Autonome LinkedIn & ATS
+                      </h3>
+                      <p className="text-[11px] text-[#a1a1aa]">Lancement & Contrôle direct sans ouvrir de terminal</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5 border ${
+                      isLinkedInBotRunning
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                        : "bg-[#27272a] text-[#a1a1aa] border-[#3f3f46]"
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        isLinkedInBotRunning ? "bg-emerald-400 animate-pulse" : "bg-gray-500"
+                      }`}
+                    ></span>
+                    {isLinkedInBotRunning ? `En cours (PID: ${linkedInBotPid || "actif"})` : "Prêt"}
                   </span>
                 </div>
-                <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                  Tu peux également faire tourner le bot et le navigateur Playwright de manière autonome dans ton terminal :
-                </p>
-                <div className="p-3 rounded-xl bg-[#09090b] border border-[#27272a] font-mono text-[11px] text-emerald-400 space-y-2">
+
+                {/* Paramètres de prospection */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <div className="text-[#a1a1aa] font-semibold"># 🌐 1. Pré-remplir une offre avec validation Screenshot :</div>
-                    <div className="text-white select-all text-[10px] break-all">python backend/app/browser_applicant.py --url "https://..." --company "Nom"</div>
+                    <label className="text-[10px] text-[#71717a] font-semibold block mb-1">Mots-clés cibles :</label>
+                    <input
+                      type="text"
+                      value={linkedInKeywords}
+                      onChange={(e) => setLinkedInKeywords(e.target.value)}
+                      disabled={isLinkedInBotRunning}
+                      className="w-full text-xs p-2 rounded-lg bg-[#09090b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500 font-medium"
+                    />
                   </div>
                   <div>
-                    <div className="text-[#a1a1aa] font-semibold"># 🤖 2. Cycle Auto-Pilot complet avec ouverture de Chrome :</div>
-                    <div className="text-white select-all text-[10px]">python backend/auto_scout_and_apply.py --once --browser-apply</div>
+                    <label className="text-[10px] text-[#71717a] font-semibold block mb-1">Localisation :</label>
+                    <input
+                      type="text"
+                      value={linkedInLocation}
+                      onChange={(e) => setLinkedInLocation(e.target.value)}
+                      disabled={isLinkedInBotRunning}
+                      className="w-full text-xs p-2 rounded-lg bg-[#09090b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500 font-medium"
+                    />
                   </div>
-                  <div>
-                    <div className="text-[#71717a]"># ⏳ 3. Tourner en démon en arrière-plan toutes les 2h :</div>
-                    <div className="text-[#a1a1aa] select-all text-[10px]">python backend/auto_scout_and_apply.py --daemon --interval 120</div>
+                </div>
+
+                {/* Toggles d'options */}
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setLinkedInAllJobs(!linkedInAllJobs)}
+                    disabled={isLinkedInBotRunning}
+                    className={`p-2 rounded-xl text-[11px] font-bold border transition text-center flex flex-col items-center justify-center gap-0.5 ${
+                      linkedInAllJobs
+                        ? "bg-blue-500/15 border-blue-500/40 text-blue-300"
+                        : "bg-[#09090b] border-[#27272a] text-[#71717a]"
+                    }`}
+                    title="Postuler à la fois sur LinkedIn Easy Apply et sur les sites d'entreprises externes"
+                  >
+                    <span className="text-xs">🌐 Toutes Offres</span>
+                    <span className="text-[9px] font-normal">{linkedInAllJobs ? "Easy Apply + ATS" : "Easy Apply seul"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLinkedInDryRun(!linkedInDryRun)}
+                    disabled={isLinkedInBotRunning}
+                    className={`p-2 rounded-xl text-[11px] font-bold border transition text-center flex flex-col items-center justify-center gap-0.5 ${
+                      linkedInDryRun
+                        ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
+                        : "bg-[#09090b] border-[#27272a] text-[#71717a]"
+                    }`}
+                    title="Simulation : remplit tout sans cliquer sur Soumettre"
+                  >
+                    <span className="text-xs">🧪 Simulation</span>
+                    <span className="text-[9px] font-normal">{linkedInDryRun ? "Dry-Run actif" : "Envoi Réel"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLinkedInHeadless(!linkedInHeadless)}
+                    disabled={isLinkedInBotRunning}
+                    className={`p-2 rounded-xl text-[11px] font-bold border transition text-center flex flex-col items-center justify-center gap-0.5 ${
+                      linkedInHeadless
+                        ? "bg-purple-500/15 border-purple-500/40 text-purple-300"
+                        : "bg-[#09090b] border-[#27272a] text-emerald-400"
+                    }`}
+                    title="Choisir entre ouvrir la fenêtre Chromium ou tourner en arrière-plan discret"
+                  >
+                    <span className="text-xs">🖥️ Affichage</span>
+                    <span className="text-[9px] font-normal">{linkedInHeadless ? "Arrière-plan" : "Fenêtre visible"}</span>
+                  </button>
+                </div>
+
+                {/* Sélecteur de quota */}
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-[11px] text-[#a1a1aa] font-semibold">Candidatures par cycle :</span>
+                  <div className="flex items-center gap-1 bg-[#09090b] p-1 rounded-lg border border-[#27272a]">
+                    {[1, 3, 5, 10].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setLinkedInMaxApps(num)}
+                        disabled={isLinkedInBotRunning}
+                        className={`px-2.5 py-0.5 rounded text-xs font-bold transition ${
+                          linkedInMaxApps === num
+                            ? "bg-blue-600 text-white"
+                            : "text-[#71717a] hover:text-white"
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Boutons d'Action 1-Clic */}
+                <div className="pt-2 flex items-center gap-2">
+                  {!isLinkedInBotRunning ? (
+                    <button
+                      onClick={handleStartLinkedInBot}
+                      className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition active:scale-[0.99]"
+                    >
+                      <span>🚀</span>
+                      <span>Lancer le Bot LinkedIn (1-Clic)</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStopLinkedInBot}
+                      disabled={isStoppingLinkedInBot}
+                      className="w-full py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition active:scale-[0.99] disabled:opacity-50"
+                    >
+                      <span>🛑</span>
+                      <span>{isStoppingLinkedInBot ? "Arrêt en cours..." : "Arrêter le Bot Immédiatement"}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Mini-Console de logs du Bot LinkedIn */}
+                <div className="pt-2 border-t border-[#27272a]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] text-[#71717a] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                      Console d&apos;activité de l&apos;agent
+                    </span>
+                    <button
+                      onClick={checkLinkedInBotStatus}
+                      className="text-[10px] text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Rafraîchir
+                    </button>
+                  </div>
+                  <div className="bg-[#09090b] border border-[#27272a] rounded-xl p-3 font-mono text-[10px] h-36 overflow-y-auto space-y-1 text-emerald-400">
+                    {linkedInBotLogs.map((log, i) => (
+                      <div key={i} className="leading-tight break-all">
+                        {log}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
