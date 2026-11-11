@@ -29,6 +29,36 @@ if sys.platform == "win32":
 
 from playwright.sync_api import sync_playwright, Page, BrowserContext, ElementHandle, TimeoutError as PlaywrightTimeoutError
 
+def is_france_location(loc_str: str) -> bool:
+    """
+    Vérifie si la localisation est située en France.
+    Pour les élèves de l'EILCO, le stage PFE doit obligatoirement être à l'international
+    (Suisse, Luxembourg, Belgique, Allemagne, UK, Remote International...).
+    Les offres en France doivent être automatiquement rejetées.
+    """
+    if not loc_str:
+        return False
+    s = loc_str.lower().strip()
+
+    # Exceptions pays autorisés
+    if any(k in s for k in ["suisse", "switzerland", "schweiz", "luxembourg", "belgique", "belgium", "germany", "allemagne", "remote", "télétravail"]):
+        return False
+
+    france_indicators = [
+        "france", "paris", "poissy", "lyon", "toulouse", "bordeaux", "nantes",
+        "lille", "marseille", "rennes", "strasbourg", "montpellier", "nice",
+        "grenoble", "sophia", "brest", "rouen", "reims", "clermont",
+        "île-de-france", "ile-de-france", "hauts-de-france", "auvergne", "rhône-alpes",
+        "occitanie", "nouvelle-aquitaine", "grand est", "pays de la loire", "bretagne",
+        "normandie", "bourgogne", "centre-val de loire", "corse", "calais", "dunkerque"
+    ]
+    import re
+    for ind in france_indicators:
+        if re.search(r'\b' + re.escape(ind) + r'\b', s):
+            return True
+    return False
+
+
 class LinkedInBrowserAgent:
     """Agent d'automatisation de navigation et candidature LinkedIn via Playwright."""
 
@@ -330,37 +360,6 @@ class LinkedInBrowserAgent:
 
         print("⏱️ [Délai dépassé] Temps d'attente de connexion expiré (5 minutes).")
         return False
-
-    # =========================================================================
-def is_france_location(loc_str: str) -> bool:
-    """
-    Vérifie si la localisation est située en France.
-    Pour les élèves de l'EILCO, le stage PFE doit obligatoirement être à l'international
-    (Suisse, Luxembourg, Belgique, Allemagne, UK, Remote International...).
-    Les offres en France doivent être automatiquement rejetées.
-    """
-    if not loc_str:
-        return False
-    s = loc_str.lower().strip()
-
-    # Exceptions pays autorisés
-    if any(k in s for k in ["suisse", "switzerland", "schweiz", "luxembourg", "belgique", "belgium", "germany", "allemagne", "remote", "télétravail"]):
-        return False
-
-    france_indicators = [
-        "france", "paris", "poissy", "lyon", "toulouse", "bordeaux", "nantes",
-        "lille", "marseille", "rennes", "strasbourg", "montpellier", "nice",
-        "grenoble", "sophia", "brest", "rouen", "reims", "clermont",
-        "île-de-france", "ile-de-france", "hauts-de-france", "auvergne", "rhône-alpes",
-        "occitanie", "nouvelle-aquitaine", "grand est", "pays de la loire", "bretagne",
-        "normandie", "bourgogne", "centre-val de loire", "corse", "calais", "dunkerque"
-    ]
-    import re
-    for ind in france_indicators:
-        if re.search(r'\b' + re.escape(ind) + r'\b', s):
-            return True
-    return False
-
 
     # =========================================================================
     # ÉTAPE 2 : SCRAPING DE LA FILE D'ATTENTE (SOURCING EASY APPLY)
