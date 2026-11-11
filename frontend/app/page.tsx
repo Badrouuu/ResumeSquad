@@ -655,6 +655,34 @@ export default function Home() {
         if (data.logs && Array.isArray(data.logs) && data.logs.length > 0) {
           setLinkedInBotLogs(data.logs);
         }
+        if (Array.isArray(data.applications) && data.applications.length > 0) {
+          setApplications((prev) => {
+            const existingIds = new Set(prev.map((a) => a.id));
+            const existingKeys = new Set(prev.map((a) => `${a.company.toLowerCase().trim()}::${a.title.toLowerCase().trim()}`));
+            const toAdd = data.applications.filter((a: any) => {
+              if (existingIds.has(a.id)) return false;
+              const key = `${(a.company || "").toLowerCase().trim()}::${(a.title || "").toLowerCase().trim()}`;
+              return !existingKeys.has(key);
+            });
+            if (toAdd.length > 0) {
+              const formattedToAdd: TrackedApplication[] = toAdd.map((a: any) => ({
+                id: a.id || `app-${Date.now()}`,
+                company: a.company || "Entreprise",
+                title: a.title || "Poste IA",
+                appliedDate: a.appliedDate || new Date().toISOString().split("T")[0],
+                atsScore: a.atsScore || 92,
+                status: (a.status as ApplicationStatus) || "en_attente",
+                notes: a.notes || "Postulation automatique LinkedIn",
+              }));
+              const merged = [...formattedToAdd, ...prev];
+              try {
+                localStorage.setItem("resumesquad_applications", JSON.stringify(merged));
+              } catch {}
+              return merged;
+            }
+            return prev;
+          });
+        }
       }
     } catch {}
   };
@@ -684,6 +712,7 @@ export default function Home() {
           dryRun: linkedInDryRun,
           headless: linkedInHeadless,
           maxApps: linkedInMaxApps,
+          appliedIds: applications.map((a) => a.id),
         }),
       });
       const data = await res.json();

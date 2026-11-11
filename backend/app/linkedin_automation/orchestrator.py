@@ -90,6 +90,134 @@ class LinkedInEasyApplyOrchestrator:
         with open(self.history_file, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2, ensure_ascii=False)
 
+    def get_all_applied_identifiers(self) -> set:
+        """
+        Récupère tous les identifiants uniques (IDs, URLs, paires entreprise::poste)
+        depuis l'historique LinkedIn, le CRM Tracker web (applications_history.json)
+        et les IDs passés par le frontend.
+        """
+        applied = set()
+
+        # 1. linkedin_applications_history.json
+        if self.history_file.exists():
+            try:
+                with open(self.history_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    for item in data:
+                        if item.get("id"):
+                            applied.add(str(item["id"]))
+                        if item.get("url"):
+                            applied.add(item["url"].strip().rstrip("/"))
+                        comp = (item.get("company") or "").lower().strip()
+                        tit = (item.get("title") or "").lower().strip()
+                        if comp and tit:
+                            applied.add(f"{comp}::{tit}")
+            except Exception:
+                pass
+
+        # 2. applications_history.json (Tracker CRM du site web)
+        crm_file = self.data_dir / "applications_history.json"
+        if crm_file.exists():
+            try:
+                with open(crm_file, "r", encoding="utf-8") as f:
+                    crm_data = json.load(f)
+                    for item in crm_data:
+                        if item.get("id"):
+                            applied.add(str(item["id"]))
+                            if str(item["id"]).startswith("linkedin-"):
+                                applied.add(str(item["id"]).replace("linkedin-", ""))
+                        if item.get("jobUrl"):
+                            applied.add(item["jobUrl"].strip().rstrip("/"))
+                        if item.get("url"):
+                            applied.add(item["url"].strip().rstrip("/"))
+                        comp = (item.get("company") or "").lower().strip()
+                        tit = (item.get("title") or "").lower().strip()
+                        if comp and tit:
+                            applied.add(f"{comp}::{tit}")
+            except Exception:
+                pass
+
+        # 3. frontend_applied_ids.json (sélection en direct du dashboard)
+        front_file = self.data_dir / "frontend_applied_ids.json"
+        if front_file.exists():
+            try:
+                with open(front_file, "r", encoding="utf-8") as f:
+                    front_ids = json.load(f)
+                    for fid in front_ids:
+                        applied.add(str(fid))
+            except Exception:
+                pass
+
+        return applied
+
+    def record_successful_application(self, job: Dict[str, Any], apply_type: str, screenshot_path: Optional[str] = None):
+        """
+        Enregistre la candidature de manière atomique :
+        1. Dans l'historique LinkedIn local (linkedin_applications_history.json)
+        2. Directement dans le CRM Tracker du site (applications_history.json)
+        """
+        job_id = job.get("id", "")
+        company = job.get("company", "")
+        title = job.get("title", "")
+        location = job.get("location", "")
+        job_url = job.get("url", "")
+        applied_at = datetime.now().isoformat()
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+        # 1. Sauvegarde dans linkedin_applications_history.json
+        history = self.load_history()
+        history.append({
+            "id": job_id,
+            "company": company,
+            "title": title,
+            "location": location,
+            "applied_at": applied_at,
+            "dry_run": self.dry_run,
+            "url": job_url,
+            "screenshot": screenshot_path,
+        })
+        self.save_history(history)
+
+        # 2. Synchronisation instantanée dans applications_history.json (Dashboard Web CRM)
+        crm_file = self.data_dir / "applications_history.json"
+        crm_apps = []
+        if crm_file.exists():
+            try:
+                with open(crm_file, "r", encoding="utf-8") as f:
+                    crm_apps = json.load(f)
+            except Exception:
+                crm_apps = []
+
+        existing_crm_ids = {a.get("id") for a in crm_apps}
+        crm_id = f"linkedin-{job_id}"
+        if crm_id not in existing_crm_ids:
+            country = "Suisse" if any(w in location.lower() for w in ("suisse", "switzerland", "geneva", "genève", "zurich", "lausanne")) else (
+                "Luxembourg" if "luxembourg" in location.lower() else ("Belgique" if "belgi" in location.lower() else "International")
+            )
+            crm_entry = {
+                "id": crm_id,
+                "company": company,
+                "title": title,
+                "location": location,
+                "country": country,
+                "appliedDate": date_str,
+                "atsScore": 92,
+                "status": "en_attente",
+                "notes": f"Postulation LinkedIn ({'Easy Apply' if apply_type == 'easy_apply' else 'Portail ATS'}) - Candidature autonome ResumeSquad",
+                "jobUrl": job_url,
+                "url": job_url,
+                "source": "LinkedIn Autonomous Bot",
+                "dry_run": self.dry_run,
+                "screenshot": screenshot_path,
+            }
+            crm_apps.insert(0, crm_entry)
+            try:
+                with open(crm_file, "w", encoding="utf-8") as f:
+                    json.dump(crm_apps, f, indent=2, ensure_ascii=False)
+                print(f"   📊 [CRM Dashboard] Offre '{company}' synchronisée avec succès dans le Tracker Web !")
+            except Exception as e:
+                print(f"   ⚠️ [CRM Dashboard] Erreur synchronisation : {e}")
+
     def run_worker_cycle(self) -> int:
         """
         Exécute un cycle de travail complet :
@@ -102,9 +230,8 @@ class LinkedInEasyApplyOrchestrator:
         print(f"🎯 Mots-clés : '{self.keywords}' | Lieu : '{self.location}' | Mode : {'Simulation (Dry-Run)' if self.dry_run else 'Production 100% Autonome'}")
         print("=" * 70)
 
-        history = self.load_history()
-        applied_ids = {item.get("id") for item in history}
-        print(f"📚 [Historique] {len(applied_ids)} offre(s) déjà traitée(s) par le passé.")
+        applied_identifiers = self.get_all_applied_identifiers()
+        print(f"📚 [Historique & CRM Tracker] {len(applied_identifiers)} offre(s)/identifiant(s) déjà répertoriés.")
 
         if not self.cv_pdf_path or not os.path.exists(self.cv_pdf_path):
             print(f"⚠️ [Avertissement] Aucun CV PDF trouvé à l'emplacement '{self.cv_pdf_path}'.")
@@ -134,7 +261,7 @@ class LinkedInEasyApplyOrchestrator:
             keywords=self.keywords,
             location=self.location,
             max_jobs=max(35, self.max_applications * 2),
-            applied_ids=applied_ids,
+            applied_ids=applied_identifiers,
             easy_apply_only=not self.all_jobs,
             exclude_france=self.exclude_france,
         )
@@ -169,11 +296,27 @@ class LinkedInEasyApplyOrchestrator:
                 print(f"      Conformité EILCO requiert un stage à l'international (Suisse, Luxembourg, Belgique...).")
                 continue
 
+            # Vérification anti-doublon CRM Tracker & Historique
+            comp_key = f"{(company or '').lower().strip()}::{(title or '').lower().strip()}"
+            if (
+                job_id in applied_identifiers
+                or (job_url and job_url.strip().rstrip("/") in applied_identifiers)
+                or comp_key in applied_identifiers
+            ):
+                print(f"   ⏭️ [Anti-Doublon CRM/LinkedIn] '{company} - {title}' déjà postulée ou suivie sur le site. Ignorée.")
+                continue
+
             # 1. Extraction de la description complète du poste
             desc = self.browser_agent.scrape_job_description(job_url)
             if not desc:
                 print("   ⚠️ Impossible d'extraire la description du poste. Poursuite...")
                 continue
+
+            # Enrichissement haute fidélité des métadonnées (Entreprise exacte, Titre et Ville)
+            job = self.browser_agent.enrich_job_details(job)
+            title = job.get("title", title)
+            company = job.get("company", company)
+            location = job.get("location", location)
 
             # 2. Génération de la lettre de motivation pragmatique & technique avec Gemini 1.5 Flash
             print("   🧠 [Gemini 1.5 Flash] Rédaction de la lettre technique sur-mesure...")
@@ -274,18 +417,12 @@ class LinkedInEasyApplyOrchestrator:
                     dry_run=self.dry_run,
                 )
 
-                # Sauvegarde immédiate dans l'historique
-                history.append({
-                    "id": job_id,
-                    "company": company,
-                    "title": title,
-                    "location": location,
-                    "applied_at": datetime.now().isoformat(),
-                    "dry_run": self.dry_run,
-                    "url": job_url,
-                    "screenshot": screenshot_path,
-                })
-                self.save_history(history)
+                # Enregistrement atomique dans l'historique LinkedIn ET le CRM Web Tracker
+                self.record_successful_application(job, apply_type, screenshot_path)
+                applied_identifiers.add(job_id)
+                if job_url:
+                    applied_identifiers.add(job_url.strip().rstrip("/"))
+                applied_identifiers.add(comp_key)
 
                 # 5. Temporisation entre deux postulations réussies
                 if idx < len(queue) and processed_count < self.max_applications:

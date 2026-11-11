@@ -556,6 +556,52 @@ class LinkedInBrowserAgent:
             print(f"⚠️ [Description] Erreur extraction texte offre: {e}")
             return ""
 
+    def enrich_job_details(self, job: Dict[str, Any]) -> Dict[str, Any]:
+        """Extrait les informations exactes de l'entreprise, du titre et du lieu depuis la vue détaillée de l'offre."""
+        if not self.page:
+            return job
+        try:
+            # 1. Titre exact
+            for sel in ["h1.job-details-jobs-unified-top-card__job-title", "h1.top-card-layout__title", "h1", ".jobs-unified-top-card__job-title"]:
+                elem = self.page.locator(sel).first
+                if elem.is_visible():
+                    t = elem.inner_text().strip()
+                    if t and len(t) > 3:
+                        job["title"] = t
+                        break
+
+            # 2. Entreprise exacte
+            for sel in [
+                ".job-details-jobs-unified-top-card__company-name a",
+                ".job-details-jobs-unified-top-card__primary-description a",
+                "a.topcard__org-name-link",
+                ".jobs-unified-top-card__company-name",
+                "div[class*='primary-description'] a",
+            ]:
+                elem = self.page.locator(sel).first
+                if elem.is_visible():
+                    c = elem.inner_text().strip()
+                    if c and len(c) > 1 and not any(w in c.lower() for w in ("intern", "stage", "engineer", "poste")):
+                        job["company"] = c
+                        break
+
+            # 3. Localisation exacte
+            for sel in [
+                ".job-details-jobs-unified-top-card__bullet",
+                ".job-details-jobs-unified-top-card__primary-description span:nth-child(2)",
+                "span.topcard__flavor--bullet",
+                ".jobs-unified-top-card__bullet",
+            ]:
+                elem = self.page.locator(sel).first
+                if elem.is_visible():
+                    l = elem.inner_text().strip()
+                    if l and len(l) > 2:
+                        job["location"] = l
+                        break
+        except Exception:
+            pass
+        return job
+
     def detect_job_apply_type(self) -> Dict[str, Any]:
         """
         Détermine si l'offre sur la page courante est 'easy_apply' ou 'external',
@@ -686,9 +732,21 @@ class LinkedInBrowserAgent:
         apply_btn.click()
         self.human_delay(2, 3)
 
-        # 2. Gestion de la modale multi-étapes
-        modal = self.page.locator("div.jobs-easy-apply-modal, div[role='dialog']").first
-        if not modal.is_visible():
+        # 2. Gestion de la modale multi-étapes (support balise <dialog> HTML5 et conteneurs classiques)
+        modal = None
+        for sel in ["dialog", "div.jobs-easy-apply-modal", "[data-test-modal]", ".artdeco-modal", "div[role='dialog']:visible"]:
+            m = self.page.locator(sel).first
+            try:
+                if m.is_visible():
+                    modal = m
+                    break
+                m.wait_for(state="visible", timeout=3000)
+                modal = m
+                break
+            except Exception:
+                continue
+
+        if not modal or not modal.is_visible():
             print("⚠️ [Easy Apply] La modale de candidature ne s'est pas affichée.")
             return {"success": False, "error": "Modale non affichée"}
 
@@ -702,7 +760,7 @@ class LinkedInBrowserAgent:
             self.human_delay(1.5, 2.5)
 
             # A. Téléphone
-            phone_inputs = self.page.locator("input[id*='phoneNumber'], input[type='tel']").all()
+            phone_inputs = (modal or self.page).locator("input[id*='phoneNumber'], input[type='tel']").all()
             for p_in in phone_inputs:
                 if p_in.is_visible():
                     val = p_in.input_value()
@@ -710,8 +768,42 @@ class LinkedInBrowserAgent:
                         p_in.fill(self.phone_number)
                         print(f"      📞 Téléphone rempli : {self.phone_number}")
 
-            # B. Upload du CV ou de la Lettre PDF
-            file_inputs = self.page.locator("input[type='file']").all()
+            # B. Localisation (Ville / Commune obligatoire)
+            city_inputs = (modal or self.page).locator(
+                "input[id*='city' i], input[name*='city' i], input[placeholder*='ville' i], input[placeholder*='city' i], input[aria-label*='city' i], input[aria-label*='ville' i]"
+            ).all()
+            for c_in in city_inputs:
+                try:
+                    if c_in.is_visible() and not c_in.input_value():
+                        target_city = "Genève"
+                        c_in.fill(target_city)
+                        time.sleep(0.8)
+                        opt = self.page.locator("div[role='option'], .basic-typeahead__selectable-list li, [class*='typeahead-result']").first
+                        if opt.is_visible(timeout=1500):
+                            opt.click()
+                            print(f"      📍 Ville renseignée : {target_city}")
+                except Exception:
+                    pass
+
+            # C. Lettre de motivation (textarea)
+            textareas = (modal or self.page).locator("textarea").all()
+            for ta in textareas:
+                try:
+                    if ta.is_visible() and not ta.input_value():
+                        snippet = (
+                            f"Madame, Monsieur,\n\n"
+                            f"Actuellement en dernière année d'école d'ingénieurs à l'EILCO (spécialité IA & Machine Learning), "
+                            f"je souhaite vivement rejoindre {company} pour mon stage de fin d'études. "
+                            f"Mon profil en Computer Vision et pipelines RAG est directement aligné avec vos défis techniques.\n\n"
+                            f"Restant à votre entière disposition,\n{self.candidate_name}"
+                        )
+                        ta.fill(snippet)
+                        print("      ✍️ Lettre de motivation insérée dans le champ dédié.")
+                except Exception:
+                    pass
+
+            # D. Upload du CV ou de la Lettre PDF
+            file_inputs = (modal or self.page).locator("input[type='file']").all()
             for f_in in file_inputs:
                 try:
                     # Choix du document pertinent (lettre si demandée, sinon CV principal)
@@ -724,7 +816,7 @@ class LinkedInBrowserAgent:
                     print(f"      ⚠️ Note upload: {up_err}")
 
             # C. Champs numériques d'expérience (ex: 'How many years of experience with Python?')
-            num_inputs = self.page.locator("input[type='text'], input[type='number']").all()
+            num_inputs = (modal or self.page).locator("input[type='text'], input[type='number']").all()
             for n_in in num_inputs:
                 try:
                     if not n_in.is_visible():
@@ -743,30 +835,103 @@ class LinkedInBrowserAgent:
                 except Exception:
                     pass
 
-            # D. Radio buttons / Sélecteurs booléens (Visas, travail légal, permis)
-            radio_buttons = self.page.locator("input[type='radio']").all()
-            for r_btn in radio_buttons:
+            # D. Groupes de questions (Fieldsets : Radios et Checkboxes avec sélection JS robuste)
+            fieldsets = (modal or self.page).locator("fieldset").all()
+            for fs in fieldsets:
                 try:
-                    if not r_btn.is_visible():
-                        continue
-                    r_id = r_btn.get_attribute("id") or ""
-                    r_val = (r_btn.get_attribute("value") or "").lower()
-                    label_elem = self.page.locator(f"label[for='{r_id}']").first
-                    label_txt = (label_elem.inner_text() if label_elem.is_visible() else "").lower()
+                    # 1. Radios
+                    radios = fs.locator("input[type='radio']").all()
+                    if radios and not any(r.is_checked() for r in radios):
+                        q_text = ""
+                        try:
+                            q_elem = fs.locator("xpath=preceding-sibling::p[1]").first
+                            if q_elem.is_visible():
+                                q_text = q_elem.inner_text().lower()
+                        except Exception:
+                            pass
+                        if not q_text and radios:
+                            q_text = (radios[0].get_attribute("aria-label") or "").lower()
 
-                    # Questions de sponsoring/visa : répondre Non
-                    if "sponsor" in label_txt or "visa" in label_txt:
-                        if "non" in label_txt or "no" in label_txt or r_val == "no":
-                            r_btn.check()
-                    # Questions d'autorisation légale ou de déplacement : répondre Oui
-                    elif "authorized" in label_txt or "autorisé" in label_txt or "commute" in label_txt:
-                        if "oui" in label_txt or "yes" in label_txt or r_val == "yes":
-                            r_btn.check()
+                        selected_radio = None
+                        for r in radios:
+                            parent_txt = r.locator("xpath=ancestor::div[contains(@class,'mg1') or contains(@class,'i87mg1')]").inner_text().lower()
+                            if not parent_txt:
+                                parent_txt = r.locator("xpath=../..").inner_text().lower()
+
+                            if "sponsor" in q_text or "visa" in q_text:
+                                if "no" in parent_txt or "non" in parent_txt:
+                                    selected_radio = r
+                                    break
+                            elif "authoriz" in q_text or "autoris" in q_text or "commute" in q_text or "permis" in q_text:
+                                if "yes" in parent_txt or "oui" in parent_txt:
+                                    selected_radio = r
+                                    break
+
+                        if not selected_radio:
+                            selected_radio = radios[0]
+
+                        selected_radio.evaluate("""el => {
+                            el.click();
+                            el.checked = true;
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        }""")
+                        print(f"      🔘 Option radio validée ({selected_radio.get_attribute('id') or 'ok'})")
+
+                    # 2. Checkboxes
+                    checkboxes = fs.locator("input[type='checkbox']").all()
+                    if checkboxes and not any(cb.is_checked() for cb in checkboxes):
+                        q_text = ""
+                        try:
+                            q_elem = fs.locator("xpath=preceding-sibling::p[1]").first
+                            if q_elem.is_visible():
+                                q_text = q_elem.inner_text().lower()
+                        except Exception:
+                            pass
+                        chosen_cb = None
+                        for cb in checkboxes:
+                            cb_txt = cb.locator("xpath=ancestor::div[contains(@class,'mg1') or contains(@class,'i87mg1')]").inner_text().lower()
+                            if not cb_txt:
+                                cb_txt = cb.locator("xpath=../..").inner_text().lower()
+                            if "luxembourg" in cb_txt or "suisse" in cb_txt or "both" in cb_txt or "geneve" in cb_txt:
+                                chosen_cb = cb
+                                break
+                        if not chosen_cb:
+                            chosen_cb = checkboxes[0]
+
+                        chosen_cb.evaluate("""el => {
+                            el.click();
+                            el.checked = true;
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        }""")
+                        print(f"      ☑️ Case à cocher validée ({chosen_cb.get_attribute('id') or 'ok'})")
                 except Exception:
                     pass
 
-            # E. Détection de l'état final : Bouton "Envoyer la candidature" / "Submit application"
-            submit_btn = self.page.locator(
+            # E. Listes déroulantes (select)
+            selects = (modal or self.page).locator("select").all()
+            for sel in selects:
+                try:
+                    if sel.is_visible():
+                        val = sel.input_value()
+                        if not val or val == "0" or "select" in val.lower():
+                            options = sel.locator("option").all()
+                            selected = False
+                            for opt in options:
+                                ot = (opt.inner_text() or "").lower()
+                                ov = (opt.get_attribute("value") or "").lower()
+                                if "yes" in ot or "oui" in ot or ov in ("yes", "oui", "true"):
+                                    sel.select_option(value=opt.get_attribute("value"))
+                                    selected = True
+                                    break
+                            if not selected and len(options) > 1:
+                                sel.select_option(index=1)
+                except Exception:
+                    pass
+
+            # F. Détection de l'état final : Bouton "Envoyer la candidature" / "Submit application"
+            submit_btn = (modal or self.page).locator(
                 "button:has-text('Envoyer la candidature'), button:has-text('Submit application'), button[aria-label*='Envoyer']"
             ).first
 
@@ -793,9 +958,9 @@ class LinkedInBrowserAgent:
                 print(f"   ✅ Candidature pour {company} envoyée avec succès sur LinkedIn !")
                 return {"success": True, "dry_run": False, "screenshot": screenshot_path}
 
-            # F. Passer à l'étape suivante : "Vérifier" (Review) ou "Suivant" (Next)
-            review_btn = self.page.locator("button:has-text('Vérifier'), button:has-text('Review')").first
-            next_btn = self.page.locator("button:has-text('Suivant'), button:has-text('Next')").first
+            # G. Passer à l'étape suivante : "Vérifier" (Review) ou "Suivant" (Next)
+            review_btn = (modal or self.page).locator("button:has-text('Vérifier'), button:has-text('Review')").first
+            next_btn = (modal or self.page).locator("button:has-text('Suivant'), button:has-text('Next')").first
 
             if review_btn.is_visible():
                 review_btn.click()
@@ -815,13 +980,15 @@ class LinkedInBrowserAgent:
             return
         try:
             close_btn = self.page.locator(
-                "button[aria-label='Ignorer'], button[aria-label='Dismiss'], button.artdeco-modal__dismiss"
+                "dialog button[aria-label='Ignorer'], button[aria-label='Ignorer'], button[aria-label='Dismiss'], button[aria-label='Fermer'], button.artdeco-modal__dismiss, [data-test-modal-close-btn]"
             ).first
             if close_btn.is_visible():
                 close_btn.click()
-                time.sleep(0.5)
+                time.sleep(0.8)
                 # Confirmer l'abandon si demandé
-                discard_btn = self.page.locator("button[data-control-name='discard_application_confirm_btn'], button:has-text('Abandonner')").first
+                discard_btn = self.page.locator(
+                    "button[data-control-name='discard_application_confirm_btn'], button:has-text('Abandonner'), button:has-text('Discard'), [data-test-dialog-primary-btn]"
+                ).first
                 if discard_btn.is_visible():
                     discard_btn.click()
         except Exception:

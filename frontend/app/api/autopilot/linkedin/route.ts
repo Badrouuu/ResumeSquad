@@ -17,12 +17,14 @@ function getPaths() {
   const dataDir = path.resolve(backendDir, "data");
   const logFile = path.resolve(dataDir, "linkedin_bot.log");
   const pidFile = path.resolve(dataDir, "linkedin_bot.pid");
+  const applicationsHistoryFile = path.resolve(dataDir, "applications_history.json");
+  const frontendAppliedFile = path.resolve(dataDir, "frontend_applied_ids.json");
 
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  return { rootDir, backendDir, scriptPath, dataDir, logFile, pidFile };
+  return { rootDir, backendDir, scriptPath, dataDir, logFile, pidFile, applicationsHistoryFile, frontendAppliedFile };
 }
 
 // Vérifie si un processus est en cours d'exécution
@@ -41,10 +43,10 @@ async function isProcessRunning(pid: number): Promise<boolean> {
   }
 }
 
-// GET : État du bot et derniers logs
+// GET : État du bot, derniers logs et candidatures synchronisées du Tracker CRM
 export async function GET() {
   try {
-    const { pidFile, logFile } = getPaths();
+    const { pidFile, logFile, applicationsHistoryFile } = getPaths();
 
     let pid: number | null = null;
     let running = false;
@@ -68,11 +70,20 @@ export async function GET() {
         .slice(-80); // Garde les 80 dernières lignes
     }
 
+    let applications: any[] = [];
+    if (fs.existsSync(applicationsHistoryFile)) {
+      try {
+        const rawApps = fs.readFileSync(applicationsHistoryFile, "utf-8");
+        applications = JSON.parse(rawApps);
+      } catch {}
+    }
+
     return NextResponse.json({
       success: true,
       running,
       pid,
       logs,
+      applications,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -85,7 +96,7 @@ export async function GET() {
 // POST : Lancer le bot
 export async function POST(request: Request) {
   try {
-    const { rootDir, backendDir, scriptPath, logFile, pidFile } = getPaths();
+    const { rootDir, backendDir, scriptPath, logFile, pidFile, frontendAppliedFile } = getPaths();
     const body = await request.json().catch(() => ({}));
 
     const {
@@ -98,7 +109,15 @@ export async function POST(request: Request) {
       minDelay = 15,
       maxDelay = 35,
       excludeFrance = true,
+      appliedIds = [],
     } = body;
+
+    // Enregistrer les IDs déjà postulés depuis le dashboard pour l'anti-doublon du bot
+    if (Array.isArray(appliedIds) && appliedIds.length > 0) {
+      try {
+        fs.writeFileSync(frontendAppliedFile, JSON.stringify(appliedIds, null, 2), "utf-8");
+      } catch {}
+    }
 
     // Vérifier si un bot tourne déjà
     if (fs.existsSync(pidFile)) {
