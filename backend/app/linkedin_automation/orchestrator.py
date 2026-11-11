@@ -28,7 +28,7 @@ class LinkedInEasyApplyOrchestrator:
     def __init__(
         self,
         keywords: str = "Machine Learning Stage",
-        location: str = "France",
+        location: str = "Suisse",
         cv_pdf_path: Optional[str] = None,
         user_data_dir: Optional[str] = None,
         cookies_path: Optional[str] = None,
@@ -39,6 +39,7 @@ class LinkedInEasyApplyOrchestrator:
         max_delay: int = 400,
         max_applications_per_cycle: int = 10,
         all_jobs: bool = False,
+        exclude_france: bool = True,
     ):
         self.keywords = keywords
         self.location = location
@@ -48,6 +49,7 @@ class LinkedInEasyApplyOrchestrator:
         self.max_delay = max_delay
         self.max_applications = max_applications_per_cycle
         self.all_jobs = all_jobs
+        self.exclude_france = exclude_france
 
         # Chemins des données et artefacts
         base_dir = Path(__file__).resolve().parent.parent.parent
@@ -134,6 +136,7 @@ class LinkedInEasyApplyOrchestrator:
             max_jobs=self.max_applications,
             applied_ids=applied_ids,
             easy_apply_only=not self.all_jobs,
+            exclude_france=self.exclude_france,
         )
 
         if not queue:
@@ -159,6 +162,13 @@ class LinkedInEasyApplyOrchestrator:
             print(f"💼 Poste      : {title} ({location})")
             print(f"🔗 URL        : {job_url}")
 
+            # Filtre de sécurité Mobilité Internationale EILCO
+            from .browser_agent import is_france_location
+            if self.exclude_france and is_france_location(location):
+                print(f"   🚫 [Filtre EILCO Mobilité Internationale] Offre située en France ignorée ({location}).")
+                print(f"      Conformité EILCO requiert un stage à l'international (Suisse, Luxembourg, Belgique...).")
+                continue
+
             # 1. Extraction de la description complète du poste
             desc = self.browser_agent.scrape_job_description(job_url)
             if not desc:
@@ -182,23 +192,56 @@ class LinkedInEasyApplyOrchestrator:
                 print(f"   🌐 [Site Externe / ATS Détecté] Redirection vers le portail recruteur pour {company}...")
                 ext_url = self.browser_agent.extract_external_apply_url() or job_url
                 try:
-                    from app.browser_applicant import run_browser_applicant
-                    applicant_res = run_browser_applicant(
-                        url=ext_url,
-                        company=company,
-                        title=title,
-                        headless=self.headless,
-                        auto_submit=not self.dry_run,
-                        webhook_url=self.discord_notifier.webhook_url,
-                        custom_cover_letter=letter_text,
-                    )
+                    import subprocess
+                    import uuid
+
+                    # Fichier temporaire pour la lettre de motivation
+                    temp_letter_file = self.output_dir / f"letter_ext_{job_id}.txt"
+                    temp_letter_file.write_text(letter_text, encoding="utf-8")
+
+                    # Fichier temporaire pour le résultat JSON
+                    temp_res_file = self.output_dir / f"res_ext_{job_id}_{uuid.uuid4().hex[:6]}.json"
+
+                    applicant_script = Path(__file__).resolve().parent.parent / "browser_applicant.py"
+                    cmd = [
+                        sys.executable,
+                        str(applicant_script),
+                        "--url", ext_url,
+                        "--company", company,
+                        "--title", title,
+                        "--cover-letter-file", str(temp_letter_file),
+                        "--output-json", str(temp_res_file),
+                    ]
+                    if self.headless:
+                        cmd.append("--headless")
+                    if not self.dry_run:
+                        cmd.append("--auto-submit")
+                    if self.discord_notifier.webhook_url:
+                        cmd.extend(["--webhook", self.discord_notifier.webhook_url])
+                    if self.cv_pdf_path and os.path.exists(self.cv_pdf_path):
+                        cmd.extend(["--cv-pdf", self.cv_pdf_path])
+
+                    print(f"   🚀 [Processus Dédié Playwright] Démarrage du sous-processus isolé pour {company}...")
+                    proc = subprocess.run(cmd, timeout=360)
+
+                    applicant_res = {}
+                    if temp_res_file.exists():
+                        try:
+                            with open(temp_res_file, "r", encoding="utf-8") as rf:
+                                applicant_res = json.load(rf)
+                            temp_res_file.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                    temp_letter_file.unlink(missing_ok=True)
+
+                    is_ok = applicant_res.get("success", False) if proc.returncode == 0 else False
                     result = {
-                        "success": applicant_res.get("success", False),
+                        "success": is_ok,
                         "screenshot": applicant_res.get("screenshot"),
                         "mode": "external_portal",
                     }
                 except Exception as ext_err:
-                    print(f"   ⚠️ Erreur remplissage externe Playwright : {ext_err}")
+                    print(f"   ⚠️ Erreur exécution externe Playwright : {ext_err}")
                     result = {"success": False, "error": str(ext_err)}
             else:
                 # 3b. Postulation automatique LinkedIn Easy Apply via Playwright

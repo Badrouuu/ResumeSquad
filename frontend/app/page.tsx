@@ -153,7 +153,7 @@ export default function Home() {
     "🤖 Agent LinkedIn & Portails Carrières initialisé. Prêt pour la prospection et postulation 100% autonome.",
   ]);
   const [linkedInKeywords, setLinkedInKeywords] = useState("Machine Learning Stage");
-  const [linkedInLocation, setLinkedInLocation] = useState("France");
+  const [linkedInLocation, setLinkedInLocation] = useState("Suisse");
   const [linkedInAllJobs, setLinkedInAllJobs] = useState(true);
   const [linkedInDryRun, setLinkedInDryRun] = useState(false);
   const [linkedInHeadless, setLinkedInHeadless] = useState(false);
@@ -3717,7 +3717,10 @@ ${formattedParagraphs}
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-[#71717a] font-semibold block mb-1">Localisation :</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] text-[#71717a] font-semibold">Localisation :</label>
+                      <span className="text-[9px] text-emerald-400 font-medium">🎓 EILCO (France exclue)</span>
+                    </div>
                     <input
                       type="text"
                       value={linkedInLocation}
@@ -3725,7 +3728,38 @@ ${formattedParagraphs}
                       disabled={isLinkedInBotRunning}
                       className="w-full text-xs p-2 rounded-lg bg-[#09090b] border border-[#27272a] text-white focus:outline-none focus:border-blue-500 font-medium"
                     />
+                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                      {[
+                        { label: "🇨🇭 Suisse", val: "Suisse" },
+                        { label: "🇱🇺 Luxembourg", val: "Luxembourg" },
+                        { label: "🇧🇪 Belgique", val: "Belgique" },
+                        { label: "🌍 Europe", val: "Europe" },
+                      ].map((item) => (
+                        <button
+                          key={item.val}
+                          type="button"
+                          onClick={() => setLinkedInLocation(item.val)}
+                          disabled={isLinkedInBotRunning}
+                          className={`text-[9.5px] px-2 py-0.5 rounded transition ${
+                            linkedInLocation === item.val
+                              ? "bg-blue-600 text-white font-bold"
+                              : "bg-[#18181b] border border-[#27272a] text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                </div>
+
+                {/* Badge d'engagement EILCO */}
+                <div className="bg-emerald-950/30 border border-emerald-500/20 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-[10px] text-emerald-300">
+                  <div className="flex items-center gap-1.5">
+                    <span>🇨🇭</span>
+                    <span>Mobilité Internationale EILCO : <strong>Suisse, Luxembourg & Belgique prioritaires</strong></span>
+                  </div>
+                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold">100% PFE</span>
                 </div>
 
                 {/* Toggles d'options */}

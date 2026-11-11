@@ -42,3 +42,5 @@ backend/data/linkedin_user_profile/
 backend/data/cookies.json
 backend/output/screenshots/
 backend/output/*.pdf
+backend/data/*.pid
+backend/data/*.log

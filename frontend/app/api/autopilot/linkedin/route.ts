@@ -90,13 +90,14 @@ export async function POST(request: Request) {
 
     const {
       keywords = "Machine Learning Stage",
-      location = "France",
+      location = "Suisse",
       allJobs = true,
       dryRun = false,
       headless = false,
       maxApps = 3,
       minDelay = 120,
       maxDelay = 240,
+      excludeFrance = true,
     } = body;
 
     // Vérifier si un bot tourne déjà
@@ -117,7 +118,8 @@ export async function POST(request: Request) {
     const startTimestamp = new Date().toLocaleString("fr-FR");
     const initialLog = `[${startTimestamp}] 🚀 Initialisation du Bot Autonome LinkedIn via le Dashboard Web...\n` +
       `[${startTimestamp}] 🎯 Mots-clés: "${keywords}" | Lieu: "${location}" | Mode: ${dryRun ? "Simulation (Dry-Run)" : "Production Autonome"}\n` +
-      `[${startTimestamp}] 🌐 Couverture: ${allJobs ? "Toutes les offres (Easy Apply + Sites Externes)" : "Easy Apply uniquement"}\n\n`;
+      `[${startTimestamp}] 🌐 Couverture: ${allJobs ? "Toutes les offres (Easy Apply + Sites Externes)" : "Easy Apply uniquement"}\n` +
+      `[${startTimestamp}] 🎓 Conformité EILCO Mobilité Internationale: ${excludeFrance ? "Exclusion stricte de la France active" : "France autorisée"}\n\n`;
     fs.writeFileSync(logFile, initialLog, "utf-8");
 
     // Construire les arguments
@@ -139,6 +141,11 @@ export async function POST(request: Request) {
     if (allJobs) args.push("--all-jobs");
     if (dryRun) args.push("--dry-run");
     if (headless) args.push("--headless");
+    if (excludeFrance) {
+      args.push("--exclude-france");
+    } else {
+      args.push("--allow-france");
+    }
 
     // Ouvrir le fichier de log pour écriture continue
     const outLogStream = fs.openSync(logFile, "a");

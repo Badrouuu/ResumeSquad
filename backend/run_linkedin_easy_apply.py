@@ -48,8 +48,21 @@ def main():
     parser.add_argument(
         "--location",
         type=str,
-        default="France",
-        help="Localisation géographique (défaut : 'France')",
+        default="Suisse",
+        help="Localisation géographique (défaut : 'Suisse' pour conformité EILCO)",
+    )
+    parser.add_argument(
+        "--exclude-france",
+        dest="exclude_france",
+        action="store_true",
+        default=True,
+        help="Exclure strictement la France pour valider la mobilité internationale EILCO (par défaut : True)",
+    )
+    parser.add_argument(
+        "--allow-france",
+        dest="exclude_france",
+        action="store_false",
+        help="Autoriser les offres en France (désactive le filtre de mobilité internationale)",
     )
     parser.add_argument(
         "--once",
@@ -138,6 +151,7 @@ def main():
         max_delay=args.max_delay,
         max_applications_per_cycle=args.max_apps,
         all_jobs=args.all_jobs,
+        exclude_france=args.exclude_france,
     )
 
     if args.login:

@@ -22,6 +22,7 @@ import time
 import argparse
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, List, Dict, Any
 
 # Encodage console Windows
 if sys.platform == "win32":
@@ -355,6 +356,7 @@ def run_browser_applicant(
     auto_submit: bool = False,
     webhook_url: str = DISCORD_WEBHOOK_URL,
     custom_cover_letter: str = "",
+    cv_pdf_path: Optional[str] = None,
 ) -> dict:
     """
     Exécute le cycle complet d'automatisation Playwright avec Human-in-the-Loop.
@@ -388,7 +390,10 @@ def run_browser_applicant(
         page = context.new_page()
 
         # Étape 0 : S'assurer que le CV PDF existe
-        cv_pdf_path = ensure_cv_pdf(page, profile)
+        if not cv_pdf_path or not os.path.exists(cv_pdf_path):
+            cv_pdf_path = ensure_cv_pdf(page, profile)
+        else:
+            print(f"📎 [CV] Utilisation du CV PDF spécifié : {cv_pdf_path}")
 
         # Étape 1 : Navigation vers l'offre
         print(f"\n🌐 [1/5] Connexion à la page de candidature...")
@@ -717,16 +722,37 @@ def main():
     parser.add_argument("--headless", action="store_true", help="Lancer en arrière-plan sans ouvrir la fenêtre visible")
     parser.add_argument("--auto-submit", action="store_true", help="Soumettre directement sans attendre la validation humaine")
     parser.add_argument("--webhook", type=str, default=DISCORD_WEBHOOK_URL, help="URL du Webhook Discord")
+    parser.add_argument("--cv-pdf", type=str, default="", help="Chemin du CV PDF personnalisé")
+    parser.add_argument("--cover-letter-text", type=str, default="", help="Texte de la lettre de motivation")
+    parser.add_argument("--cover-letter-file", type=str, default="", help="Chemin du fichier texte de la lettre de motivation")
+    parser.add_argument("--output-json", type=str, default="", help="Chemin du fichier JSON de sortie")
     args = parser.parse_args()
 
-    run_browser_applicant(
+    cover_text = args.cover_letter_text
+    if args.cover_letter_file and os.path.exists(args.cover_letter_file):
+        try:
+            with open(args.cover_letter_file, "r", encoding="utf-8", errors="replace") as f:
+                cover_text = f.read()
+        except Exception as e:
+            print(f"⚠️ Avertissement lecture fichier lettre: {e}")
+
+    result = run_browser_applicant(
         url=args.url,
         company=args.company,
         title=args.title,
         headless=args.headless,
         auto_submit=args.auto_submit,
         webhook_url=args.webhook,
+        custom_cover_letter=cover_text,
+        cv_pdf_path=args.cv_pdf if args.cv_pdf else None,
     )
+
+    if args.output_json:
+        try:
+            with open(args.output_json, "w", encoding="utf-8") as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"⚠️ Avertissement écriture résultat JSON: {e}")
 
 
 if __name__ == "__main__":

@@ -332,16 +332,48 @@ class LinkedInBrowserAgent:
         return False
 
     # =========================================================================
+def is_france_location(loc_str: str) -> bool:
+    """
+    Vérifie si la localisation est située en France.
+    Pour les élèves de l'EILCO, le stage PFE doit obligatoirement être à l'international
+    (Suisse, Luxembourg, Belgique, Allemagne, UK, Remote International...).
+    Les offres en France doivent être automatiquement rejetées.
+    """
+    if not loc_str:
+        return False
+    s = loc_str.lower().strip()
+
+    # Exceptions pays autorisés
+    if any(k in s for k in ["suisse", "switzerland", "schweiz", "luxembourg", "belgique", "belgium", "germany", "allemagne", "remote", "télétravail"]):
+        return False
+
+    france_indicators = [
+        "france", "paris", "poissy", "lyon", "toulouse", "bordeaux", "nantes",
+        "lille", "marseille", "rennes", "strasbourg", "montpellier", "nice",
+        "grenoble", "sophia", "brest", "rouen", "reims", "clermont",
+        "île-de-france", "ile-de-france", "hauts-de-france", "auvergne", "rhône-alpes",
+        "occitanie", "nouvelle-aquitaine", "grand est", "pays de la loire", "bretagne",
+        "normandie", "bourgogne", "centre-val de loire", "corse", "calais", "dunkerque"
+    ]
+    import re
+    for ind in france_indicators:
+        if re.search(r'\b' + re.escape(ind) + r'\b', s):
+            return True
+    return False
+
+
+    # =========================================================================
     # ÉTAPE 2 : SCRAPING DE LA FILE D'ATTENTE (SOURCING EASY APPLY)
     # =========================================================================
 
     def search_easy_apply_jobs(
         self,
         keywords: str = "Machine Learning Stage",
-        location: str = "France",
+        location: str = "Suisse",
         max_jobs: int = 15,
         applied_ids: Optional[set] = None,
         easy_apply_only: bool = True,
+        exclude_france: bool = True,
     ) -> List[Dict[str, Any]]:
         """
         Navigue sur LinkedIn Jobs avec ou sans filtre 'Candidature simplifiée' (f_AL=true),
@@ -423,12 +455,45 @@ class LinkedInBrowserAgent:
                     if l.strip() and not l.strip().startswith("Consulté") and not l.strip().startswith("Promu")
                 ]
 
-                raw_title = lines[0] if lines else "Poste IA / Data"
-                clean_title = re.sub(r"^(Sélectionné,\s*|Nouveau\s*|Recherche\s*)", "", raw_title, flags=re.IGNORECASE)
-                clean_title = re.sub(r"\(offre d’emploi vérifiée\)", "", clean_title, flags=re.IGNORECASE).strip()
+                # Titre précis
+                clean_title = ""
+                try:
+                    title_elem = card.locator(".job-card-list__title--link, a.job-card-container__link, [data-control-name='job_card_title'], strong").first
+                    if title_elem.count() > 0:
+                        clean_title = title_elem.inner_text().strip()
+                except Exception:
+                    pass
+                if not clean_title:
+                    raw_title = lines[0] if lines else "Poste IA / Data"
+                    clean_title = re.sub(r"^(Sélectionné,\s*|Nouveau\s*|Recherche\s*)", "", raw_title, flags=re.IGNORECASE)
+                    clean_title = re.sub(r"\(offre d’emploi vérifiée\)", "", clean_title, flags=re.IGNORECASE).strip()
 
-                company = lines[1] if len(lines) > 1 else "Entreprise Internationale"
-                loc = lines[2] if len(lines) > 2 else location
+                # Entreprise précise
+                company = ""
+                try:
+                    comp_elem = card.locator(".artdeco-entity-lockup__subtitle, .job-card-container__primary-description, [class*='company-name']").first
+                    if comp_elem.count() > 0:
+                        company = comp_elem.inner_text().strip()
+                except Exception:
+                    pass
+                if not company:
+                    company = lines[1] if len(lines) > 1 else "Entreprise Internationale"
+
+                # Localisation précise
+                loc = ""
+                try:
+                    loc_elem = card.locator(".artdeco-entity-lockup__caption, .job-card-container__metadata-item, [class*='job-card-container__metadata']").first
+                    if loc_elem.count() > 0:
+                        loc = loc_elem.inner_text().strip()
+                except Exception:
+                    pass
+                if not loc:
+                    loc = lines[2] if len(lines) > 2 else location
+
+                # 3. Filtre EILCO Mobilité Internationale (Interdiction de postuler en France)
+                if exclude_france and is_france_location(loc):
+                    print(f"   🚫 [Filtre EILCO] Offre en France écartée : {clean_title} ({loc})")
+                    continue
 
                 job_url = f"https://www.linkedin.com/jobs/view/{raw_id}/"
                 seen_ids.add(raw_id)
