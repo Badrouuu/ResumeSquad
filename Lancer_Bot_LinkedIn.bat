@@ -6,15 +6,15 @@ rem ====================================================================
 cd /d "%~dp0"
 
 echo ====================================================================
-echo    ResumeSquad - Agent Autonome LinkedIn et Portails Carrieres
+echo    ResumeSquad - Agent Autonome LinkedIn [Mode Volume MAX]
 echo    Conformite EILCO : Suisse, Luxembourg, Belgique [France Exclue]
 echo ====================================================================
 echo.
-echo  [1] Lancer le Bot Suisse Rapide [Production - Delais 15-35s]
-echo  [2] Lancer le Bot Suisse Turbo [Production - Delais 5-12s]
-echo  [3] Lancer le Bot Luxembourg [Production - Easy Apply + ATS]
-echo  [4] Lancer le Bot Simulation Dry-Run [Suisse - Sans envoi]
-echo  [5] Connexion Manuelle / Verification Session LinkedIn [Sans fermeture]
+echo  [1] Mode Volume MAX Suisse [Turbo 5-10s, 25 offres, Easy Apply + ATS directs]
+echo  [2] Mode Easy Apply Exclusif Suisse [100% sur LinkedIn, zero redirection]
+echo  [3] Mode Volume MAX Luxembourg [Turbo 5-10s, 25 offres]
+echo  [4] Mode Simulation Dry-Run [Suisse - Sans envoi reel]
+echo  [5] Connexion Manuelle / Verification Session LinkedIn [Fenetre ouverte]
 echo  [6] Lancer le Dashboard Web [Next.js sur http://localhost:3000]
 echo  [7] Quitter
 echo.
@@ -22,22 +22,22 @@ set /p choice="Votre choix (1-7) : "
 
 if "%choice%"=="1" (
     echo.
-    echo [*] Lancement du bot autonome Suisse Rapide [Delais: 15-35s]...
-    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --exclude-france
+    echo [*] Lancement du Mode Volume MAX Suisse [Turbo - 25 candidatures]...
+    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --max-apps 25 --turbo --exclude-france
     pause
     exit /b
 )
 if "%choice%"=="2" (
     echo.
-    echo [*] Lancement du bot autonome Suisse Turbo [Delais: 5-12s]...
-    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --turbo --exclude-france
+    echo [*] Lancement du Mode Easy Apply Exclusif Suisse [100% sur LinkedIn]...
+    python backend\run_linkedin_easy_apply.py --once --location "Suisse" --max-apps 25 --turbo --exclude-france
     pause
     exit /b
 )
 if "%choice%"=="3" (
     echo.
-    echo [*] Lancement du bot autonome Luxembourg...
-    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Luxembourg" --exclude-france
+    echo [*] Lancement du Mode Volume MAX Luxembourg [Turbo - 25 candidatures]...
+    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Luxembourg" --max-apps 25 --turbo --exclude-france
     pause
     exit /b
 )
@@ -51,7 +51,7 @@ if "%choice%"=="4" (
 if "%choice%"=="5" (
     echo.
     echo [*] Ouverture du navigateur Chromium pour connexion LinkedIn...
-    echo [*] Gardez la fenetre ouverte pour valider le code 2FA / e-mail.
+    echo [*] Gardez la fenetre ouverte pour valider le code 2FA / e-mail si demande.
     python backend\run_linkedin_easy_apply.py --login
     pause
     exit /b

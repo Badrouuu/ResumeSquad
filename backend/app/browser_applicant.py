@@ -428,6 +428,17 @@ def run_browser_applicant(
             except Exception:
                 continue
 
+        # Détection rapide de barrière de compte / mot de passe / captcha
+        if page.locator('input[type="password"]').count() > 0:
+            print("   ⏩ [Passage Rapide] Portail avec création de compte obligatoire (mot de passe/e-mail). Offre ignorée pour volume maximal.")
+            browser.close()
+            return {"success": False, "skipped": True, "error": "Création de compte obligatoire"}
+
+        if page.locator('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], div.g-recaptcha, div.h-captcha').count() > 0:
+            print("   ⏩ [Passage Rapide] Captcha tiers détecté. Offre ignorée pour postulation ininterrompue.")
+            browser.close()
+            return {"success": False, "skipped": True, "error": "Captcha tiers"}
+
         # Étape 3 : Remplissage automatique des champs de saisie
         print("\n✍️ [3/5] Remplissage automatique des coordonnées du candidat...")
 

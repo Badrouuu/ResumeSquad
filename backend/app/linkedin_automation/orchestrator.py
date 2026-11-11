@@ -133,7 +133,7 @@ class LinkedInEasyApplyOrchestrator:
         queue = self.browser_agent.search_easy_apply_jobs(
             keywords=self.keywords,
             location=self.location,
-            max_jobs=self.max_applications,
+            max_jobs=max(35, self.max_applications * 2),
             applied_ids=applied_ids,
             easy_apply_only=not self.all_jobs,
             exclude_france=self.exclude_france,
@@ -287,12 +287,17 @@ class LinkedInEasyApplyOrchestrator:
                 })
                 self.save_history(history)
 
-                # 5. Temporisation entre deux postulations
+                # 5. Temporisation entre deux postulations réussies
                 if idx < len(queue) and processed_count < self.max_applications:
                     print(f"⏳ [Pause de Sécurité] {sleep_delay}s avant la prochaine offre...")
                     time.sleep(sleep_delay)
             else:
-                print(f"   ❌ Échec candidature {company}: {result.get('error', 'Erreur inconnue')}")
+                err_text = str(result.get('error', 'Erreur inconnue'))
+                if "compte" in err_text.lower() or "captcha" in err_text.lower() or result.get("skipped"):
+                    print(f"   ⏩ [Skip Rapide] {company} : {err_text}. Enchaînement immédiat sur la prochaine offre...")
+                else:
+                    print(f"   ❌ Candidature non soumise pour {company}: {err_text}")
+                time.sleep(1.0)
 
         self.browser_agent.close()
         print(f"\n🎉 [Cycle Terminé] {processed_count} candidature(s) validée(s) avec succès !")

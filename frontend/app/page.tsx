@@ -157,7 +157,7 @@ export default function Home() {
   const [linkedInAllJobs, setLinkedInAllJobs] = useState(true);
   const [linkedInDryRun, setLinkedInDryRun] = useState(false);
   const [linkedInHeadless, setLinkedInHeadless] = useState(false);
-  const [linkedInMaxApps, setLinkedInMaxApps] = useState<number>(3);
+  const [linkedInMaxApps, setLinkedInMaxApps] = useState<number>(10);
   const [isStoppingLinkedInBot, setIsStoppingLinkedInBot] = useState(false);
 
   // Préférences utilisateur apprises (RLHF / Active Learning via Discord & Radar)
@@ -3814,13 +3814,13 @@ ${formattedParagraphs}
                 <div className="flex items-center justify-between text-xs pt-1">
                   <span className="text-[11px] text-[#a1a1aa] font-semibold">Candidatures par cycle :</span>
                   <div className="flex items-center gap-1 bg-[#09090b] p-1 rounded-lg border border-[#27272a]">
-                    {[1, 3, 5, 10].map((num) => (
+                    {[3, 5, 10, 15, 25].map((num) => (
                       <button
                         key={num}
                         type="button"
                         onClick={() => setLinkedInMaxApps(num)}
                         disabled={isLinkedInBotRunning}
-                        className={`px-2.5 py-0.5 rounded text-xs font-bold transition ${
+                        className={`px-2 py-0.5 rounded text-xs font-bold transition ${
                           linkedInMaxApps === num
                             ? "bg-blue-600 text-white"
                             : "text-[#71717a] hover:text-white"
