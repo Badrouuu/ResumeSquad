@@ -1,7 +1,7 @@
 \documentclass[10pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[a4paper, top=1.0cm, bottom=1.0cm, left=1.1cm, right=1.1cm]{geometry}
+\usepackage[a4paper, top=0.8cm, bottom=0.8cm, left=1.0cm, right=1.0cm]{geometry}
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
@@ -30,66 +30,51 @@
   {\large\bfseries\color{primary}\uppercase}
   {}{0em}{}[\vspace{-0.6em}\rule{\textwidth}{0.8pt}\vspace{-0.4em}]
 
-\titlespacing*{\section}{0pt}{0.5em}{0.2em}
+\titlespacing*{\section}{0pt}{0.4em}{0.15em}
 
-\setlist[itemize]{leftmargin=1.2em, itemsep=1pt, topsep=1pt, parsep=0pt, partopsep=0pt}
+\setlist[itemize]{leftmargin=1.1em, itemsep=0.5pt, topsep=0.5pt, parsep=0pt, partopsep=0pt}
 
 \begin{document}
 \enlargethispage{3\baselineskip}
 
 % --- EN-TÊTE ---
 \begin{center}
-    {\huge \textbf{\color{primary} (( basics.name ))}} \\[0.25em]
-    {\large \textbf{(( basics.title ))}} \\[0.4em]
+    {\huge \textbf{\color{primary} (( basics.name ))}} \\[0.2em]
+    {\large \textbf{(( basics.title ))}} \\[0.2em]
+    \textbf{\color{primary} Available March 2027 – 6-Month End-of-Studies Internship (PFE)} \\[0.25em]
     \small
-    (( basics.location )) \\
+    France \ $|$ \ 
     \href{tel:(( basics.phone ))}{(( basics.phone ))} \ $|$ \ 
     \href{mailto:(( basics.email ))}{(( basics.email ))} \ $|$ \ 
     \href{(( basics.linkedin ))}{LinkedIn} \ $|$ \ 
     \href{(( basics.github ))}{GitHub}
 \end{center}
 
-\vspace{-0.4em}
+\vspace{-0.5em}
 \noindent
 \small (( basics.summary ))
 
-% --- FORMATION ---
-\section{Formation \& Certifications}
+% --- COMPÉTENCES TECHNIQUES (MANDATORY ATS BLOCK DIRECTLY AFTER SUMMARY) ---
+\section{Technical Skills}
+\begin{itemize}
+    \item \textbf{Languages:} Python, C\#, TypeScript, SQL, PHP
+    \item \textbf{AI \& Machine Learning:} PyTorch, TensorFlow Lite, Hugging Face, RAG Pipelines, Word2Vec / Gensim, Google ML Kit (OCR), LLM Orchestration
+    \item \textbf{Backend, Cloud \& DevOps:} FastAPI, .NET Core, Docker, GCP (Firestore, Cloud Functions), Supabase, Git, CI/CD, Linux/WSL2
+\end{itemize}
+
+% --- FORMATION & CERTIFICATIONS ---
+\section{Education \& Certifications}
 \begin{itemize}
 ((* for edu in education *))
     \item \textbf{(( edu.degree ))} \hfill (( edu.period )) \\
     \textit{(( edu.institution )), (( edu.location ))} \\
     \footnotesize (( edu.details ))
 ((* endfor *))
-    \item \textbf{Certification Anglais : TOEIC Listening and Reading} \hfill Score : \textbf{905 / 990 (Niveau C1)}
+    \item \textbf{English Certification: TOEIC Listening \& Reading — 905/990 (CEFR C1 Level)}
 \end{itemize}
 
-% --- COMPÉTENCES TECHNIQUES ---
-\section{Compétences Techniques}
-\begin{itemize}
-    \item \textbf{Intelligence Artificielle \& Data :} (( skills.machine_learning_ai | join(', ') ))
-    \item \textbf{Langages de Programmation :} (( skills.languages | join(', ') ))
-    \item \textbf{Backend, Cloud \& DevOps :} (( skills.backend_cloud_devops | join(', ') ))
-    \item \textbf{Langues :} (( skills.spoken_languages | join(' $|$ ') ))
-\end{itemize}
-
-% --- EXPÉRIENCE PROFESSIONNELLE ---
-\section{Expérience Professionnelle}
-((* for exp in experience *))
-\noindent
-\textbf{(( exp.role ))} \hfill (( exp.period )) \\
-\textit{(( exp.company )) \ --- \ (( exp.location ))}
-\begin{itemize}
-((* for h in exp.highlights *))
-    \item (( h ))
-((* endfor *))
-    \item \textbf{Technologies :} (( exp.technologies | join(', ') ))
-\end{itemize}
-\vspace{0.4em}
-((* endfor *))
-
-% --- PROJETS CLÉS ---
-\section{Projets Techniques \& Réalisations}
+% --- PROJETS TECHNIQUES ---
+\section{Technical Projects}
 ((* for proj in projects *))
 \noindent
 \textbf{(( proj.name ))} \hfill (( proj.period )) \\
@@ -98,17 +83,36 @@
 ((* for h in proj.highlights *))
     \item (( h ))
 ((* endfor *))
-    \item \textbf{Technologies :} (( proj.technologies | join(', ') ))
+((* if proj.technologies *))
+    \item \textbf{Technologies:} (( proj.technologies | join(', ') ))
+((* endif *))
 \end{itemize}
-\vspace{0.4em}
+\vspace{0.25em}
+((* endfor *))
+
+% --- EXPÉRIENCE PROFESSIONNELLE ---
+\section{Professional Experience}
+((* for exp in experience *))
+\noindent
+\textbf{(( exp.role ))} \hfill (( exp.period )) \\
+\textit{(( exp.company )) \ --- \ (( exp.location ))}
+\begin{itemize}
+((* for h in exp.highlights *))
+    \item (( h ))
+((* endfor *))
+((* if exp.technologies *))
+    \item \textbf{Technologies:} (( exp.technologies | join(', ') ))
+((* endif *))
+\end{itemize}
+\vspace{0.25em}
 ((* endfor *))
 
 % --- CENTRES D'INTÉRÊT & ENGAGEMENT ASSOCIATIF ---
-\section{Centres d'Intérêt \& Engagement Associatif}
+\section{Interests \& Community Engagement}
 \begin{itemize}
-    \item \textbf{Modding \& Jeux Vidéo :} Passionné de jeux vidéo et de modding (analyse et modification de mécaniques de gameplay, scripting, structures de données).
-    \item \textbf{Jeux de Stratégie \& TCG Compétitif :} Pratique active de jeux de stratégie et participation à des tournois One Piece TCG (théorie des jeux, optimisation tactique, calculs de probabilités).
-    \item \textbf{Engagement Associatif \& Secourisme :} Stagiaire bénévole en association d'entraide (animation, coordination terrain, esprit d'équipe) \& Titulaire du Brevet de Premiers Secours (PSC1).
+    \item \textbf{Game Modding \& Video Games:} Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures).
+    \item \textbf{Strategy Games \& Competitive TCG:} Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making).
+    \item \textbf{Community Engagement \& First Aid:} Volunteer in non-profit community associations (team coordination, civic responsibility) \& Certified in First Aid (PSC1 / Emergency Response).
 \end{itemize}
 
 \end{document}

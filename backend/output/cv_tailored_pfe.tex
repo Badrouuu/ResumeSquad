@@ -1,7 +1,7 @@
 \documentclass[10pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[a4paper, top=1.0cm, bottom=1.0cm, left=1.1cm, right=1.1cm]{geometry}
+\usepackage[a4paper, top=0.8cm, bottom=0.8cm, left=1.0cm, right=1.0cm]{geometry}
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{xcolor}
@@ -30,114 +30,125 @@
   {\large\bfseries\color{primary}\uppercase}
   {}{0em}{}[\vspace{-0.6em}\rule{\textwidth}{0.8pt}\vspace{-0.4em}]
 
-\titlespacing*{\section}{0pt}{0.5em}{0.2em}
+\titlespacing*{\section}{0pt}{0.4em}{0.15em}
 
-\setlist[itemize]{leftmargin=1.2em, itemsep=1pt, topsep=1pt, parsep=0pt, partopsep=0pt}
+\setlist[itemize]{leftmargin=1.1em, itemsep=0.5pt, topsep=0.5pt, parsep=0pt, partopsep=0pt}
 
 \begin{document}
 \enlargethispage{3\baselineskip}
 
 % --- EN-TÊTE ---
 \begin{center}
-    {\huge \textbf{\color{primary} Badroudine Bacar}} \\[0.4em]
-    {\large \textbf{AI / Machine Learning Engineer (Stage PFE)}} \\[0.4em]
+    {\huge \textbf{\color{primary} Badroudine Bacar}} \\[0.2em]
+    {\large \textbf{AI \& Machine Learning Engineer Intern (PFE)}} \\[0.2em]
+    \textbf{\color{primary} Available March 2027 – 6-Month End-of-Studies Internship (PFE)} \\[0.25em]
     \small
-    Calais / Hauts-de-France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail) \ $|$ \ 
+    France \ $|$ \ 
+    \href{tel:07 67 56 07 86}{07 67 56 07 86} \ $|$ \ 
     \href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \ $|$ \ 
     \href{https://www.linkedin.com/in/badroudine-bacar/}{LinkedIn} \ $|$ \ 
     \href{https://github.com/Badrouuu}{GitHub}
 \end{center}
 
-\vspace{-0.4em}
+\vspace{-0.5em}
 \noindent
-\small Élève-ingénieur en dernière année à l'EILCO (spécialité IA), doté d'une certification TOEIC 905/990. Spécialisé en Machine Learning, NLP et Deep Learning, avec une expérience avérée dans le développement de pipelines RAG, d'agents LLM (Few-Shot Prompting) et de calculs d'espaces vectoriels sémantiques (Word2Vec). Expert dans la conception d'APIs haute performance avec FastAPI et leur conteneurisation via Docker. À la recherche d'un stage de fin d'études (PFE) de 6 mois à partir de mars 2027.
+\small Final-year engineering student at EILCO specializing in AI and Data Science with a strong background in CPGE TSI and a TOEIC score of 905/990 (C1). Experienced in architecting RAG pipelines, deploying FastAPI microservices with Docker, and optimizing vector search spaces. Seeking a 6-month end-of-studies internship starting March 2027 to deploy production-ready AI systems.
 
-% --- FORMATION ---
-\section{Formation \& Certifications}
+% --- COMPÉTENCES TECHNIQUES (MANDATORY ATS BLOCK DIRECTLY AFTER SUMMARY) ---
+\section{Technical Skills}
+\begin{itemize}
+    \item \textbf{Languages:} Python, C\#, TypeScript, SQL, PHP
+    \item \textbf{AI \& Machine Learning:} PyTorch, TensorFlow Lite, Hugging Face, RAG Pipelines, Word2Vec / Gensim, Google ML Kit (OCR), LLM Orchestration
+    \item \textbf{Backend, Cloud \& DevOps:} FastAPI, .NET Core, Docker, GCP (Firestore, Cloud Functions), Supabase, Git, CI/CD, Linux/WSL2
+\end{itemize}
+
+% --- FORMATION & CERTIFICATIONS ---
+\section{Education \& Certifications}
 \begin{itemize}
 
     \item \textbf{Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle} \hfill 2024 - 2027 \\
     \textit{EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France} \\
     \footnotesize Dernière année (ING3). Modules avancés : Deep Learning, Vision par Ordinateur, Machine Learning, Architecture Logicielle, MLOps, CI/CD, Bases de Données Avancées.
 
-    \item \textbf{CPGE TSI (Classe Préparatoire aux Grandes Écoles)} \hfill 2022 - 2024 \\
+    \item \textbf{Classes Préparatoires aux Grandes Écoles (CPGE TSI)} \hfill 2022 - 2024 \\
     \textit{Lycée Antonin Artaud, Marseille, France} \\
     \footnotesize Formation intensive pluridisciplinaire : Mathématiques fondamentales, Physique appliquée, Sciences de l'Ingénieur et Algorithmique.
 
-    \item \textbf{Certification Anglais : TOEIC Listening and Reading} \hfill Score : \textbf{905 / 990 (Niveau C1)}
+    \item \textbf{English Certification: TOEIC Listening \& Reading — 905/990 (CEFR C1 Level)}
 \end{itemize}
 
-% --- COMPÉTENCES TECHNIQUES ---
-\section{Compétences Techniques}
+% --- PROJETS TECHNIQUES ---
+\section{Technical Projects}
+
+\noindent
+\textbf{Antigravity — Autonomous LLM \& RAG Pipeline} \hfill 2026 \\
+\textit{Lead AI Engineer}
 \begin{itemize}
-    \item \textbf{Intelligence Artificielle \& Data :} PyTorch, Scikit-Learn, Gensim (Word Embeddings), Google ML Kit (OCR / Vision), OpenCV, RAG \& LLM Prompting, NumPy, Pandas
-    \item \textbf{Langages de Programmation :} Python, TypeScript, JavaScript, SQL, C, Java, Dart, Bash
-    \item \textbf{Backend, Cloud \& DevOps :} FastAPI, Docker, Linux, Git \& GitHub, Supabase (PostgreSQL), Firebase Cloud Functions, CI/CD basics, RESTful APIs
-    \item \textbf{Langues :} Français (Langue maternelle) $|$ Anglais (Niveau C1 certifié — TOEIC 905/990)
+
+    \item Engineered an automated job-matching and document-generation pipeline using Google Gemini API, structured JSON schemas, and few-shot prompting to enforce 100\% LaTeX compilation compliance without hallucinations.
+
+    \item Built automated validation and context-extraction layers to parse unstructured job descriptions and align candidate profiles against target technical requirements.
+
+
+    \item \textbf{Technologies:} Python, FastAPI, Google Gemini API, Pydantic v2, LaTeX, Docker
+
 \end{itemize}
+\vspace{0.25em}
+
+\noindent
+\textbf{VectorWord / Guess-What — Semantic Search Engine} \hfill 2026 \\
+\textit{Full-Stack \& ML Engineer}
+\begin{itemize}
+
+    \item Architected a FastAPI inference backend computing cosine similarity across multilingual Word2Vec vector spaces with in-memory model caching.
+
+    \item Containerized and deployed the full-stack application using Docker, Railway, Next.js 15, and Supabase for real-time state synchronization.
+
+
+    \item \textbf{Technologies:} Python, FastAPI, Gensim (Word2Vec), NumPy, Docker, Supabase, Next.js 15, TypeScript
+
+\end{itemize}
+\vspace{0.25em}
+
+\noindent
+\textbf{EILCO Project Management \& Scheduling Platform (PIC)} \hfill 2026 \\
+\textit{Backend \& Database Engineer}
+\begin{itemize}
+
+    \item Designed the relational SQL database schema and backend ingestion pipeline to parse legacy Excel academic records and automate defense scheduling and grade exports.
+
+
+    \item \textbf{Technologies:} SQL, Python, FastAPI, Pandas, PostgreSQL
+
+\end{itemize}
+\vspace{0.25em}
+
 
 % --- EXPÉRIENCE PROFESSIONNELLE ---
-\section{Expérience Professionnelle}
+\section{Professional Experience}
 
 \noindent
-\textbf{Fondateur \& Développeur Lead (Stage Entrepreneurial PÉPITE / CEL)} \hfill 2025 - 2026 \\
-\textit{Étiquette Jaune (Micro-entreprise) \ --- \ Calais, France}
+\textbf{Founder \& Lead Software Developer (Entrepreneurial Internship PÉPITE)} \hfill Jun 2026 – Sep 2026 \\
+\textit{Étiquette Jaune \ --- \ Calais, France}
 \begin{itemize}
 
-    \item Accompli l'intégration de modèles de Vision par Ordinateur mesurés par la vitesse d'extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).
+    \item Engineered on-device Computer Vision pipelines using Google ML Kit Text Recognition (OCR) for real-time document and label extraction.
 
-    \item Accompli le développement d'un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.
+    \item Architected a serverless backend on Google Cloud Firestore and Cloud Functions (TypeScript) ensuring low-latency data synchronization.
 
-    \item Accompli la mise en place de modules critiques mesurés par la sécurité des transactions, en faisant appel à Firebase Auth et l'API Stripe.
 
-    \item \textbf{Technologies :} Flutter, Dart, Google ML Kit (OCR), Firebase, Cloud Functions (TypeScript), Stripe API, Git
+    \item \textbf{Technologies:} Flutter, Dart, Google ML Kit (OCR), Firebase, Cloud Functions (TypeScript), Stripe API, Git
+
 \end{itemize}
-\vspace{0.4em}
+\vspace{0.25em}
 
 
-% --- PROJETS CLÉS ---
-\section{Projets Techniques \& Réalisations}
-
-\noindent
-\textbf{VectorWord / Guess-What (NLP \& Vector Space Search)} \hfill 2026 \\
-\textit{Développeur Fullstack \& ML}
+% --- CENTRES D'INTÉRÊT & ENGAGEMENT ASSOCIATIF ---
+\section{Interests \& Community Engagement}
 \begin{itemize}
-
-    \item Accompli la mise en place d'une API haute performance mesurée par un temps de réponse optimisé, en faisant appel à FastAPI et Uvicorn pour servir des calculs de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) via Gensim et NumPy.
-
-    \item Accompli la portabilité et le déploiement industrialisé mesurés par une reproductibilité totale, en faisant usage d'une architecture conteneurisée avec Docker et un déploiement automatisé sur Railway.
-
-    \item Accompli le développement d'un frontend réactif mesuré par une synchronisation temps réel des données, en faisant appel à Next.js 15, TypeScript, Tailwind CSS et Supabase (PostgreSQL).
-
-    \item \textbf{Technologies :} Python, FastAPI, Gensim (Word2Vec), NumPy, Docker, Supabase, Next.js 15, TypeScript
+    \item \textbf{Game Modding \& Video Games:} Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures).
+    \item \textbf{Strategy Games \& Competitive TCG:} Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making).
+    \item \textbf{Community Engagement \& First Aid:} Volunteer in non-profit community associations (team coordination, civic responsibility) \& Certified in First Aid (PSC1 / Emergency Response).
 \end{itemize}
-\vspace{0.4em}
-
-\noindent
-\textbf{Pipeline RAG \& Automatisation de Code (Agentic AI)} \hfill 2026 \\
-\textit{Ingénieur RAG / LLM}
-\begin{itemize}
-
-    \item Accompli la conception d'un moteur de parsing d'offres et de matching mesuré par la précision du score de pertinence sémantique, en faisant usage d'un système agentique RAG et LLM.
-
-    \item Accompli la génération automatisée de documents mesurée par la réduction drastique des hallucinations, en faisant appel à des stratégies de Few-Shot Prompting et de génération structurée LaTeX.
-
-    \item \textbf{Technologies :} Python, LLMs, RAG, Prompt Engineering, LaTeX, NLP
-\end{itemize}
-\vspace{0.4em}
-
-\noindent
-\textbf{Computer Vision \& Deep Learning Lab (EILCO)} \hfill 2026 \\
-\textit{Projets académiques ING3}
-\begin{itemize}
-
-    \item Accompli l'entraînement et l'optimisation de modèles mesurés par la performance de classification et segmentation, en faisant appel à PyTorch.
-
-    \item Accompli le prétraitement et l'extraction de caractéristiques mesurés par la robustesse des données, en faisant usage d'OpenCV, Scikit-Learn et NumPy.
-
-    \item \textbf{Technologies :} Python, PyTorch, OpenCV, Scikit-Learn, Matplotlib
-\end{itemize}
-\vspace{0.4em}
-
 
 \end{document}

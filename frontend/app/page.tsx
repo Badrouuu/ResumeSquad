@@ -193,22 +193,27 @@ export default function Home() {
   const DEFAULT_CV_FR = {
     tailoredTitle: "Ingénieur IA & Machine Learning — Stage PFE",
     tailoredSummary:
-      "Élève-ingénieur en dernière année à l'EILCO (spécialité IA), doté d'une certification TOEIC 905/990. Spécialisé en Machine Learning, NLP et Deep Learning, avec une expérience avérée dans le développement de pipelines RAG, d'agents LLM (Few-Shot Prompting) et de calculs d'espaces vectoriels sémantiques (Word2Vec). Expert dans la conception d'APIs haute performance avec FastAPI et leur conteneurisation via Docker. À la recherche d'un stage de fin d'études (PFE) de 6 mois à partir de mars 2027.",
+      "Élève-ingénieur en dernière année à l'EILCO (spécialité IA), doté d'une certification TOEIC 905/990 (Niveau C1). Spécialisé en Machine Learning, NLP et Deep Learning, avec une expérience concrète dans la conception de pipelines RAG, d'agents LLM et de calculs d'espaces vectoriels sémantiques (Word2Vec). Maîtrise du développement d'APIs sous FastAPI et de leur conteneurisation Docker. Disponible dès mars 2027 pour un stage de fin d'études (PFE) de 6 mois.",
     coverLetter: DEFAULT_COVER_LETTER_FR,
     projectBullets: [
       {
-        project: "VectorWord / Guess-What (NLP & Vector Space Search)",
+        project: "Antigravity — Autonomous LLM & RAG Pipeline",
         bullets: [
-          "Accompli la mise en place d'une API haute performance mesurée par un temps de réponse optimisé, en faisant appel à FastAPI et Uvicorn pour servir des calculs de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) via Gensim et NumPy.",
-          "Accompli la portabilité et le déploiement industrialisé mesurés par une reproductibilité totale, en faisant usage d'une architecture conteneurisée avec Docker et un déploiement automatisé sur Railway.",
-          "Accompli le développement d'un frontend réactif mesuré par une synchronisation temps réel des données, en faisant appel à Next.js 15, TypeScript, Tailwind CSS et Supabase (PostgreSQL)."
+          "Conception d'un pipeline automatisé de matching d'offres et de génération de documents sous Google Gemini API, schémas JSON stricts et Few-Shot Prompting, assurant 100% de compilation LaTeX sans hallucination.",
+          "Développement de couches de validation et d'extraction de contexte pour analyser les descriptions de postes et aligner le profil candidat sur les exigences techniques ciblées."
         ]
       },
       {
-        project: "Pipeline RAG & Automatisation de Code (Agentic AI)",
+        project: "VectorWord / Guess-What — Semantic Search Engine",
         bullets: [
-          "Accompli la conception d'un moteur de parsing d'offres et de matching mesuré par la précision du score de pertinence sémantique, en faisant usage d'un système agentique RAG et LLM.",
-          "Accompli la génération automatisée de documents mesurée par la réduction drastique des hallucinations, en faisant appel à des stratégies de Few-Shot Prompting et de génération structurée LaTeX."
+          "Architecture d'un backend d'inférence FastAPI calculant la similarité cosinus sur des espaces vectoriels Word2Vec multilingues avec mise en cache mémoire des modèles.",
+          "Conteneurisation et déploiement de l'application sous Docker, Railway, Next.js 15 et Supabase pour la synchronisation temps réel de l'état."
+        ]
+      },
+      {
+        project: "EILCO Project Management & Scheduling Platform (PIC)",
+        bullets: [
+          "Modélisation du schéma de base de données relationnelle SQL et du pipeline d'ingestion pour traiter les archives Excel et automatiser la planification des soutenances et l'export des notes."
         ]
       }
     ]
@@ -217,21 +222,27 @@ export default function Home() {
   const DEFAULT_CV_EN = {
     tailoredTitle: "AI & Machine Learning Engineer Intern (PFE)",
     tailoredSummary:
-      "Final-year engineering student (Bac+5) at EILCO specializing in Artificial Intelligence, Deep Learning, and Computer Vision. Proven expertise in building production-ready AI systems using Python, FastAPI, Docker, and MLOps pipelines. Proficient in English (TOEIC 905/990, C1), seeking a 6-month international internship starting March/April 2027 to drive impactful AI solutions.",
+      "Final-year engineering student (Bac+5) at EILCO specializing in Artificial Intelligence, Deep Learning, and Computer Vision. Experienced in building production-ready AI systems using Python, FastAPI, Docker, and MLOps pipelines. Proficient in English (TOEIC 905/990, C1), seeking a 6-month international internship starting March 2027 to drive impactful AI solutions.",
     coverLetter: DEFAULT_COVER_LETTER_EN,
     projectBullets: [
       {
-        project: "VectorWord / Guess-What (NLP & Vector Space Search)",
+        project: "Antigravity — Autonomous LLM & RAG Pipeline",
         bullets: [
-          "Architected and deployed a high-performance FastAPI/Uvicorn backend to compute cosine similarity on multilingual Word2Vec vector spaces (FR/EN) using Gensim and NumPy.",
-          "Containerized the application using Docker and deployed on Railway, integrating a Next.js 15, TypeScript, and Supabase frontend for seamless user interaction."
+          "Engineered an automated job-matching and document-generation pipeline using Google Gemini API, structured JSON schemas, and few-shot prompting to enforce 100% LaTeX compilation compliance without hallucinations.",
+          "Built automated validation and context-extraction layers to parse unstructured job descriptions and align candidate profiles against target technical requirements."
         ]
       },
       {
-        project: "RAG Pipeline & Agentic Automation",
+        project: "VectorWord / Guess-What — Semantic Search Engine",
         bullets: [
-          "Engineered an automated RAG pipeline featuring job parsing, Few-Shot Prompting with LLMs, and structured LaTeX document generation.",
-          "Significantly reduced LLM hallucinations and streamlined document generation workflows through robust prompt engineering and validation."
+          "Architected a FastAPI inference backend computing cosine similarity across multilingual Word2Vec vector spaces with in-memory model caching.",
+          "Containerized and deployed the full-stack application using Docker, Railway, Next.js 15, and Supabase for real-time state synchronization."
+        ]
+      },
+      {
+        project: "EILCO Project Management & Scheduling Platform (PIC)",
+        bullets: [
+          "Designed the relational SQL database schema and backend ingestion pipeline to parse legacy Excel academic records and automate defense scheduling and grade exports."
         ]
       }
     ]
@@ -1062,68 +1073,88 @@ Profil requis :
         ? activeVersion.projectBullets
         : projectBullets;
 
+    const technicalSkillsSection = isEn
+      ? `\\section{Technical Skills}
+\\begin{itemize}[leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt]
+    \\item \\textbf{Languages:} Python, C\\#, TypeScript, SQL, PHP
+    \\item \\textbf{AI \\& Machine Learning:} PyTorch, TensorFlow Lite, Hugging Face, RAG Pipelines, Word2Vec / Gensim, Google ML Kit (OCR), LLM Orchestration
+    \\item \\textbf{Backend, Cloud \\& DevOps:} FastAPI, .NET Core, Docker, GCP (Firestore, Cloud Functions), Supabase, Git, CI/CD, Linux/WSL2
+\\end{itemize}`
+      : `\\section{Compétences Techniques}
+\\begin{itemize}[leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt]
+    \\item \\textbf{Langages :} Python, C\\#, TypeScript, SQL, PHP
+    \\item \\textbf{IA \\& Machine Learning :} PyTorch, TensorFlow Lite, Hugging Face, Pipelines RAG, Word2Vec / Gensim, Google ML Kit (OCR), Orchestration LLM
+    \\item \\textbf{Backend, Cloud \\& DevOps :} FastAPI, .NET Core, Docker, GCP (Firestore, Cloud Functions), Supabase, Git, CI/CD, Linux/WSL2
+\\end{itemize}`;
+
     const educationSection = isEn
       ? `\\section{Education \\& Certifications}
-\\begin{itemize}
-    \\item \\textbf{Master of Science in Computer Engineering — Major in Artificial Intelligence} \\hfill 2024 - 2027 \\\\
+\\begin{itemize}[leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt]
+    \\item \\textbf{Master of Science in Computer Engineering — Major in Artificial Intelligence} \\hfill 2024 -- 2027 \\\\
     \\textit{EILCO Graduate School of Engineering, Calais, France} \\\\
     \\footnotesize Final year (MSc / ING3). Advanced coursework: Deep Learning, Computer Vision, Machine Learning, Software Architecture, MLOps, CI/CD, Advanced Databases.
-    \\item \\textbf{Preparatory Classes for Grandes Écoles (CPGE TSI)} \\hfill 2022 - 2024 \\\\
+    \\item \\textbf{Preparatory Classes for Grandes Écoles (CPGE TSI)} \\hfill 2022 -- 2024 \\\\
     \\textit{Lycée Antonin Artaud, Marseille, France} \\\\
     \\footnotesize Intensive 2-year preparation in Advanced Mathematics, Physics, and Engineering Sciences.
-    \\item \\textbf{English Proficiency: TOEIC Listening and Reading} \\hfill Score: \\textbf{905 / 990 (CEFR C1 Level - Fluent)}
+    \\item \\textbf{English Certification: TOEIC Listening \\& Reading — 905/990 (CEFR C1 Level)}
 \\end{itemize}`
       : `\\section{Formation \\& Certifications}
-\\begin{itemize}
-    \\item \\textbf{Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle} \\hfill 2024 - 2027 \\\\
+\\begin{itemize}[leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt]
+    \\item \\textbf{Diplôme d'Ingénieur Informatique — Parcours Intelligence Artificielle} \\hfill 2024 -- 2027 \\\\
     \\textit{EILCO (École d'Ingénieurs du Littoral Côte d'Opale), Calais, France} \\\\
     \\footnotesize Dernière année (ING3). Modules avancés : Deep Learning, Vision par Ordinateur, Machine Learning, Architecture Logicielle, MLOps, CI/CD, Bases de Données Avancées.
-    \\item \\textbf{Classes Préparatoires aux Grandes Écoles (CPGE TSI)} \\hfill 2022 - 2024 \\\\
+    \\item \\textbf{Classes Préparatoires aux Grandes Écoles (CPGE TSI)} \\hfill 2022 -- 2024 \\\\
     \\textit{Lycée Antonin Artaud, Marseille, France} \\\\
     \\footnotesize Mathématiques Supérieures et Spéciales, Physique, Sciences de l'Ingénieur.
-    \\item \\textbf{Certification Anglais : TOEIC Listening and Reading} \\hfill Score : \\textbf{905 / 990 (Niveau C1)}
+    \\item \\textbf{Certification Anglais : TOEIC Listening \\& Reading — 905/990 (Niveau C1 Courant)}
 \\end{itemize}`;
 
     const projectsSectionTitle = isEn
-      ? "\\section{Technical Projects \\& Key Achievements}"
-      : "\\section{Projets Techniques \\& Réalisations}";
+      ? "\\section{Technical Projects}"
+      : "\\section{Projets Techniques}";
 
     const experienceSection = isEn
       ? `\\section{Professional Experience}
 \\noindent
-\\textbf{Founder \\& Lead Software Developer (Entrepreneurial Internship PÉPITE)} \\hfill 2025 - 2026 \\\\
+\\textbf{Founder \\& Lead Software Developer (Entrepreneurial Internship PÉPITE)} \\hfill Jun 2026 -- Sep 2026 \\\\
 \\textit{Étiquette Jaune (Startup / Micro-enterprise)}
-\\begin{itemize}
-    \\item Accomplished integration of on-device Computer Vision models measured by text extraction speed, leveraging Google ML Kit Text Recognition (OCR).
-    \\item Accomplished serverless backend development measured by real-time data synchronization, utilizing Google Cloud Firestore, Cloud Functions, and TypeScript.
+\\begin{itemize}[leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt]
+    \\item Deployed on-device Computer Vision OCR using Google ML Kit Text Recognition for real-time mobile processing.
+    \\item Engineered a serverless backend using Google Cloud Firestore, Cloud Functions, and TypeScript for real-time data synchronization.
 \\end{itemize}`
       : `\\section{Expérience Professionnelle}
 \\noindent
-\\textbf{Fondateur \\& Développeur Lead (Stage Entrepreneurial PÉPITE)} \\hfill 2025 - 2026 \\\\
+\\textbf{Fondateur \\& Développeur Lead (Stage Entrepreneurial PÉPITE)} \\hfill Juin 2026 -- Sept 2026 \\\\
 \\textit{Étiquette Jaune (Micro-entreprise)}
-\\begin{itemize}
-    \\item Accompli l'intégration de modèles de Vision par Ordinateur mesurés par la vitesse d'extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).
-    \\item Accompli le développement d'un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.
+\\begin{itemize}[leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt]
+    \\item Déploiement de modèles de vision par ordinateur (Google ML Kit OCR) sur mobile pour l'extraction de texte en temps réel.
+    \\item Développement d'un backend serverless sur Google Cloud Firestore, Cloud Functions et TypeScript assurant la synchronisation des données.
 \\end{itemize}`;
 
     const interestsSection = isEn
       ? `\\section{Interests \\& Community Engagement}
-\\begin{itemize}[leftmargin=1.2em, itemsep=1.5pt, topsep=1.5pt, parsep=0pt]
-    \\item \\textbf{Game Modding \\& Video Games:} Passionate about video games and modding (gameplay mechanics reverse-engineering, scripting, data structures).
-    \\item \\textbf{Strategy Games \\& Competitive TCG:} Active strategy gamer and competitive One Piece TCG tournament player (game theory, deck optimization, probabilistic decision-making).
-    \\item \\textbf{Community Engagement \\& First Aid:} Volunteer intern in non-profit community associations (team coordination, civic responsibility) \\& Certified in First Aid (PSC1 / Emergency Response).
+\\begin{itemize}[leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt]
+    \\item \\textbf{Game Modding \\& Video Games:} Gameplay mechanics reverse-engineering, scripting, and data structures.
+    \\item \\textbf{Strategy Games \\& Competitive TCG:} Active player in competitive One Piece TCG tournaments (probabilistic decision-making).
+    \\item \\textbf{Community Engagement \\& First Aid:} Volunteer in non-profit community associations \\& Certified in First Aid (PSC1).
 \\end{itemize}`
       : `\\section{Centres d'Intérêt \\& Engagement Associatif}
-\\begin{itemize}[leftmargin=1.2em, itemsep=1.5pt, topsep=1.5pt, parsep=0pt]
-    \\item \\textbf{Modding \\& Jeux Vidéo :} Passionné de jeux vidéo et de modding (analyse et rétro-ingénierie de mécaniques de gameplay, scripting, structures de données).
-    \\item \\textbf{Jeux de Stratégie \\& TCG Compétitif :} Pratique active de jeux de stratégie et participation à des tournois One Piece TCG (théorie des jeux, optimisation tactique, calculs de probabilités).
-    \\item \\textbf{Engagement Associatif \\& Secourisme :} Stagiaire bénévole en association d'entraide (animation, coordination terrain, esprit d'équipe) \\& Titulaire du Brevet de Premiers Secours (PSC1).
+\\begin{itemize}[leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt]
+    \\item \\textbf{Modding \\& Jeux Vidéo :} Analyse et rétro-ingénierie de mécaniques de gameplay, scripting et structures de données.
+    \\item \\textbf{Jeux de Stratégie \\& TCG Compétitif :} Participation aux tournois officiels One Piece TCG (calculs de probabilités).
+    \\item \\textbf{Engagement Associatif \\& Secourisme :} Bénévole en association d'entraide \\& Titulaire du Brevet de Premiers Secours (PSC1).
 \\end{itemize}`;
 
-    return `\\documentclass[10pt,a4paper]{article}
+    const availabilityLine = isEn
+      ? "Available March 2027 -- 6-Month End-of-Studies Internship (PFE)"
+      : "Disponible Mars 2027 -- Stage de Fin d'Études (PFE) de 6 mois";
+
+    const topProjects = (activeBullets || []).slice(0, 3);
+
+    let tex = `\\documentclass[10pt,a4paper]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}
-\\usepackage[a4paper, top=1.0cm, bottom=1.0cm, left=1.1cm, right=1.1cm]{geometry}
+\\usepackage[a4paper, top=0.8cm, bottom=0.8cm, left=1.0cm, right=1.0cm]{geometry}
 \\usepackage{hyperref}
 \\usepackage{enumitem}
 \\usepackage{xcolor}
@@ -1136,14 +1167,15 @@ Profil requis :
 \\raggedbottom
 
 \\titleformat{\\section}{\\large\\bfseries\\color{primary}\\uppercase}{}{0em}{}[\\vspace{-0.6em}\\rule{\\textwidth}{0.8pt}\\vspace{-0.4em}]
-\\titlespacing*{\\section}{0pt}{0.5em}{0.2em}
-\\setlist[itemize]{leftmargin=1.2em, itemsep=1pt, topsep=1pt, parsep=0pt, partopsep=0pt}
+\\titlespacing*{\\section}{0pt}{0.4em}{0.15em}
+\\setlist[itemize]{leftmargin=1.2em, itemsep=0.5pt, topsep=1pt, parsep=0pt, partopsep=0pt}
 
 \\begin{document}
 \\enlargethispage{3\\baselineskip}
 \\begin{center}
     {\\huge \\textbf{\\color{primary} Badroudine Bacar}} \\\\[0.2em]
-    {\\large \\textbf{${activeTitle}}} \\\\[0.25em]
+    {\\large \\textbf{${activeTitle}}} \\\\[0.2em]
+    {\\normalsize \\textbf{${availabilityLine}}} \\\\[0.25em]
     \\small France \\ $|$ \\ 
     \\href{tel:+33767560786}{07 67 56 07 86} \\ $|$ \\ 
     \\href{mailto:badroudinebacar@gmail.com}{badroudinebacar@gmail.com} \\ $|$ \\ 
@@ -1155,16 +1187,18 @@ Profil requis :
 \\noindent
 \\small ${activeSummary}
 
+${technicalSkillsSection}
+
 ${educationSection}
 
 ${projectsSectionTitle}
-${activeBullets
+${topProjects
   .map(
     (p, idx) => `\\noindent
 \\textbf{${p.project}} \\\\
 \\begin{itemize}
 ${p.bullets.map((b) => `    \\item ${b}`).join("\n")}
-\\end{itemize}${idx < activeBullets.length - 1 ? "\n\\vspace{0.25em}" : ""}`
+\\end{itemize}${idx < topProjects.length - 1 ? "\n\\vspace{0.2em}" : ""}`
   )
   .join("\n")}
 
@@ -1173,6 +1207,11 @@ ${experienceSection}
 ${interestsSection}
 
 \\end{document}`;
+
+    // Validation et assainissement pré-soumission
+    tex = tex.replace(/\bAl\b/g, "AI").replace(/\bAl\s+/g, "AI ");
+    tex = tex.replace(/\bmeasured by\b\s*/gi, "").replace(/\bmesuré par\b\s*/gi, "");
+    return tex;
   };
 
   // Helper pour formater le nom de fichier propre, standard et adapté à l'entreprise visée
@@ -4176,6 +4215,9 @@ ${formattedParagraphs}
         <div className="text-center space-y-0.5 pb-1.5 border-b border-gray-400">
           <h1 className="text-2xl font-bold tracking-tight text-blue-900 uppercase">Badroudine Bacar</h1>
           <div className="text-[13px] font-semibold text-gray-800">{printTitle}</div>
+          <div className="text-[11px] font-semibold text-blue-900">
+            {effectiveIsEn ? "Available March 2027 – 6-Month End-of-Studies Internship (PFE)" : "Disponible Mars 2027 – Stage de Fin d'Études (PFE) de 6 mois"}
+          </div>
           <div className="text-[10.5px] text-gray-700 flex flex-wrap items-center justify-center gap-2.5 pt-0.5">
             <span>France</span>
             <span>•</span>
@@ -4197,6 +4239,27 @@ ${formattedParagraphs}
           <p className="text-[10px] text-gray-800 leading-normal text-justify">
             {printSummary}
           </p>
+        </div>
+
+        {/* Compétences Techniques ATS */}
+        <div className="space-y-0.5 break-inside-avoid">
+          <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
+            {effectiveIsEn ? "Technical Skills" : "Compétences Techniques"}
+          </h2>
+          <div className="text-[9.5px] text-gray-800 space-y-0.5">
+            <div>
+              <span className="font-semibold text-gray-900">{effectiveIsEn ? "Languages: " : "Langages : "}</span>
+              <span>Python, C#, TypeScript, SQL, PHP</span>
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">{effectiveIsEn ? "AI & Machine Learning: " : "IA & Machine Learning : "}</span>
+              <span>PyTorch, TensorFlow Lite, Hugging Face, RAG Pipelines, Word2Vec / Gensim, Google ML Kit (OCR), LLM Orchestration</span>
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">{effectiveIsEn ? "Backend, Cloud & DevOps: " : "Backend, Cloud & DevOps : "}</span>
+              <span>FastAPI, .NET Core, Docker, GCP (Firestore, Cloud Functions), Supabase, Git, CI/CD, Linux/WSL2</span>
+            </div>
+          </div>
         </div>
 
         {/* Formation & Certifications */}
@@ -4234,10 +4297,10 @@ ${formattedParagraphs}
         {/* Projets Techniques */}
         <div className="space-y-0.5 break-inside-avoid">
           <h2 className="text-xs font-bold text-blue-900 uppercase tracking-wider border-b border-gray-300 pb-0.5">
-            {effectiveIsEn ? "Technical Projects & Key Achievements" : "Projets Techniques & Réalisations"}
+            {effectiveIsEn ? "Technical Projects" : "Projets Techniques"}
           </h2>
           <div className="space-y-1.5 text-[10px]">
-            {printBullets.map((proj, idx) => (
+            {printBullets.slice(0, 3).map((proj, idx) => (
               <div key={idx} className="space-y-0.5">
                 <div className="font-semibold text-gray-900 text-[10.5px]">{proj.project}</div>
                 <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[9.5px]">
@@ -4258,19 +4321,19 @@ ${formattedParagraphs}
           <div className="space-y-0.5 text-[10px]">
             <div className="flex justify-between items-baseline font-semibold text-[10.5px] text-gray-900">
               <span>{effectiveIsEn ? "Founder & Lead Software Developer (Entrepreneurial Internship PÉPITE)" : "Fondateur & Développeur Lead (Stage Entrepreneurial PÉPITE)"}</span>
-              <span className="text-gray-600 font-normal">2025 - 2026</span>
+              <span className="text-gray-600 font-normal">{effectiveIsEn ? "Jun 2026 – Sep 2026" : "Juin 2026 – Sept 2026"}</span>
             </div>
             <div className="italic text-gray-700 text-[9.5px]">Étiquette Jaune (Micro-entreprise)</div>
             <ul className="list-disc list-inside space-y-0.5 text-gray-800 text-[9.5px]">
               {effectiveIsEn ? (
                 <>
-                  <li className="leading-normal">Accomplished integration of on-device Computer Vision models measured by text extraction speed, leveraging Google ML Kit Text Recognition (OCR).</li>
-                  <li className="leading-normal">Accomplished serverless backend development measured by real-time data synchronization, utilizing Google Cloud Firestore, Cloud Functions, and TypeScript.</li>
+                  <li className="leading-normal">Deployed on-device Computer Vision OCR using Google ML Kit Text Recognition for real-time mobile processing.</li>
+                  <li className="leading-normal">Engineered a serverless backend using Google Cloud Firestore, Cloud Functions, and TypeScript for real-time data synchronization.</li>
                 </>
               ) : (
                 <>
-                  <li className="leading-normal">Accompli l&apos;intégration de modèles de Vision par Ordinateur mesurés par la vitesse d&apos;extraction textuelle, en faisant usage de Google ML Kit Text Recognition (OCR).</li>
-                  <li className="leading-normal">Accompli le développement d&apos;un backend serverless mesuré par la synchronisation temps réel, en faisant appel à Google Cloud Firestore, Cloud Functions et TypeScript.</li>
+                  <li className="leading-normal">Déploiement de modèles de vision par ordinateur (Google ML Kit OCR) sur mobile pour l&apos;extraction de texte en temps réel.</li>
+                  <li className="leading-normal">Développement d&apos;un backend serverless sur Google Cloud Firestore, Cloud Functions et TypeScript assurant la synchronisation des données.</li>
                 </>
               )}
             </ul>

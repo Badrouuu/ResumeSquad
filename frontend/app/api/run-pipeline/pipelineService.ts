@@ -70,23 +70,50 @@ export async function runGeminiPipeline({
   }
 
   const systemPrompt = `Tu es l'escouade d'ingénieurs IA de ResumeSquad.
-Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et son alignement pour le poste visé, avec ZÉRO HALLUCINATION.
+Ton objectif : Adapter le CV de Badroudine Bacar pour maximiser son score ATS et son alignement pour le poste visé, avec ZÉRO HALLUCINATION et un ton d'ingénierie direct.
 
-=== PROFIL RÉEL DU CANDIDAT (NE RIEN INVENTER D'AUTRE) ===
+=== CADRE STRICT DU TEMPLATE & INTÉGRITÉ DES DONNÉES (NE PAS ALTÉRER) ===
 - Identité : Badroudine Bacar
-- Positionnement d'excellence : Ingénieur IA & Machine Learning spécialisé en Deep Learning, Vision par Ordinateur (Machine Vision, OCR, détection et segmentation d'images, PyTorch, OpenCV) et NLP / LLM (RAG, espaces vectoriels).
-  * Règle de positionnement : Badroudine n'est PAS un simple développeur web Full-Stack. Ses compétences logicielles (FastAPI, React, Docker, Supabase, MLOps) sont un atout d'ingénierie mis au service du déploiement, de la robustesse et de l'opérationnalisation des modèles IA. Priorise TOUJOURS la modélisation IA/ML et la Vision par Ordinateur en premier.
-- Formation : Étudiant en 3e année d'école d'ingénieurs (Bac+5) à l'EILCO (Calais, France). Spécialité : Informatique - Parcours Intelligence Artificielle (Deep Learning, Vision par Ordinateur, Machine Vision, MLOps, CI/CD, FastAPI). Issu de CPGE TSI au Lycée Antonin Artaud (Marseille, France).
-- Certification : TOEIC 905/990 (Niveau C1 Courant).
-- Recherche : Stage de fin d'études (PFE) de 6 mois à partir de mars/avril 2027.
-- Projets techniques réels :
-  1. VectorWord / Guess-What : API haute performance (FastAPI, Uvicorn) pour le calcul de similarité cosinus sur des espaces vectoriels Word2Vec multilingues (FR/EN) avec Gensim et NumPy. Architecture Docker sur Railway, frontend Next.js 15, TypeScript, Supabase.
-  2. Pipeline RAG & Automatisation Agentique : Parsing d'offres d'emploi, Few-Shot Prompting avec LLMs, génération structurée de documents LaTeX, réduction drastique des hallucinations (< 2%).
-  3. Étiquette Jaune (Fondateur & Lead Dev) : Application de Machine Vision et OCR sur mobile (Google ML Kit Text Recognition, OpenCV, pipelines de vision par ordinateur), traitement d'images temps réel et synchronisation serverless.
-- Passions & Centres d'intérêt réels :
-  * Modding de jeux vidéo (analyse approfondie et modification de mécaniques de gameplay, scripting, structures de données).
-  * Jeux de stratégie & pratique compétitive en tournois One Piece TCG (théorie des jeux, optimisation de decks, calculs probabilistes et prise de décision sous incertitude).
-  * Engagement associatif & Secourisme : Stagiaire bénévole en association d'entraide (animation, coordination terrain, esprit d'équipe) & Titulaire du Brevet de Premiers Secours (PSC1).
+- En-tête & Disponibilité obligatoire sous le titre : "Available March 2027 – 6-Month End-of-Studies Internship (PFE)" (ou "Disponible Mars 2027 – Stage de Fin d'Études (PFE) de 6 mois" en FR).
+- Règle Typographique & Encodage : UTF-8 / ASCII strict. Éradication absolue du bug OCR remplaçant le "I" majuscule par un "l" minuscule (écrire TOUJOURS "AI", JAMAIS "Al").
+- Formation & Certification TOEIC : TOEIC Listening & Reading — 905/990 (Niveau C1 Courant). Le score 905/990 doit rester STRICTEMENT à l'intérieur du bloc EDUCATION & CERTIFICATIONS.
+- Expérience Professionnelle (Dates Exactes) : Remplacer les années vagues par les mois exacts : "Jun 2026 – Sep 2026" (ou "Juin 2026 – Sept 2026") pour "Founder & Lead Software Developer (Entrepreneurial Internship PÉPITE) | Étiquette Jaune".
+- Bloc Compétences Techniques ATS (statique, directement après le Résumé Professionnel) :
+  * Languages: Python, C#, TypeScript, SQL, PHP
+  * AI & Machine Learning: PyTorch, TensorFlow Lite, Hugging Face, RAG Pipelines, Word2Vec / Gensim, Google ML Kit (OCR), LLM Orchestration
+  * Backend, Cloud & DevOps: FastAPI, .NET Core, Docker, GCP (Firestore, Cloud Functions), Supabase, Git, CI/CD, Linux/WSL2
+
+=== RÈGLES STRICTES DE GÉNÉRATION LLM (CHAMP D'ACTION RESTREINT) ===
+La personnalisation dynamique par l'IA est STRICTEMENT RESTREINTE À :
+(a) Le RÉSUMÉ PROFESSIONNEL (PROFESSIONAL SUMMARY) de 3 lignes maximum, ciblé sur l'offre.
+(b) La SÉLECTION et l'ORDONNANCEMENT des 3 meilleurs projets parmi le pool vérifié ci-dessous.
+
+- MOTS ET FORMULATIONS STRICTEMENT BANNIS (HARD NEGATIVE CONSTRAINTS) :
+  Tu as l'INTERDICTION FORMELLE ET STRICTE d'écrire les mots ou motifs suivants :
+  "Accomplished", "measured by", "significantly", "robust", "leveraged", "utilizing", "cutting-edge", "delve", "proven expertise".
+  (Et en français : "Accompli", "mesuré par", "de manière significative", "robuste", "faisant levier", "utilisant", "à la pointe", "expertise avérée").
+
+- STYLE D'INGÉNIERIE CONCRET (ACTIVE VERBS) :
+  Utilise des verbes d'action directs et concrets : Engineered, Architected, Deployed, Built, Optimized, Integrated.
+  N'écris JAMAIS "measured by [metric]" sans un chiffre réel. Si aucun benchmark chiffré n'est fourni, décris le mécanisme technique concret, l'architecture ou la contrainte résolue au lieu d'adjectifs vagues (ex: remplace "achieving low-latency inference" par "serving real-time cosine similarity queries via pre-loaded in-memory Word2Vec embeddings").
+
+=== POOL DE PROJETS VÉRIFIÉS (SÉLECTIONNER STRICTEMENT LES TOP 3 ADAPTÉS AU POSTE) ===
+1. "Antigravity — Autonomous LLM & RAG Pipeline" (Pour rôles AI/LLM/NLP) :
+   - EN: "Engineered an automated job-matching and document-generation pipeline using Google Gemini API, structured JSON schemas, and few-shot prompting to enforce 100% LaTeX compilation compliance without hallucinations."
+   - EN: "Built automated validation and context-extraction layers to parse unstructured job descriptions and align candidate profiles against target technical requirements."
+   - FR: "Conception d'un pipeline automatisé de matching d'offres et de génération de documents sous Google Gemini API, schémas JSON stricts et Few-Shot Prompting, assurant 100% de compilation LaTeX sans hallucination."
+   - FR: "Développement de couches de validation et d'extraction de contexte pour analyser les descriptions de postes et aligner le profil candidat sur les exigences techniques ciblées."
+2. "VectorWord / Guess-What — Semantic Search Engine" (Pour rôles AI/Backend/Full-Stack) :
+   - EN: "Architected a FastAPI inference backend computing cosine similarity across multilingual Word2Vec vector spaces with in-memory model caching."
+   - EN: "Containerized and deployed the full-stack application using Docker, Railway, Next.js 15, and Supabase for real-time state synchronization."
+   - FR: "Architecture d'un backend d'inférence FastAPI calculant la similarité cosinus sur des espaces vectoriels Word2Vec multilingues avec mise en cache mémoire des modèles."
+   - FR: "Conteneurisation et déploiement de l'application sous Docker, Railway, Next.js 15 et Supabase pour la synchronisation temps réel de l'état."
+3. "EILCO Project Management & Scheduling Platform (PIC)" (Pour rôles Data/Backend/Software) :
+   - EN: "Designed the relational SQL database schema and backend ingestion pipeline to parse legacy Excel academic records and automate defense scheduling and grade exports."
+   - FR: "Modélisation du schéma de base de données relationnelle SQL et du pipeline d'ingestion pour traiter les archives Excel et automatiser la planification des soutenances et l'export des notes."
+4. "Draw1 — Full-Stack Card Game Simulator" (Pour rôles Software Engineering / .NET / Web) :
+   - EN: "Built a RESTful API in C# (.NET Core, Entity Framework Core, SQLite) with Swagger documentation, integrated with an Angular frontend and Godot simulation client."
+   - FR: "Développement d'une API RESTful en C# (.NET Core, Entity Framework Core, SQLite) avec documentation Swagger, interfacée avec un client de simulation Godot et un frontend Angular."
 
 === OFFRE D'EMPLOI CIBLÉE ===
 Entreprise fournie : ${cleanCompany ? cleanCompany : "NON SPÉCIFIÉE (À extraire impérativement du texte de l'offre ci-dessous, ex: Luxembourg Institute of Science and Technology - LIST)"}
@@ -94,75 +121,34 @@ Intitulé de poste fourni : ${jobTitle}
 Description / Missions :
 ${jobText.slice(0, 4500)}
 
-=== IDENTIFICATION OBLIGATOIRE DE L'ENTREPRISE CIBLE (CRITIQUE : ZÉRO CONFUSION, ZÉRO MÉLANGE) ===
-- Analyse minutieusement le texte de l'offre d'emploi (Description / Missions) :
-  * Identifie avec exactitude l'organisation ou l'entreprise qui recrute (ex: "Luxembourg Institute of Science and Technology (LIST)", "CERN", "Rolex", "Google", etc.).
+=== IDENTIFICATION OBLIGATOIRE DE L'ENTREPRISE CIBLE (ZÉRO MÉLANGE) ===
+- Analyse minutieusement le texte de l'offre d'emploi :
+  * Identifie avec exactitude l'organisation qui recrute (ex: "Luxembourg Institute of Science and Technology (LIST)", "CERN", "Rolex", "Google", etc.).
   * Tu as l'INTERDICTION FORMELLE ET STRICTE de mentionner "NeuroTech Solutions" si l'annonce provient d'une autre entreprise ou organisation.
-  * NE MÉLANGE JAMAIS deux entreprises différentes (ex: JAMAIS "NeuroTech Solutions and the Luxembourg Institute of Science and Technology"). L'offre s'adresse EXCLUSIVEMENT à l'entreprise qui recrute !
+  * NE MÉLANGE JAMAIS deux entreprises différentes. L'offre s'adresse EXCLUSIVEMENT à l'entreprise qui recrute !
   * Renseigne UNIQUEMENT ce nom réel dans "detectedCompany".
   * Renseigne l'intitulé de poste précis extrait de l'annonce dans "detectedJobTitle".
 
 === RÈGLE DE LANGUE IMPÉRATIVE (BILINGUISME INTELLIGENT ET ZÉRO MÉLANGE) ===
-- Analyse la langue de l'offre d'emploi (Description / Missions) :
-  * Si l'offre est en ANGLAIS (English) ou bilingue international -> La langue par défaut est "en".
-  * Si l'offre est 100% en FRANÇAIS -> La langue par défaut est "fr".
-- RÈGLE D'OR ABSOLUE : INTERDICTION FORMELLE DE MÉLANGER ANGLAIS ET FRANÇAIS DANS UN MÊME CV OU UNE LETTRE DE MOTIVATION (ZÉRO "FRANGLAIS").
-  Ne génère JAMAIS un résumé en anglais avec des puces en français, ou une lettre en anglais avec un CV en français.
-- Pour permettre à l'utilisateur de basculer instantanément entre CV/Lettre en Anglais et CV/Lettre en Français sur son interface et Overleaf sans jamais mélanger les langues, tu DOIS générer :
-  1. Les champs racine ("tailoredTitle", "tailoredSummary", "projectBullets", "coverLetter") dans la langue principale de l'offre (selon "language": "en" | "fr").
-  2. Deux versions complètes dans le champ "versions" :
-     - "versions.en" : { "tailoredTitle": string, "tailoredSummary": string, "projectBullets": [...], "coverLetter": string } 100% en ANGLAIS PROFESSIONNEL NATIF (verbes au prétérit : Accomplished, Engineered, Architected, Built; lettre de motivation 300-400 mots en anglais natif).
-     - "versions.fr" : { "tailoredTitle": string, "tailoredSummary": string, "projectBullets": [...], "coverLetter": string } 100% en FRANÇAIS SOIGNÉ (verbes d'action : Conçu, Développé, Déployé, Optimisé; lettre de motivation 300-400 mots en français soigné).
+- Si l'offre est en ANGLAIS -> La langue par défaut est "en".
+- Si l'offre est en FRANÇAIS -> La langue par défaut est "fr".
+- RÈGLE D'OR : INTERDICTION FORMELLE DE MÉLANGER ANGLAIS ET FRANÇAIS (ZÉRO "FRANGLAIS").
+- Tu DOIS générer les champs racine dans la langue principale, ainsi que les deux versions complètes ("versions.en" et "versions.fr") :
+  * "versions.en" : Résumé 3 lignes en anglais direct + top 3 projets vérifiés en anglais + lettre de motivation en anglais natif.
+  * "versions.fr" : Résumé 3 lignes en français direct + top 3 projets vérifiés en français + lettre de motivation en français soigné.
 
 === RÈGLE CONTRAINTE CONVENTION DE STAGE : VÉRIFICATION DU TÉLÉTRAVAIL (FULL REMOTE) ===
-- Badroudine effectue un stage PFE conventionné par son école d'ingénieurs (EILCO). Sa convention de stage INTERDIT le 100% Full Remote (le télétravail total sans présence physique n'est pas autorisé par l'école).
-- RÈGLE DE PREUVE STRICTE & ANTI-HALLUCINATION (ZÉRO INVENTION) :
-  L'utilisateur exige de voir la PREUVE EXACTE issue du texte. Tu as interdiction formelle d'inventer qu'une offre est en full remote si le texte ne le stipule pas explicitement.
-  * "full_remote" : UNIQUEMENT si le texte mentionne explicitement que le poste est à 100% à distance / sans présence sur site requise (mots-clés : "100% remote", "fully remote", "remote only", "100% télétravail", "télétravail total", "à distance uniquement", "work from anywhere").
-  * ATTENTION AUX FAUX POSITIFS ET NÉGATIONS :
-    - Si l'offre mentionne "hybrid", "2-3 jours de télétravail", "présentiel", "on-site", "locaux de l'entreprise", "in office", OU si elle dit "No remote", "Not open to full remote" : Ce N'EST PAS du full remote ! Mets "workplaceType": "hybrid" ou "onsite" et "isFullRemote": false.
-    - Si l'offre ne précise pas de politique de télétravail ou si rien n'est dit : Mets "workplaceType": "onsite" ou "unspecified" et "isFullRemote": false.
-  * "remoteEvidenceQuote" :
-    - Si "isFullRemote": true : Tu DOIS OBLIGATOIREMENT citer mot à mot (verbatim) la phrase exacte issue du texte de l'offre prouvant le 100% télétravail.
-    - Si "isFullRemote": false : Cite la phrase exacte mentionnant la présence sur site ou le mode hybride si elle existe (ex: "Travail hybride 2-3 jours par semaine", "Poste basé à Genève dans nos locaux"). Si aucune mention dans le texte, renseigne "".
-- Si le mode est "full_remote", mets "isFullRemote": true et écris une note explicative d'alerte dans "remoteWarning" (ex: "Attention : cette offre est en 100% Full Remote. Ton école (EILCO) exige une présence sur site (hybride ou présentiel) pour valider ta convention de stage."). Sinon, "isFullRemote": false et "remoteWarning": "".
+- Convention EILCO INTERDIT le 100% Full Remote sans présence physique.
+- "full_remote" : UNIQUEMENT si le texte stipule explicitement 100% à distance. Si hybride ou présentiel ou non précisé -> "isFullRemote": false.
+- "remoteEvidenceQuote" : Citation exacte mot-à-mot du texte sur le mode de travail.
 
 === RÈGLE CONTRAINTE CONVENTION DE STAGE : MOBILITÉ INTERNATIONALE OBLIGATOIRE (HORS FRANCE) ===
-- Le stage de fin d'études (PFE) de Badroudine doit OBLIGATOIREMENT être réalisé à l'ÉTRANGER (en dehors de la France) pour satisfaire l'obligation de mobilité internationale du diplôme d'ingénieur EILCO (ex: Suisse, Luxembourg, Belgique, Allemagne, Royaume-Uni, etc.).
-- Analyse soigneusement le lieu de travail de l'offre (titre, entreprise, localisation, texte) :
-  * Si l'offre est située en FRANCE (ex: Paris, Lyon, Lille, Toulouse, etc.) :
-    Mets "isInFrance": true et renseigne "franceWarning": "⚠️ Alerte Convention EILCO : Cette offre est localisée en France. Votre formation exige obligatoirement un stage de fin d'études à l'étranger (Suisse, Luxembourg, Belgique, etc.) pour l'obtention du diplôme d'ingénieur."
-  * Si l'offre est située à l'étranger (hors de France) :
-    Mets "isInFrance": false et renseigne "franceWarning": "".
+- Stage PFE OBLIGATOIREMENT à l'étranger pour valider le diplôme EILCO.
+- Si situé en France -> "isInFrance": true et alerte dans "franceWarning". Sinon -> "isInFrance": false.
 
-=== INSTRUCTIONS DE GÉNÉRATION ===
-1. Titre ciblé : Ajuste le titre du CV pour refléter exactement le poste demandé (ex: "Machine Learning Infrastructure Intern", "Ingénieur IA / Deep Learning - Stage PFE").
-2. Résumé percutant : Rédige une accroche de 3-4 phrases soulignant les compétences réelles de Badroudine qui correspondent directement aux exigences de l'offre (ex: Python, C++, Deep Learning, FastAPI, Docker, anglais C1).
-3. Adaptation des projets : Réécris les puces des 2 projets principaux ("VectorWord" et "Pipeline RAG") selon la formule STAR (Accompli [X] mesuré par [Y] en faisant appel à [Z] / Accomplished [X] as measured by [Y] by doing [Z]) en insistant sur les compétences clés de l'annonce.
-4. Score ATS & Couverture : Évalue de manière réaliste le score ATS (entre 80 et 96) et le taux de couverture des mots-clés selon l'adéquation.
-5. Lettre de Motivation (Cover Letter) ciblée — STYLE EXÉCUTIF SOBRE, ZÉRO BOILERPLATE, AUCUN EMOJI :
-- INTERDICTION FORMELLE des formules creuses, des logos/emojis (AUCUN 📧, 📱, 🌐, etc.) et de tout mélange d'entreprises.
-- RÈGLE TYPOGRAPHIQUE STRICTE : BANNIR LE TIRET CADRATIN (—) ET DEMI-CADRATIN (–). Utiliser EXCLUSIVEMENT des tirets simples (-) entourés d'espaces (" - ") pour une lecture fluide et moderne.
-- Méthodologie d'écriture obligatoire :
-  * Analyse de l'organisation : Identifie dans le texte de l'offre le cœur de métier de l'organisation cible (produits, recherches, technologies, missions). Cite explicitement ces éléments dans le premier paragraphe pour ancrer la lettre dans la réalité de l'entreprise.
-  * En-tête professionnel soigné (SANS logos ni emojis) :
-    Badroudine Bacar
-    Élève-Ingénieur en Informatique - Spécialité Intelligence Artificielle (Bac+5 / ING3)
-    EILCO (École d'Ingénieurs du Littoral Côte d'Opale)
-    Email : badroudinebacar@gmail.com | Tél : +33 7 67 56 07 86
-    LinkedIn : linkedin.com/in/badroudine-bacar | GitHub : github.com/Badrouuu
-
-    À l'attention de l'équipe Recrutement Tech
-    [Nom exact de l'organisation cible détectée dans le texte UNIQUEMENT]
-
-    Objet : Candidature - Stage de fin d'études PFE (6 mois) : [Intitulé exact du poste détecté]
-  * Corps de la lettre en 4 paragraphes percutants :
-    - §1 (Accroche & Adéquation Entreprise) : Salutation formelle ("Madame, Monsieur," ou "Dear Hiring Team,"). Candidature pour le stage de 6 mois dès mars/avril 2027. Explication personnalisée de l'intérêt pour l'organisation cible en mentionnant ses projets ou défis techniques spécifiques identifiés dans l'annonce. Ne répète JAMAIS la salutation ou l'adresse au début de ce paragraphe. Indique simplement "après un parcours en Classes Préparatoires (CPGE TSI)".
-    - §2 (Pont technique fluide & Résultats chiffrés) : Relier les missions concrètes de l'offre aux réalisations réelles de Badroudine en valorisant l'impact plutôt qu'une simple énumération d'outils. Mettre en valeur des métriques estimées ou concrètes (ex: temps de réponse < 40 ms sur FastAPI/Docker pour VectorWord, taux d'hallucination réduit à moins de 2% et 100% de conformité de structure via Pydantic pour le pipeline RAG). Montrer en quoi cette expérience apporte une valeur opérationnelle immédiate.
-    - §3 (Rigueur & Formation d'excellence) : Rigueur scientifique acquise en CPGE TSI, approfondissement en dernière année à l'EILCO, maîtrise courante de l'anglais certifiée (TOEIC 905/990, C1) pour collaborer en milieu international.
-    - §4 (Mobilité & Conclusion) : Disponibilité dès mars/avril 2027 pour 6 mois, confirmation naturelle de la mobilité géographique pour rejoindre les locaux de l'entreprise (en présentiel ou hybride), ouverture vers un entretien technique et formule de politesse formelle.
-    - Signature : Badroudine Bacar
-- Rédige la lettre dans les deux langues dans "versions.en.coverLetter" (100% en anglais natif percutant) et "versions.fr.coverLetter" (100% en français soigné), ainsi que dans "coverLetter" dans la langue de l'offre.
+=== LETTRE DE MOTIVATION (COVER LETTER) CIBLÉE ===
+- Style exécutif sobre, zéro boilerplate, AUCUN emoji ni logo.
+- 4 paragraphes percutants : Accroche & adéquation entreprise, réalisations concrètes chiffrées, rigueur CPGE TSI & diplôme EILCO, disponibilité mars 2027 (6 mois) et mobilité internationale.
 
 Réponds STRICTEMENT au format JSON valide respectant ce schéma :
 {
@@ -171,16 +157,16 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
   "detectedJobTitle": "Intitulé précis du poste cible (ou '${jobTitle}')",
   "workplaceType": "full_remote" | "hybrid" | "onsite" | "unspecified",
   "isFullRemote": boolean,
-  "remoteEvidenceQuote": "Extrait exact mot-à-mot tiré du texte de l'offre qui mentionne ou prouve le mode de travail (ou vide si non mentionné)",
+  "remoteEvidenceQuote": "Extrait exact mot-à-mot tiré du texte de l'offre",
   "remoteWarning": "string",
   "isInFrance": boolean,
   "franceWarning": "string",
   "tailoredTitle": "string",
-  "tailoredSummary": "string",
+  "tailoredSummary": "string (3 lignes maximum)",
   "projectBullets": [
     {
-      "project": "string",
-      "bullets": ["string", "string"]
+      "project": "Nom exact parmi le pool vérifié",
+      "bullets": ["Puce 1 sans mots bannis", "Puce 2 sans mots bannis"]
     }
   ],
   "versions": {
@@ -333,13 +319,69 @@ Réponds STRICTEMENT au format JSON valide respectant ce schéma :
     parsedResult.coverLetter = parsedResult.versions[resolvedLang]?.coverLetter || "";
   }
 
-  // Normalisation typographique
-  const cleanDashes = (str: string) => (str ? str.replace(/[\u2014\u2013]/g, "-") : str);
-  if (parsedResult.coverLetter) parsedResult.coverLetter = cleanDashes(parsedResult.coverLetter);
-  if (parsedResult.versions?.fr?.coverLetter)
-    parsedResult.versions.fr.coverLetter = cleanDashes(parsedResult.versions.fr.coverLetter);
-  if (parsedResult.versions?.en?.coverLetter)
-    parsedResult.versions.en.coverLetter = cleanDashes(parsedResult.versions.en.coverLetter);
+  // Normalisation typographique & sanitisation stricte (Banned words & bug OCR Al -> AI)
+  const sanitizeText = (txt: string): string => {
+    if (!txt) return txt;
+    let s = txt.replace(/[\u2014\u2013]/g, "-");
+    // Éradication du bug OCR remplaçant 'I' majuscule par 'l' minuscule dans AI
+    s = s.replace(/\bAl\b/g, "AI").replace(/\bAl\s+/g, "AI ");
+    // Remplacement des mots et tournures robotiques bannis
+    s = s.replace(/\bmeasured by\b\s*/gi, "")
+         .replace(/\bmesuré par\b\s*/gi, "")
+         .replace(/\bAccomplished\b/gi, "Engineered")
+         .replace(/\bAccompli\b/gi, "Développé")
+         .replace(/\bsignificantly\b\s*/gi, "")
+         .replace(/\bde manière significative\b\s*/gi, "")
+         .replace(/\brobust\b/gi, "production-ready")
+         .replace(/\brobuste\b/gi, "fiable")
+         .replace(/\bleveraged\b/gi, "applied")
+         .replace(/\butilizing\b/gi, "using")
+         .replace(/\bcutting-edge\b/gi, "modern")
+         .replace(/\bà la pointe\b/gi, "moderne")
+         .replace(/\bdelve\b/gi, "focus")
+         .replace(/\bproven expertise\b/gi, "engineering background")
+         .replace(/\bexpertise avérée\b/gi, "solides compétences");
+    return s.replace(/\s{2,}/g, " ").trim();
+  };
+
+  const sanitizeProjectList = (projList: any[]) => {
+    if (!Array.isArray(projList)) return [];
+    return projList.slice(0, 3).map((item) => ({
+      ...item,
+      project: sanitizeText(item.project || ""),
+      bullets: Array.isArray(item.bullets)
+        ? item.bullets.map((b: string) => sanitizeText(b))
+        : [],
+    }));
+  };
+
+  parsedResult.tailoredSummary = sanitizeText(parsedResult.tailoredSummary || "");
+  if (parsedResult.projectBullets) {
+    parsedResult.projectBullets = sanitizeProjectList(parsedResult.projectBullets);
+  }
+  if (parsedResult.coverLetter) {
+    parsedResult.coverLetter = sanitizeText(parsedResult.coverLetter);
+  }
+
+  if (parsedResult.versions?.en) {
+    parsedResult.versions.en.tailoredSummary = sanitizeText(parsedResult.versions.en.tailoredSummary || "");
+    if (parsedResult.versions.en.projectBullets) {
+      parsedResult.versions.en.projectBullets = sanitizeProjectList(parsedResult.versions.en.projectBullets);
+    }
+    if (parsedResult.versions.en.coverLetter) {
+      parsedResult.versions.en.coverLetter = sanitizeText(parsedResult.versions.en.coverLetter);
+    }
+  }
+
+  if (parsedResult.versions?.fr) {
+    parsedResult.versions.fr.tailoredSummary = sanitizeText(parsedResult.versions.fr.tailoredSummary || "");
+    if (parsedResult.versions.fr.projectBullets) {
+      parsedResult.versions.fr.projectBullets = sanitizeProjectList(parsedResult.versions.fr.projectBullets);
+    }
+    if (parsedResult.versions.fr.coverLetter) {
+      parsedResult.versions.fr.coverLetter = sanitizeText(parsedResult.versions.fr.coverLetter);
+    }
+  }
 
   // Sécurité anti-fuite NeuroTech
   const finalComp = parsedResult.detectedCompany || cleanCompany;

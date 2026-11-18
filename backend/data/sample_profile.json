@@ -1,7 +1,7 @@
 {
   "basics": {
     "name": "Badroudine Bacar",
-    "title": "Élève-Ingénieur en Informatique — Parcours Intelligence Artificielle",
+    "title": "AI / Machine Learning Engineer (Stage PFE)",
     "target_roles": [
       "AI / Machine Learning Engineer Intern",
       "Data Scientist Intern",
@@ -13,7 +13,7 @@
     "location": "France (Mobilité : Suisse, Luxembourg, Belgique, Télétravail)",
     "github": "https://github.com/Badrouuu",
     "linkedin": "https://www.linkedin.com/in/badroudine-bacar/",
-    "summary": "Élève-ingénieur en dernière année à l'EILCO (spécialité Informatique & IA), issu de CPGE TSI, doté d'une certification TOEIC 905/990 (Niveau C1). Passionné par le Machine Learning, le NLP et la vision par ordinateur, avec une expérience concrète en déploiement d'APIs FastAPI, d'espaces vectoriels sémantiques (Word2Vec) et d'architectures multi-agents LLM. À la recherche d'un stage de fin d'études (PFE) de 6 mois."
+    "summary": "Élève-ingénieur en dernière année à l'EILCO (spécialité IA), doté d'une certification TOEIC 905/990 (Niveau C1). Spécialisé en Deep Learning, NLP et vision par ordinateur, avec une expertise en conception de pipelines RAG, agents LLM et espaces vectoriels sémantiques. Développeur d'APIs haute performance sous FastAPI et conteneurisation Docker. Disponible en mars 2027 pour un stage de fin d'études de 6 mois."
   },
   "education": [
     {
@@ -26,85 +26,93 @@
     {
       "institution": "Lycée Antonin Artaud",
       "location": "Marseille, France",
-      "degree": "CPGE TSI (Classe Préparatoire aux Grandes Écoles)",
+      "degree": "Classes Préparatoires aux Grandes Écoles (CPGE TSI)",
       "period": "2022 - 2024",
       "details": "Formation intensive pluridisciplinaire : Mathématiques fondamentales, Physique appliquée, Sciences de l'Ingénieur et Algorithmique."
     }
   ],
   "experience": [
     {
-      "role": "Fondateur & Développeur Lead (Stage Entrepreneurial PÉPITE)",
+      "role": "Founder & Lead Software Developer (Entrepreneurial Internship PÉPITE)",
       "company": "Étiquette Jaune",
-      "location": "France",
-      "period": "2025 - 2026",
+      "location": "Calais, France",
+      "period": "Jun 2026 – Sep 2026",
       "description": "Conception et développement complet d'une application mobile d'optimisation de consommation et détection de promotions.",
       "highlights": [
-        "Intégration de modèles de Vision par Ordinateur embarqués (Google ML Kit Text Recognition / OCR) pour l'extraction automatique d'informations sur tickets et étiquettes.",
-        "Développement d'un backend serverless sur Google Cloud Firestore et Cloud Functions (TypeScript) assurant la synchronisation des données en temps réel.",
-        "Mise en place de l'authentification multi-fournisseurs (Firebase Auth) et du module de paiement sécurisé via l'API Stripe.",
-        "Gestion du projet en autonomie complète : de la modélisation à l'intégration continue, labellisé par le pôle d'entrepreneuriat étudiant PÉPITE."
+        "Engineered on-device Computer Vision pipelines using Google ML Kit Text Recognition (OCR) for real-time document and label extraction.",
+        "Architected a serverless backend on Google Cloud Firestore and Cloud Functions (TypeScript) ensuring low-latency data synchronization."
       ],
       "technologies": ["Flutter", "Dart", "Google ML Kit (OCR)", "Firebase", "Cloud Functions (TypeScript)", "Stripe API", "Git"]
     }
   ],
   "projects": [
     {
-      "name": "VectorWord / Guess-What (NLP & Vector Space Search)",
-      "role": "Développeur Fullstack & ML",
+      "name": "Antigravity — Autonomous LLM & RAG Pipeline",
+      "role": "Lead AI Engineer",
+      "period": "2026",
+      "link": "https://github.com/Badrouuu/ResumeSquad",
+      "description": "Automated job-matching and document-generation pipeline powered by Gemini API and structured schemas.",
+      "highlights": [
+        "Engineered an automated job-matching and document-generation pipeline using Google Gemini API, structured JSON schemas, and few-shot prompting to enforce 100% LaTeX compilation compliance without hallucinations.",
+        "Built automated validation and context-extraction layers to parse unstructured job descriptions and align candidate profiles against target technical requirements."
+      ],
+      "technologies": ["Python", "FastAPI", "Google Gemini API", "Pydantic v2", "LaTeX", "Docker"]
+    },
+    {
+      "name": "VectorWord / Guess-What — Semantic Search Engine",
+      "role": "Full-Stack & ML Engineer",
       "period": "2026",
       "link": "https://github.com/Badrouuu/Guess-What",
-      "description": "Application interactive d'exploration sémantique basée sur les plongements lexicaux (Word Embeddings).",
+      "description": "Interactive semantic search application leveraging word vector spaces.",
       "highlights": [
-        "Conception d'une API haute performance avec FastAPI et Uvicorn, servant des calculs de similarité cosinus sur des vecteurs de mots multilingues (FR/EN) via Gensim et NumPy.",
-        "Architecture conteneurisée avec Docker et déploiement automatisé sur Railway.",
-        "Frontend réactif développé sous Next.js 15, TypeScript et Tailwind CSS avec gestion d'état et challenges quotidiens synchronisés via Supabase (PostgreSQL)."
+        "Architected a FastAPI inference backend computing cosine similarity across multilingual Word2Vec vector spaces with in-memory model caching.",
+        "Containerized and deployed the full-stack application using Docker, Railway, Next.js 15, and Supabase for real-time state synchronization."
       ],
       "technologies": ["Python", "FastAPI", "Gensim (Word2Vec)", "NumPy", "Docker", "Supabase", "Next.js 15", "TypeScript"]
     },
     {
-      "name": "ResumeSquad AI (Multi-Agent Copilot)",
-      "role": "Lead AI Engineer",
+      "name": "EILCO Project Management & Scheduling Platform (PIC)",
+      "role": "Backend & Database Engineer",
       "period": "2026",
-      "link": "https://github.com/Badrouuu/ResumeSquad",
-      "description": "Système multi-agents de tailoring de CV et audit anti-hallucination propulsé par Gemini 2.5 Flash et Pydantic v2.",
+      "link": "https://github.com/Badrouuu",
+      "description": "Academic scheduling and grade processing backend.",
       "highlights": [
-        "Orchestration asynchrone de 4 agents (JobParser, Strategist, Tailor, Critic) avec boucle de feedback Self-Refining.",
-        "Garantie de non-hallucination et vérification stricte des types via Constrained Decoding et Pydantic v2.",
-        "Génération automatique de CV au format LaTeX typographié selon les standards des cabinets de recrutement internationaux."
+        "Designed the relational SQL database schema and backend ingestion pipeline to parse legacy Excel academic records and automate defense scheduling and grade exports."
       ],
-      "technologies": ["Python", "FastAPI", "Gemini 2.5 Flash", "Pydantic v2", "LaTeX", "Next.js 15", "Docker"]
+      "technologies": ["SQL", "Python", "FastAPI", "Pandas", "PostgreSQL"]
+    },
+    {
+      "name": "Draw1 — Full-Stack Card Game Simulator",
+      "role": "Software Engineer",
+      "period": "2025 - 2026",
+      "link": "https://github.com/Badrouuu",
+      "description": "Card game rules and simulation backend.",
+      "highlights": [
+        "Built a RESTful API in C# (.NET Core, Entity Framework Core, SQLite) with Swagger documentation, integrated with an Angular frontend and Godot simulation client."
+      ],
+      "technologies": ["C#", ".NET Core", "Entity Framework Core", "SQLite", "Angular", "Godot"]
     }
   ],
   "skills": {
+    "languages": ["Python", "C#", "TypeScript", "SQL", "PHP"],
     "machine_learning_ai": [
       "PyTorch",
-      "Scikit-Learn",
-      "Gensim (Word Embeddings)",
-      "Google ML Kit (OCR / Vision)",
-      "OpenCV",
-      "RAG & LLM Prompting",
-      "NumPy",
-      "Pandas"
-    ],
-    "languages": [
-      "Python",
-      "TypeScript",
-      "JavaScript",
-      "SQL",
-      "C",
-      "Java",
-      "Dart",
-      "Bash"
+      "TensorFlow Lite",
+      "Hugging Face",
+      "RAG Pipelines",
+      "Word2Vec / Gensim",
+      "Google ML Kit (OCR)",
+      "LLM Orchestration"
     ],
     "backend_cloud_devops": [
       "FastAPI",
+      ".NET Core",
       "Docker",
-      "Linux",
-      "Git & GitHub",
-      "Supabase (PostgreSQL)",
-      "Firebase Cloud Functions",
-      "CI/CD basics",
-      "RESTful APIs"
+      "GCP (Firestore, Cloud Functions)",
+      "Supabase",
+      "Git",
+      "CI/CD",
+      "Linux/WSL2"
     ],
     "spoken_languages": [
       "Français (Langue maternelle)",
