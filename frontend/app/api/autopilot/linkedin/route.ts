@@ -165,6 +165,7 @@ export async function POST(request: Request) {
     } else {
       args.push("--allow-france");
     }
+    args.push("--under-10-applicants", "--max-applicants", "10");
 
     // Ouvrir le fichier de log pour écriture continue
     const outLogStream = fs.openSync(logFile, "a");

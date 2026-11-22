@@ -48,8 +48,8 @@ async function fetchLinkedInGuestJobs(
   try {
     const encodedKeywords = encodeURIComponent(keywords);
     const encodedLocation = encodeURIComponent(location);
-    // sortBy=DD force le tri par date (du plus récent au plus ancien), f_TPR restreint la fenêtre temporelle
-    const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}&start=0`;
+    // sortBy=DD force le tri par date, f_TPR restreint la fenêtre, f_EA=true filtre pour <= 10 candidats
+    const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}&f_EA=true&start=0`;
 
     const res = await fetch(url, {
       headers: {
@@ -86,7 +86,7 @@ async function fetchLinkedInGuestJobs(
       const rawLocation = locations[i] || location;
       const jobUrl =
         links[i] ||
-        `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}`;
+        `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}&f_EA=true`;
 
       const rawDate = dates[i] || "";
       const formattedDate = formatTimeAgo(rawDate);
@@ -145,10 +145,21 @@ async function fetchLinkedInGuestJobs(
         }
       }
 
-      // Extraction et estimation du nombre de candidats actuels
+      // Rejet des offres clôturées ou expirées
+      const rawCombinedLower = `${rawTitle} ${rawCompany} ${formattedDate}`.toLowerCase();
+      if (
+        rawCombinedLower.includes("ne sont plus acceptées") ||
+        rawCombinedLower.includes("no longer accepting") ||
+        rawCombinedLower.includes("fermée") ||
+        rawCombinedLower.includes("closed")
+      ) {
+        continue;
+      }
+
+      // Extraction et estimation du nombre de candidats actuels (strictement <= 10)
       const { count: applicantsCount } = extractApplicantsCount(rawTitle, formattedDate);
-      if (applicantsCount > 60) {
-        continue; // Écarte directement les offres saturées (>60 candidats)
+      if (applicantsCount > 10) {
+        continue; // Écarte directement les offres saturées (>10 candidats)
       }
 
       // Déduction dynamique des compétences techniques

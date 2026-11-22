@@ -3830,6 +3830,15 @@ ${formattedParagraphs}
                   <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold">100% PFE</span>
                 </div>
 
+                {/* Badge Concurrence & Anti-clôture */}
+                <div className="bg-blue-950/30 border border-blue-500/20 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-[10px] text-blue-300">
+                  <div className="flex items-center gap-1.5">
+                    <span>🎯</span>
+                    <span>Ciblage Concurrence : <strong>≤ 10 Candidats (f_EA=true) & Éradication des offres fermées</strong></span>
+                  </div>
+                  <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold">10 Max</span>
+                </div>
+
                 {/* Toggles d'options */}
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   <button

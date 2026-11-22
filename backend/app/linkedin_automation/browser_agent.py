@@ -17,7 +17,7 @@ import time
 import math
 import random
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 # Encodage console Windows pour éviter UnicodeEncodeError avec les emojis
 if sys.platform == "win32":
@@ -381,10 +381,13 @@ class LinkedInBrowserAgent:
         applied_ids: Optional[set] = None,
         easy_apply_only: bool = True,
         exclude_france: bool = True,
+        under_10_applicants: bool = True,
+        max_applicants_threshold: int = 10,
     ) -> List[Dict[str, Any]]:
         """
-        Navigue sur LinkedIn Jobs avec ou sans filtre 'Candidature simplifiée' (f_AL=true),
-        scanne la liste des offres fraîches et extrait les métadonnées.
+        Navigue sur LinkedIn Jobs avec filtres 'Candidature simplifiée' (f_AL=true) et
+        'Moins de 10 candidatures' (f_EA=true). Scanne la liste des offres fraîches,
+        écarte impérativement les offres expirées/fermées et celles à forte concurrence.
         """
         if not self.page:
             raise RuntimeError("La page Playwright n'est pas initialisée.")
@@ -394,17 +397,27 @@ class LinkedInBrowserAgent:
 
         # Construction de l'URL avec filtres :
         # f_AL=true : Easy Apply uniquement (si easy_apply_only=True)
+        # f_EA=true : Moins de 10 candidatures (si under_10_applicants=True)
         # sortBy=DD : Tri par date décroissante (offres fraîches)
         import urllib.parse
         encoded_kw = urllib.parse.quote(keywords)
         encoded_loc = urllib.parse.quote(location)
         al_param = "&f_AL=true" if easy_apply_only else ""
+        ea_param = "&f_EA=true" if under_10_applicants else ""
         search_url = (
             f"https://www.linkedin.com/jobs/search/?keywords={encoded_kw}"
-            f"&location={encoded_loc}{al_param}&sortBy=DD"
+            f"&location={encoded_loc}{al_param}{ea_param}&sortBy=DD"
         )
 
-        filter_label = "Easy Apply uniquement" if easy_apply_only else "Toutes offres (Easy Apply + Portails Externes)"
+        filter_parts = []
+        if easy_apply_only:
+            filter_parts.append("Easy Apply")
+        else:
+            filter_parts.append("Easy Apply + Portails Externes")
+        if under_10_applicants:
+            filter_parts.append(f"Moins de {max_applicants_threshold} candidats (f_EA=true)")
+        filter_label = " | ".join(filter_parts)
+
         print(f"\n🔍 [Sourcing] Navigation vers les offres LinkedIn ({filter_label}) : {keywords} ({location})")
         self.page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
         self.human_delay(2.5, 4.0)
@@ -454,8 +467,59 @@ class LinkedInBrowserAgent:
                 if not raw_id or raw_id in applied_ids or raw_id in seen_ids:
                     continue
 
-                # 2. Extraction structurée Titre, Entreprise, Lieu
+                # 2. Extraction du texte brut de la carte pour détection rapide
                 full_text = card.inner_text().strip()
+                lower_text = full_text.lower()
+
+                # FILTRE A : Détection d'offres fermées ou déjà postulées directement sur la carte
+                closed_card_keywords = (
+                    "les candidatures ne sont plus acceptées",
+                    "no longer accepting applications",
+                    "candidatures fermées",
+                    "offre fermée",
+                    "offre expirée",
+                    "candidature envoyée",
+                    "déjà postulé",
+                )
+                if any(cw in lower_text for cw in closed_card_keywords):
+                    print(f"   🚫 [Carte Offre Fermée / Déjà Postulée] Ignorée dès la liste : {raw_id}")
+                    continue
+
+                # FILTRE B : Détection et exclusion immédiate des offres saturées (> max_applicants_threshold, défaut 10)
+                if under_10_applicants:
+                    is_oversaturated = False
+                    reported_count = 0
+                    if "plus de 100" in lower_text or "over 100" in lower_text or "100+ " in lower_text:
+                        is_oversaturated = True
+                        reported_count = 100
+                    elif "plus de 50" in lower_text or "over 50" in lower_text:
+                        is_oversaturated = True
+                        reported_count = 50
+                    elif "plus de 25" in lower_text or "over 25" in lower_text:
+                        is_oversaturated = True
+                        reported_count = 25
+                    else:
+                        cand_m = re.search(r"(\d+)\s*(?:candidatures|candidats|applicants|postulants)", lower_text)
+                        if cand_m:
+                            n = int(cand_m.group(1))
+                            if n > max_applicants_threshold:
+                                is_oversaturated = True
+                                reported_count = n
+
+                    # Les mentions 'moins de 10' / 'under 10' / 'early applicant' sont formellement autorisées
+                    if (
+                        "moins de 10" in lower_text
+                        or "under 10" in lower_text
+                        or "early applicant" in lower_text
+                        or "premiers candidats" in lower_text
+                        or "premier candidat" in lower_text
+                    ):
+                        is_oversaturated = False
+
+                    if is_oversaturated:
+                        print(f"   🚫 [Filtre Concurrence] Écartée dès la recherche : {reported_count} candidats (> {max_applicants_threshold}).")
+                        continue
+
                 lines = [
                     l.strip()
                     for l in full_text.split("\n")
@@ -515,21 +579,134 @@ class LinkedInBrowserAgent:
             except Exception as e:
                 continue
 
-        print(f"✨ [Sourcing] File d'attente prête : {len(jobs_queue)} nouvelle(s) offre(s) retenue(s).")
+        print(f"✨ [Sourcing] File d'attente prête : {len(jobs_queue)} nouvelle(s) offre(s) retenue(s) (Faible concurrence & Actives).")
         return jobs_queue
+
+    # =========================================================================
+    # ÉTAPE 3 : CONTRÔLE PRÉALABLE (CLÔTURE & CONCURRENCE DE L'OFFRE)
+    # =========================================================================
+
+    def check_if_job_closed(self) -> Tuple[bool, str]:
+        """
+        Vérifie sur la page de détail si l'offre est expirée ou si les candidatures ne sont plus acceptées.
+        Retourne (is_closed: bool, reason: str).
+        """
+        if not self.page:
+            return False, ""
+        try:
+            # 1. Vérification des bannières et messages d'erreur explicites de LinkedIn
+            closed_selectors = [
+                ".artdeco-inline-feedback--error",
+                ".artdeco-inline-feedback",
+                ".jobs-details-top-card__apply-error",
+                "span:has-text('Les candidatures ne sont plus acceptées')",
+                "span:has-text('No longer accepting applications')",
+                "div:has-text('Cette offre d’emploi est fermée')",
+                "div:has-text('Cette offre n’est plus disponible')",
+                "div:has-text('This job is closed')",
+                "div:has-text('This job is no longer accepting applications')",
+                "p:has-text('No longer accepting applications')",
+                "p:has-text('Les candidatures ne sont plus acceptées')",
+            ]
+            for sel in closed_selectors:
+                loc = self.page.locator(sel).first
+                if loc.is_visible():
+                    txt = loc.inner_text().strip()
+                    if any(term in txt.lower() for term in (
+                        "ne sont plus acceptées",
+                        "no longer accepting",
+                        "est fermée",
+                        "is closed",
+                        "n'est plus disponible",
+                        "candidature envoyée",
+                        "already applied",
+                    )):
+                        return True, txt
+
+            # 2. Vérification du texte global dans la zone d'en-tête de l'offre
+            for header_sel in [
+                ".job-details-jobs-unified-top-card",
+                ".jobs-unified-top-card",
+                ".jobs-box__html-content",
+                "main",
+            ]:
+                header_elem = self.page.locator(header_sel).first
+                if header_elem.is_visible():
+                    header_txt = header_elem.inner_text().lower()
+                    if "les candidatures ne sont plus acceptées" in header_txt:
+                        return True, "Les candidatures ne sont plus acceptées"
+                    if "no longer accepting applications" in header_txt:
+                        return True, "No longer accepting applications"
+                    if "cette offre d'emploi est fermée" in header_txt or "cette offre est fermée" in header_txt:
+                        return True, "Cette offre est fermée"
+                    if "candidature envoyée" in header_txt or "already applied" in header_txt:
+                        return True, "Candidature déjà envoyée par le passé"
+        except Exception:
+            pass
+        return False, ""
+
+    def extract_applicant_count_on_page(self) -> Optional[int]:
+        """
+        Extrait le nombre de candidats affiché sur la page de détail de l'offre.
+        Retourne le nombre (ex: 5 pour 'Moins de 10', 100 pour 'Plus de 100 candidatures') ou None.
+        """
+        if not self.page:
+            return None
+        import re
+        try:
+            # Sélecteurs du top-card où LinkedIn place les métadonnées de candidatures
+            selectors = [
+                ".job-details-jobs-unified-top-card__primary-description",
+                ".jobs-unified-top-card__bullet",
+                ".jobs-unified-top-card__subtitle-secondary-grouping",
+                ".jobs-unified-top-card__job-insight",
+                ".job-details-jobs-unified-top-card",
+                "span.jobs-unified-top-card__subtitle-primary-grouping",
+            ]
+            for sel in selectors:
+                locators = self.page.locator(sel).all()
+                for loc in locators:
+                    if not loc.is_visible():
+                        continue
+                    txt = loc.inner_text().strip().lower()
+                    if not any(w in txt for w in ("candidat", "applicant", "postulant", "early")):
+                        continue
+
+                    if "moins de 10" in txt or "under 10" in txt or "early applicant" in txt or "premiers candidats" in txt:
+                        return 5
+                    if "plus de 100" in txt or "over 100" in txt or "100+ " in txt:
+                        return 100
+                    if "plus de 50" in txt or "over 50" in txt:
+                        return 50
+                    if "plus de 25" in txt or "over 25" in txt:
+                        return 25
+
+                    over_m = re.search(r"(?:plus de|over|\+ de|>)\s*(\d+)", txt)
+                    if over_m:
+                        return int(over_m.group(1)) + 5
+
+                    direct_m = re.search(r"(\d+)\s*(?:candidatures|candidats|applicants|postulants)", txt)
+                    if direct_m:
+                        return int(direct_m.group(1))
+        except Exception:
+            pass
+        return None
 
     # =========================================================================
     # ÉTAPE 4 : SOUMISSION DU FORMULAIRE (CANDIDATURE SIMPLIFIÉE)
     # =========================================================================
 
     def scrape_job_description(self, job_url: str) -> str:
-        """Navigue sur l'URL d'une offre et extrait la description brute du poste."""
+        """Extrait la description brute du poste (sans rechargement si la page est déjà sur l'offre)."""
         if not self.page:
             return ""
         try:
-            self.page.goto(job_url, wait_until="domcontentloaded", timeout=25000)
-            self.human_delay(2, 3)
-            self.human_scroll(min_scrolls=2, max_scrolls=4)
+            current = self.page.url
+            # Si on n'est pas encore sur cette offre, naviguer vers l'URL
+            if job_url not in current and ("/view/" not in current or job_url.split("/view/")[-1].split("/")[0] not in current):
+                self.page.goto(job_url, wait_until="domcontentloaded", timeout=25000)
+                self.human_delay(1.5, 2.5)
+                self.human_scroll(min_scrolls=2, max_scrolls=4)
 
             # Clic éventuel sur "Voir plus" / "Show more"
             show_more = self.page.locator("button.jobs-description__footer-button, button[aria-label*='plus']").first

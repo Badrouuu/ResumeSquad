@@ -40,6 +40,8 @@ class LinkedInEasyApplyOrchestrator:
         max_applications_per_cycle: int = 10,
         all_jobs: bool = False,
         exclude_france: bool = True,
+        under_10_applicants: bool = True,
+        max_applicants: int = 10,
     ):
         self.keywords = keywords
         self.location = location
@@ -50,6 +52,8 @@ class LinkedInEasyApplyOrchestrator:
         self.max_applications = max_applications_per_cycle
         self.all_jobs = all_jobs
         self.exclude_france = exclude_france
+        self.under_10_applicants = under_10_applicants
+        self.max_applicants = max_applicants
 
         # Chemins des données et artefacts
         base_dir = Path(__file__).resolve().parent.parent.parent
@@ -256,7 +260,7 @@ class LinkedInEasyApplyOrchestrator:
                     self.browser_agent.close()
                     return 0
 
-        # Scraping de la file d'attente (Easy Apply uniquement ou Toutes Offres)
+        # Scraping de la file d'attente (Easy Apply uniquement ou Toutes Offres, avec filtre faible concurrence)
         queue = self.browser_agent.search_easy_apply_jobs(
             keywords=self.keywords,
             location=self.location,
@@ -264,6 +268,8 @@ class LinkedInEasyApplyOrchestrator:
             applied_ids=applied_identifiers,
             easy_apply_only=not self.all_jobs,
             exclude_france=self.exclude_france,
+            under_10_applicants=self.under_10_applicants,
+            max_applicants_threshold=self.max_applicants,
         )
 
         if not queue:
@@ -312,13 +318,45 @@ class LinkedInEasyApplyOrchestrator:
                 print("   ⚠️ Impossible d'extraire la description du poste. Poursuite...")
                 continue
 
+            # 2. Contrôle immédiat : Vérification si l'offre est clôturée ("Les candidatures ne sont plus acceptées")
+            is_closed, closed_reason = self.browser_agent.check_if_job_closed()
+            if is_closed:
+                print(f"   🚫 [Offre Clôturée] {closed_reason} détecté pour {company}. Ignorée immédiatement sans appel IA.")
+                applied_identifiers.add(job_id)
+                if job_url:
+                    applied_identifiers.add(job_url.strip().rstrip("/"))
+                continue
+
+            # 3. Contrôle immédiat : Vérification de la concurrence (<= max_applicants, défaut 10)
+            if self.under_10_applicants:
+                applicants_count = self.browser_agent.extract_applicant_count_on_page()
+                if applicants_count is not None and applicants_count > self.max_applicants:
+                    print(f"   🚫 [Filtre Concurrence] Offre saturée ({applicants_count} candidats > {self.max_applicants}) pour {company}. Ignorée sans appel IA.")
+                    applied_identifiers.add(job_id)
+                    if job_url:
+                        applied_identifiers.add(job_url.strip().rstrip("/"))
+                    continue
+                elif applicants_count is not None:
+                    print(f"   🎯 [Faible Concurrence Confirmée] ~{applicants_count} candidat(s) (<= {self.max_applicants}). Excellent !")
+
             # Enrichissement haute fidélité des métadonnées (Entreprise exacte, Titre et Ville)
             job = self.browser_agent.enrich_job_details(job)
             title = job.get("title", title)
             company = job.get("company", company)
             location = job.get("location", location)
 
-            # 2. Génération de la lettre de motivation pragmatique & technique avec Gemini 1.5 Flash
+            # 4. Détection du type de postulation : Easy Apply ou Portail Externe
+            apply_type_info = self.browser_agent.detect_job_apply_type()
+            apply_type = apply_type_info.get("type", "easy_apply")
+
+            if apply_type in ("none", "unknown"):
+                print(f"   ⚠️ [Non Postulable] Aucun bouton de candidature actif détecté pour {company} (offre expirée ou non postulable). Ignorée.")
+                applied_identifiers.add(job_id)
+                if job_url:
+                    applied_identifiers.add(job_url.strip().rstrip("/"))
+                continue
+
+            # 5. Génération de la lettre de motivation pragmatique & technique avec Gemini 1.5 Flash
             print("   🧠 [Gemini 1.5 Flash] Rédaction de la lettre technique sur-mesure...")
             # Détection succincte de la langue
             lang = "en" if any(w in desc.lower() for w in ("responsibilities", "requirements", "skills", "experience")) else "fr"
@@ -326,10 +364,6 @@ class LinkedInEasyApplyOrchestrator:
 
             # Exportation immédiate en PDF pour l'upload
             letter_pdf_path = self.gemini_agent.export_pdf(letter_text, title, company, output_dir=str(self.output_dir))
-
-            # 3. Détection du type de postulation : Easy Apply ou Portail Externe
-            apply_type_info = self.browser_agent.detect_job_apply_type()
-            apply_type = apply_type_info.get("type", "easy_apply")
 
             if apply_type == "external":
                 print(f"   🌐 [Site Externe / ATS Détecté] Redirection vers le portail recruteur pour {company}...")

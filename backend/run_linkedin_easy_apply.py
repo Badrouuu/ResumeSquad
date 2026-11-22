@@ -141,6 +141,25 @@ def main():
         action="store_true",
         help="Postule à TOUTES les offres (Candidatures simplifiées ET sites carrières externes ATS)",
     )
+    parser.add_argument(
+        "--under-10-applicants",
+        dest="under_10_applicants",
+        action="store_true",
+        default=True,
+        help="Cibler uniquement les offres à très faible concurrence (<= 10 candidats, filtre LinkedIn f_EA=true)",
+    )
+    parser.add_argument(
+        "--allow-high-competition",
+        dest="under_10_applicants",
+        action="store_false",
+        help="Autoriser les offres à forte concurrence (> 10 candidats)",
+    )
+    parser.add_argument(
+        "--max-applicants",
+        type=int,
+        default=10,
+        help="Nombre maximal de candidats autorisés sur une offre (défaut : 10)",
+    )
 
     args = parser.parse_args()
 
@@ -160,6 +179,8 @@ def main():
         max_applications_per_cycle=args.max_apps,
         all_jobs=args.all_jobs,
         exclude_france=args.exclude_france,
+        under_10_applicants=args.under_10_applicants,
+        max_applicants=args.max_applicants,
     )
 
     if args.login:
