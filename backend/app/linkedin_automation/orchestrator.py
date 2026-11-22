@@ -330,14 +330,45 @@ class LinkedInEasyApplyOrchestrator:
             # 3. Contrôle immédiat : Vérification de la concurrence (<= max_applicants, défaut 10)
             if self.under_10_applicants:
                 applicants_count = self.browser_agent.extract_applicant_count_on_page()
+
+                # Double contrôle de sécurité : inspection du texte d'en-tête et de description
+                top_text = ""
+                try:
+                    top_loc = self.browser_agent.page.locator(".job-details-jobs-unified-top-card, main").first
+                    if top_loc.is_visible():
+                        top_text = top_loc.inner_text().lower()
+                except Exception:
+                    pass
+                combined_probe = f"{desc} {top_text}".lower()
+
+                is_oversaturated = False
+                reason_str = ""
                 if applicants_count is not None and applicants_count > self.max_applicants:
-                    print(f"   🚫 [Filtre Concurrence] Offre saturée ({applicants_count} candidats > {self.max_applicants}) pour {company}. Ignorée sans appel IA.")
+                    is_oversaturated = True
+                    reason_str = f"{applicants_count} candidats/clics (> {self.max_applicants})"
+                elif (
+                    "plus de 100" in combined_probe
+                    or "over 100" in combined_probe
+                    or "100+ " in combined_probe
+                    or "plus de 50" in combined_probe
+                    or "over 50" in combined_probe
+                    or "plus de 25" in combined_probe
+                    or "over 25" in combined_probe
+                    or "cliqué sur postuler" in combined_probe
+                    or "clicked apply" in combined_probe
+                ):
+                    if "moins de 10" not in combined_probe and "under 10" not in combined_probe and "early applicant" not in combined_probe:
+                        is_oversaturated = True
+                        reason_str = "Saturation explicite détectée sur la page (> 10 postulants ou clics)"
+
+                if is_oversaturated:
+                    print(f"   🚫 [Filtre Concurrence] Offre saturée ({reason_str}) pour {company}. Ignorée sans appel IA.")
                     applied_identifiers.add(job_id)
                     if job_url:
                         applied_identifiers.add(job_url.strip().rstrip("/"))
                     continue
                 elif applicants_count is not None:
-                    print(f"   🎯 [Faible Concurrence Confirmée] ~{applicants_count} candidat(s) (<= {self.max_applicants}). Excellent !")
+                    print(f"   🎯 [Faible Concurrence Confirmée] ~{applicants_count} candidat(s)/clics (<= {self.max_applicants}). Excellent !")
 
             # Enrichissement haute fidélité des métadonnées (Entreprise exacte, Titre et Ville)
             job = self.browser_agent.enrich_job_details(job)

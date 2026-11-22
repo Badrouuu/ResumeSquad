@@ -175,18 +175,40 @@ export function extractApplicantsCount(
 ): { count: number; isEarly: boolean } {
   const lower = rawText.toLowerCase();
 
-  // 1. Mentions explicites d'alerte forte concurrence (ex: 100+ personnes, >100 postulants)
+  // 1. Mentions explicites d'alerte forte concurrence (> 10 candidats ou clics)
   if (
     lower.includes("100 personnes") ||
     lower.includes("100+ applicants") ||
     lower.includes("over 100") ||
     lower.includes("plus de 100") ||
     lower.includes("> 100") ||
+    lower.includes(">100") ||
     lower.includes("over 200") ||
     lower.includes("200+ applicants") ||
-    lower.includes("plus de 200")
+    lower.includes("plus de 200") ||
+    lower.includes("cliqué sur postuler") ||
+    lower.includes("clicked apply")
   ) {
+    if (lower.includes("moins de 10") || lower.includes("under 10") || lower.includes("early applicant")) {
+      return { count: 5, isEarly: true };
+    }
     return { count: 120, isEarly: false };
+  }
+
+  if (
+    lower.includes("plus de 50") ||
+    lower.includes("over 50") ||
+    lower.includes("50+ ") ||
+    lower.includes("> 50") ||
+    lower.includes("plus de 25") ||
+    lower.includes("over 25") ||
+    lower.includes("25+ ") ||
+    lower.includes("> 25")
+  ) {
+    if (lower.includes("moins de 10") || lower.includes("under 10") || lower.includes("early applicant")) {
+      return { count: 5, isEarly: true };
+    }
+    return { count: 50, isEarly: false };
   }
 
   // 2. Early applicant signals
@@ -194,7 +216,10 @@ export function extractApplicantsCount(
     lower.includes("be an early applicant") ||
     lower.includes("premier postulant") ||
     lower.includes("premiers postulants") ||
-    lower.includes("early applicant")
+    lower.includes("early applicant") ||
+    lower.includes("premiers candidats") ||
+    lower.includes("premier candidat") ||
+    lower.includes("soyez l'un des 10 premiers")
   ) {
     return { count: 5, isEarly: true };
   }
@@ -202,34 +227,34 @@ export function extractApplicantsCount(
   const underMatch = lower.match(/(?:under|moins de)\s*(\d+)\s*(?:applicants|candidats|postulants|personnes)/);
   if (underMatch) {
     const val = parseInt(underMatch[1], 10);
-    return { count: Math.max(1, Math.round(val / 2)), isEarly: val <= 25 };
+    return { count: Math.max(1, Math.round(val / 2)), isEarly: val <= 10 };
   }
 
   const overMatch = lower.match(/(?:over|plus de|plus que|>|\+ de)\s*(\d+)\s*(?:applicants|candidats|postulants|personnes)/);
   if (overMatch) {
     const val = parseInt(overMatch[1], 10);
-    return { count: val + 20, isEarly: false };
+    return { count: val + 15, isEarly: false };
   }
 
-  const numMatch = lower.match(/(\d+)\s*(?:applicants|candidats|postulants|personnes|bewerbungen)/);
+  const numMatch = lower.match(/(\d+)\s*(?:applicants|candidats|postulants|personnes|bewerbungen|personnes?\s+ont\s+cliqu|people\s+clicked)/);
   if (numMatch) {
     const val = parseInt(numMatch[1], 10);
-    return { count: val, isEarly: val <= 25 };
+    return { count: val, isEarly: val <= 10 };
   }
 
   // 3. Estimation selon la fraîcheur temporelle si non précisé
   const ago = (postedAgo || "").toLowerCase();
   if (ago.includes("min") || ago.includes("quelques")) {
-    return { count: 4, isEarly: true }; // Moins de 10 candidats
+    return { count: 3, isEarly: true }; // Très frais (< 10)
   }
   if (ago.includes("heure") || ago.includes("hour") || ago.includes(" h")) {
     const hMatch = ago.match(/(\d+)/);
     const hours = hMatch ? parseInt(hMatch[1], 10) : 2;
-    const est = Math.min(20, Math.max(5, hours * 3));
-    return { count: est, isEarly: est <= 25 };
+    const est = Math.min(15, Math.max(3, hours * 2));
+    return { count: est, isEarly: est <= 10 };
   }
   if (ago.includes("hier") || ago.includes("yesterday") || ago.includes("1 jour") || ago.includes("1 day")) {
-    return { count: 18, isEarly: true };
+    return { count: 18, isEarly: false };
   }
   if (ago.includes("2 jour") || ago.includes("2 day") || ago.includes("3 jour") || ago.includes("3 day")) {
     return { count: 32, isEarly: false };
@@ -549,17 +574,47 @@ export function calculateOfferPriority(
   }
 
   // 2. Métriques de candidats et fraîcheur
+  const rawCombinedProbe = `${title} ${desc} ${offer.postedAgo || ""}`.toLowerCase();
+  if (
+    rawCombinedProbe.includes("plus de 100") ||
+    rawCombinedProbe.includes("over 100") ||
+    rawCombinedProbe.includes("100+ ") ||
+    rawCombinedProbe.includes("> 100") ||
+    rawCombinedProbe.includes(">100") ||
+    rawCombinedProbe.includes("plus de 50") ||
+    rawCombinedProbe.includes("plus de 25") ||
+    rawCombinedProbe.includes("cliqué sur postuler") ||
+    rawCombinedProbe.includes("clicked apply") ||
+    rawCombinedProbe.includes("ne sont plus acceptées") ||
+    rawCombinedProbe.includes("no longer accepting") ||
+    rawCombinedProbe.includes("offre fermée") ||
+    rawCombinedProbe.includes("is closed")
+  ) {
+    if (!rawCombinedProbe.includes("moins de 10") && !rawCombinedProbe.includes("under 10") && !rawCombinedProbe.includes("early applicant")) {
+      return {
+        score: -9999,
+        isEligible: false,
+        rejectionReason: "Offre clôturée ou concurrence saturée (> 10 postulants / clics).",
+        detectedLang,
+        applicantsCount: 100,
+        isEarly: false,
+        isUltraFresh: false,
+        priorityBadges: ["🚫 Saturée (> 10 candidats)"],
+      };
+    }
+  }
+
   const { count: applicantsCount, isEarly } =
     typeof offer.applicantsCount === "number"
-      ? { count: offer.applicantsCount, isEarly: offer.applicantsCount <= 25 }
+      ? { count: offer.applicantsCount, isEarly: offer.applicantsCount <= 10 }
       : extractApplicantsCount(`${desc} ${title}`, offer.postedAgo);
 
-  // Rejet strict si concurrence saturée (> 60 postulants ou mention explicite 100+ personnes)
-  if (applicantsCount > 60) {
+  // Rejet strict si concurrence saturée (> 10 postulants ou mention explicite 10+ personnes)
+  if (applicantsCount > 10) {
     return {
       score: -9999,
       isEligible: false,
-      rejectionReason: `Concurrence saturée (${applicantsCount} postulants > 60). L'Auto-Pilot privilégie les opportunités fraîches à fort taux de conversion.`,
+      rejectionReason: `Concurrence saturée (${applicantsCount} postulants > 10). L'Auto-Pilot est strictement configuré pour cibler les offres à très faible concurrence (<= 10 candidats).`,
       detectedLang,
       applicantsCount,
       isEarly: false,

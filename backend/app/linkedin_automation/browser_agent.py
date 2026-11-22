@@ -489,35 +489,43 @@ class LinkedInBrowserAgent:
                 if under_10_applicants:
                     is_oversaturated = False
                     reported_count = 0
-                    if "plus de 100" in lower_text or "over 100" in lower_text or "100+ " in lower_text:
+                    if (
+                        "plus de 100" in lower_text
+                        or "over 100" in lower_text
+                        or "100+ " in lower_text
+                        or "> 100" in lower_text
+                        or ">100" in lower_text
+                        or "plus de 200" in lower_text
+                    ):
                         is_oversaturated = True
                         reported_count = 100
-                    elif "plus de 50" in lower_text or "over 50" in lower_text:
+                    elif "plus de 50" in lower_text or "over 50" in lower_text or "50+ " in lower_text or "> 50" in lower_text:
                         is_oversaturated = True
                         reported_count = 50
-                    elif "plus de 25" in lower_text or "over 25" in lower_text:
+                    elif "plus de 25" in lower_text or "over 25" in lower_text or "25+ " in lower_text or "> 25" in lower_text:
                         is_oversaturated = True
                         reported_count = 25
                     else:
-                        cand_m = re.search(r"(\d+)\s*(?:candidatures|candidats|applicants|postulants)", lower_text)
+                        cand_m = re.search(r"(\d+)\s*(?:candidatures|candidats|applicants|postulants|personnes?\s+ont\s+cliqu|people\s+clicked)", lower_text)
                         if cand_m:
                             n = int(cand_m.group(1))
                             if n > max_applicants_threshold:
                                 is_oversaturated = True
                                 reported_count = n
 
-                    # Les mentions 'moins de 10' / 'under 10' / 'early applicant' sont formellement autorisées
+                    # Les mentions explicites de faible concurrence (< 10) annulent la saturation
                     if (
                         "moins de 10" in lower_text
                         or "under 10" in lower_text
                         or "early applicant" in lower_text
                         or "premiers candidats" in lower_text
                         or "premier candidat" in lower_text
+                        or "soyez l'un des 10 premiers" in lower_text
                     ):
                         is_oversaturated = False
 
                     if is_oversaturated:
-                        print(f"   🚫 [Filtre Concurrence] Écartée dès la recherche : {reported_count} candidats (> {max_applicants_threshold}).")
+                        print(f"   🚫 [Filtre Concurrence] Écartée dès la recherche : {reported_count} candidats/clics (> {max_applicants_threshold}).")
                         continue
 
                 lines = [
@@ -647,14 +655,85 @@ class LinkedInBrowserAgent:
 
     def extract_applicant_count_on_page(self) -> Optional[int]:
         """
-        Extrait le nombre de candidats affiché sur la page de détail de l'offre.
-        Retourne le nombre (ex: 5 pour 'Moins de 10', 100 pour 'Plus de 100 candidatures') ou None.
+        Extrait le nombre de candidats ou de clics sur postuler affiché sur la page de détail de l'offre.
+        Gère à 100% :
+        - Les candidatures Easy Apply directes ("Plus de 100 candidatures", "4 candidats")
+        - Les offres avec redirection externe ("Plus de 100 personnes ont cliqué sur Postuler")
+        - Les statuts de faible concurrence ("Moins de 10 candidatures", "Soyez l'un des premiers candidats")
+        Retourne le nombre (ex: 5 pour 'Moins de 10', 100 pour 'Plus de 100') ou None.
         """
         if not self.page:
             return None
         import re
         try:
-            # Sélecteurs du top-card où LinkedIn place les métadonnées de candidatures
+            # 1. Vérification prioritaire sur le texte global de la zone d'en-tête (top-card)
+            top_card_selectors = [
+                ".job-details-jobs-unified-top-card",
+                ".jobs-unified-top-card",
+                ".job-details-jobs-unified-top-card__primary-description",
+                ".jobs-unified-top-card__subtitle-secondary-grouping",
+                ".jobs-unified-top-card__job-insight",
+                "main",
+            ]
+            for t_sel in top_card_selectors:
+                tc = self.page.locator(t_sel).first
+                if tc.is_visible():
+                    full_tc_text = tc.inner_text().strip().lower()
+
+                    # Détection d'alerte immédiate : Plus de 100 candidats ou clics
+                    if (
+                        "plus de 100 personnes ont cliqué" in full_tc_text
+                        or "over 100 people clicked" in full_tc_text
+                        or "plus de 100" in full_tc_text
+                        or "over 100" in full_tc_text
+                        or "100+ " in full_tc_text
+                        or "> 100" in full_tc_text
+                        or ">100" in full_tc_text
+                        or "plus de 200" in full_tc_text
+                    ):
+                        return 100
+
+                    if (
+                        "plus de 50 personnes ont cliqué" in full_tc_text
+                        or "over 50 people clicked" in full_tc_text
+                        or "plus de 50" in full_tc_text
+                        or "over 50" in full_tc_text
+                        or "50+ " in full_tc_text
+                        or "> 50" in full_tc_text
+                    ):
+                        return 50
+
+                    if (
+                        "plus de 25 personnes ont cliqué" in full_tc_text
+                        or "over 25 people clicked" in full_tc_text
+                        or "plus de 25" in full_tc_text
+                        or "over 25" in full_tc_text
+                        or "25+ " in full_tc_text
+                        or "> 25" in full_tc_text
+                    ):
+                        return 25
+
+                    if (
+                        "moins de 10" in full_tc_text
+                        or "under 10" in full_tc_text
+                        or "early applicant" in full_tc_text
+                        or "premiers candidats" in full_tc_text
+                        or "premier candidat" in full_tc_text
+                        or "soyez l'un des 10 premiers" in full_tc_text
+                        or "be among the first 10" in full_tc_text
+                    ):
+                        return 5
+
+                    # Recherche regex spécifique sur les clics de redirection externe
+                    click_m = re.search(r"(\d+)\s*(?:personnes?\s+ont\s+cliqu|people\s+clicked|candidatures|candidats|applicants|postulants)", full_tc_text)
+                    if click_m:
+                        return int(click_m.group(1))
+
+                    over_m = re.search(r"(?:plus de|over|\+ de|>)\s*(\d+)", full_tc_text)
+                    if over_m and any(w in full_tc_text for w in ("cliqu", "click", "candidat", "applicant", "postul")):
+                        return int(over_m.group(1)) + 5
+
+            # 2. Sélecteurs spécifiques pour ciblage fin
             selectors = [
                 ".job-details-jobs-unified-top-card__primary-description",
                 ".jobs-unified-top-card__bullet",
@@ -669,7 +748,7 @@ class LinkedInBrowserAgent:
                     if not loc.is_visible():
                         continue
                     txt = loc.inner_text().strip().lower()
-                    if not any(w in txt for w in ("candidat", "applicant", "postulant", "early")):
+                    if not any(w in txt for w in ("candidat", "applicant", "postulant", "early", "cliqu", "click", "personne", "people")):
                         continue
 
                     if "moins de 10" in txt or "under 10" in txt or "early applicant" in txt or "premiers candidats" in txt:
@@ -685,7 +764,7 @@ class LinkedInBrowserAgent:
                     if over_m:
                         return int(over_m.group(1)) + 5
 
-                    direct_m = re.search(r"(\d+)\s*(?:candidatures|candidats|applicants|postulants)", txt)
+                    direct_m = re.search(r"(\d+)\s*(?:candidatures|candidats|applicants|postulants|personnes|people)", txt)
                     if direct_m:
                         return int(direct_m.group(1))
         except Exception:

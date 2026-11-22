@@ -64,143 +64,188 @@ async function fetchLinkedInGuestJobs(
     if (!res.ok) return offers;
 
     const html = await res.text();
-    const titles = [...html.matchAll(/<h3 class="base-search-card__title">([\s\S]*?)<\/h3>/g)].map((m) =>
-      m[1].trim().replace(/&amp;/g, "&").replace(/&#39;/g, "'")
-    );
-    const companies = [...html.matchAll(/<h4 class="base-search-card__subtitle">([\s\S]*?)<\/h4>/g)].map((m) =>
-      m[1].trim().replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&#39;/g, "'").trim()
-    );
-    const locations = [...html.matchAll(/<span class="job-search-card__location">([\s\S]*?)<\/span>/g)].map((m) =>
-      m[1].trim()
-    );
-    const links = [...html.matchAll(/<a class="base-card__full-link[^"]*" href="([^"]*)"/g)].map((m) =>
-      m[1].trim().split("?")[0]
-    );
-    const dates = [...html.matchAll(/<time class="[^"]*job-search-card__listdate[^"]*"[^>]*>([\s\S]*?)<\/time>/g)].map((m) =>
-      m[1].trim()
-    );
 
-    for (let i = 0; i < titles.length; i++) {
-      const rawTitle = titles[i] || "";
-      const rawCompany = companies[i] || "Entreprise Internationale";
-      const rawLocation = locations[i] || location;
-      const jobUrl =
-        links[i] ||
-        `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}&f_EA=true`;
+    // Découpage par bloc de carte d'offre (LinkedIn Guest API utilise des <li> englobants)
+    const cardBlocks = [...html.matchAll(/<li[\s\S]*?<\/li>/g)].map((m) => m[0]);
 
-      const rawDate = dates[i] || "";
-      const formattedDate = formatTimeAgo(rawDate);
-      const isUltraFresh =
-        formattedDate.includes("min") ||
-        formattedDate.includes(" h") ||
-        formattedDate === "Hier" ||
-        formattedDate.includes("1 jour") ||
-        formattedDate.includes("2 jours");
+    if (cardBlocks.length > 0) {
+      for (let i = 0; i < cardBlocks.length; i++) {
+        const block = cardBlocks[i];
+        const cardText = block.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
 
-      // Calcul précis du timestamp pour tri chronologique strict
-      let offerTimestamp = Date.now() - 7 * 24 * 3600 * 1000;
-      const cleanTime = rawDate.toLowerCase().trim();
-      if (cleanTime.includes("min")) {
-        const m = cleanTime.match(/(\d+)/);
-        offerTimestamp = Date.now() - (m ? parseInt(m[1], 10) : 15) * 60 * 1000;
-      } else if (cleanTime.includes("hour") || cleanTime.includes("heure") || cleanTime.includes(" h")) {
-        const h = cleanTime.match(/(\d+)/);
-        offerTimestamp = Date.now() - (h ? parseInt(h[1], 10) : 1) * 3600 * 1000;
-      } else if (cleanTime.includes("yesterday") || cleanTime.includes("1 day") || cleanTime === "hier") {
-        offerTimestamp = Date.now() - 24 * 3600 * 1000;
-      } else if (cleanTime.includes("day") || cleanTime.includes("jour")) {
-        const d = cleanTime.match(/(\d+)/);
-        offerTimestamp = Date.now() - (d ? parseInt(d[1], 10) : 2) * 24 * 3600 * 1000;
-      } else if (cleanTime.includes("week") || cleanTime.includes("sem")) {
-        const w = cleanTime.match(/(\d+)/);
-        offerTimestamp = Date.now() - (w ? parseInt(w[1], 10) : 1) * 7 * 24 * 3600 * 1000;
-      }
-
-      // Détection et filtrage linguistique strict (Badroudine : Français natif, Anglais C1)
-      const lang = detectOfferLanguage(rawTitle, "");
-      if (lang !== "fr" && lang !== "en") {
-        continue; // Élimine déterministement les offres rédigées en allemand, néerlandais, etc.
-      }
-      if (requiresNonEnFrLanguage(rawTitle)) {
-        continue; // Élimine les offres exigeant l'allemand ou le néerlandais
-      }
-
-      // Filtrage strict : éliminer déterministement les offres non-tech (Business Analyst, Finance, Audit, etc.)
-      if (!isTechAiDomain(rawTitle, rawCompany)) {
-        continue;
-      }
-
-      // Rejet des agrégateurs / cabinets connus pour poster des rôles de comptabilité/finance/audit
-      const rawCompLower = rawCompany.toLowerCase();
-      if (
-        rawCompLower.includes("acca") ||
-        rawCompLower.includes("kpmg") ||
-        rawCompLower.includes("pwc") ||
-        rawCompLower.includes("deloitte") ||
-        rawCompLower.includes("ey ") ||
-        rawCompLower.includes("ernst & young")
-      ) {
-        if (!rawTitle.toLowerCase().includes("machine learning") && !rawTitle.toLowerCase().includes("computer vision")) {
+        // 1. Rejet strict des offres fermées ou expirées
+        if (
+          cardText.includes("ne sont plus acceptées") ||
+          cardText.includes("no longer accepting") ||
+          cardText.includes("fermée") ||
+          cardText.includes("closed")
+        ) {
           continue;
         }
-      }
 
-      // Rejet des offres clôturées ou expirées
-      const rawCombinedLower = `${rawTitle} ${rawCompany} ${formattedDate}`.toLowerCase();
-      if (
-        rawCombinedLower.includes("ne sont plus acceptées") ||
-        rawCombinedLower.includes("no longer accepting") ||
-        rawCombinedLower.includes("fermée") ||
-        rawCombinedLower.includes("closed")
-      ) {
-        continue;
-      }
+        // 2. Rejet strict des offres à forte concurrence (> 10 candidats ou clics)
+        if (
+          cardText.includes("plus de 100") ||
+          cardText.includes("over 100") ||
+          cardText.includes("100+ ") ||
+          cardText.includes("> 100") ||
+          cardText.includes(">100") ||
+          cardText.includes("plus de 50") ||
+          cardText.includes("over 50") ||
+          cardText.includes("plus de 25") ||
+          cardText.includes("over 25") ||
+          cardText.includes("cliqué sur postuler") ||
+          cardText.includes("clicked apply")
+        ) {
+          if (!cardText.includes("moins de 10") && !cardText.includes("under 10") && !cardText.includes("early applicant")) {
+            continue; // Saturée : rejet immédiat
+          }
+        }
 
-      // Extraction et estimation du nombre de candidats actuels (strictement <= 10)
-      const { count: applicantsCount } = extractApplicantsCount(rawTitle, formattedDate);
-      if (applicantsCount > 10) {
-        continue; // Écarte directement les offres saturées (>10 candidats)
-      }
+        const titleMatch = block.match(/<h3 class="base-search-card__title">([\s\S]*?)<\/h3>/);
+        const rawTitle = titleMatch ? titleMatch[1].trim().replace(/&amp;/g, "&").replace(/&#39;/g, "'") : "";
+        if (!rawTitle) continue;
 
-      // Déduction dynamique des compétences techniques
-      const lower = rawTitle.toLowerCase();
-      const detectedSkills: string[] = ["Python"];
-      if (lower.includes("machine learning") || lower.includes("ml")) detectedSkills.push("Machine Learning", "PyTorch");
-      if (lower.includes("vision") || lower.includes("image")) detectedSkills.push("Computer Vision", "OpenCV");
-      if (lower.includes("nlp") || lower.includes("llm") || lower.includes("language") || lower.includes("agentic")) detectedSkills.push("NLP", "LLMs", "RAG");
-      if (lower.includes("data") || lower.includes("scientist") || lower.includes("analytics")) detectedSkills.push("Data Science", "SQL");
-      if (lower.includes("autonomy") || lower.includes("robotics")) detectedSkills.push("C++", "Robotics");
-      if (lower.includes("signal") || lower.includes("sensor")) detectedSkills.push("Signal Processing", "NumPy");
+        const compMatch = block.match(/<h4 class="base-search-card__subtitle">([\s\S]*?)<\/h4>/);
+        const rawCompany = compMatch ? compMatch[1].replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&#39;/g, "'").trim() : "Entreprise Internationale";
 
-      const estimatedSalary =
-        country === "Suisse"
-          ? "3,500 - 5,500 CHF / mois (est.)"
-          : "2,000 - 3,200 € / mois (est.)";
+        const locMatch = block.match(/<span class="job-search-card__location">([\s\S]*?)<\/span>/);
+        const rawLocation = locMatch ? locMatch[1].trim() : location;
 
-      offers.push({
-        id: `live-linkedin-${country.toLowerCase()}-${i}-${rawCompany.slice(0, 10).replace(/[^a-z0-9]/gi, "").toLowerCase()}`,
-        company: rawCompany,
-        title: rawTitle,
-        location: rawLocation,
-        country: country,
-        countryFlag: countryFlag,
-        workplace: "Hybride",
-        compensation: estimatedSalary,
-        skills: detectedSkills,
-        url: jobUrl,
-        postedAgo: formattedDate,
-        isFresh: isUltraFresh,
-        timestamp: offerTimestamp,
-        applicantsCount,
-        language: lang,
-        description: `Offre fraîche détectée en direct sur LinkedIn (${country}).
+        const linkMatch = block.match(/<a class="base-card__full-link[^"]*" href="([^"]*)"/);
+        const jobUrl = linkMatch ? linkMatch[1].trim().split("?")[0] : `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}&f_EA=true`;
+
+        const dateMatch = block.match(/<time class="[^"]*job-search-card__listdate[^"]*"[^>]*>([\s\S]*?)<\/time>/);
+        const rawDate = dateMatch ? dateMatch[1].trim() : "";
+        const formattedDate = formatTimeAgo(rawDate);
+        const isUltraFresh =
+          formattedDate.includes("min") ||
+          formattedDate.includes(" h") ||
+          formattedDate === "Hier" ||
+          formattedDate.includes("1 jour") ||
+          formattedDate.includes("2 jours");
+
+        let offerTimestamp = Date.now() - 7 * 24 * 3600 * 1000;
+        const cleanTime = rawDate.toLowerCase().trim();
+        if (cleanTime.includes("min")) {
+          const m = cleanTime.match(/(\d+)/);
+          offerTimestamp = Date.now() - (m ? parseInt(m[1], 10) : 15) * 60 * 1000;
+        } else if (cleanTime.includes("hour") || cleanTime.includes("heure") || cleanTime.includes(" h")) {
+          const h = cleanTime.match(/(\d+)/);
+          offerTimestamp = Date.now() - (h ? parseInt(h[1], 10) : 1) * 3600 * 1000;
+        } else if (cleanTime.includes("yesterday") || cleanTime.includes("1 day") || cleanTime === "hier") {
+          offerTimestamp = Date.now() - 24 * 3600 * 1000;
+        } else if (cleanTime.includes("day") || cleanTime.includes("jour")) {
+          const d = cleanTime.match(/(\d+)/);
+          offerTimestamp = Date.now() - (d ? parseInt(d[1], 10) : 2) * 24 * 3600 * 1000;
+        } else if (cleanTime.includes("week") || cleanTime.includes("sem")) {
+          const w = cleanTime.match(/(\d+)/);
+          offerTimestamp = Date.now() - (w ? parseInt(w[1], 10) : 1) * 7 * 24 * 3600 * 1000;
+        }
+
+        // Filtrage linguistique strict (Badroudine : Français natif, Anglais C1)
+        const lang = detectOfferLanguage(rawTitle, "");
+        if (lang !== "fr" && lang !== "en") continue;
+        if (requiresNonEnFrLanguage(rawTitle)) continue;
+
+        // Filtrage domaine technique (IA, ML, Vision, Data)
+        if (!isTechAiDomain(rawTitle, rawCompany)) continue;
+
+        // Extraction et estimation du nombre de candidats actuels (strictement <= 10)
+        const { count: applicantsCount } = extractApplicantsCount(`${rawTitle} ${cardText}`, formattedDate);
+        if (applicantsCount > 10) continue;
+
+        // Déduction dynamique des compétences techniques
+        const lower = rawTitle.toLowerCase();
+        const detectedSkills: string[] = ["Python"];
+        if (lower.includes("machine learning") || lower.includes("ml")) detectedSkills.push("Machine Learning", "PyTorch");
+        if (lower.includes("vision") || lower.includes("image")) detectedSkills.push("Computer Vision", "OpenCV");
+        if (lower.includes("nlp") || lower.includes("llm") || lower.includes("language") || lower.includes("agentic")) detectedSkills.push("NLP", "LLMs", "RAG");
+        if (lower.includes("data") || lower.includes("scientist") || lower.includes("analytics")) detectedSkills.push("Data Science", "SQL");
+        if (lower.includes("autonomy") || lower.includes("robotics")) detectedSkills.push("C++", "Robotics");
+        if (lower.includes("signal") || lower.includes("sensor")) detectedSkills.push("Signal Processing", "NumPy");
+
+        const estimatedSalary =
+          country === "Suisse"
+            ? "3,500 - 5,500 CHF / mois (est.)"
+            : "2,000 - 3,200 € / mois (est.)";
+
+        offers.push({
+          id: `live-linkedin-${country.toLowerCase()}-${i}-${rawCompany.slice(0, 10).replace(/[^a-z0-9]/gi, "").toLowerCase()}`,
+          company: rawCompany,
+          title: rawTitle,
+          location: rawLocation,
+          country: country,
+          countryFlag: countryFlag,
+          workplace: "Hybride",
+          compensation: estimatedSalary,
+          skills: detectedSkills,
+          url: jobUrl,
+          postedAgo: formattedDate,
+          isFresh: isUltraFresh,
+          timestamp: offerTimestamp,
+          applicantsCount,
+          language: lang,
+          description: `Offre fraîche à très faible concurrence (<= 10 candidats) détectée en direct sur LinkedIn (${country}).
 Poste : ${rawTitle}
 Entreprise : ${rawCompany}
 Localisation : ${rawLocation}
 Publication : ${formattedDate}
 Contrat : Stage / Internship (PFE 6 mois)
 Source : Flux LinkedIn Jobs trié du plus récent au plus ancien.`,
-      });
+        });
+      }
+    } else {
+      // Fallback par regex simples si pas de balises <li> détectées
+      const titles = [...html.matchAll(/<h3 class="base-search-card__title">([\s\S]*?)<\/h3>/g)].map((m) =>
+        m[1].trim().replace(/&amp;/g, "&").replace(/&#39;/g, "'")
+      );
+      const companies = [...html.matchAll(/<h4 class="base-search-card__subtitle">([\s\S]*?)<\/h4>/g)].map((m) =>
+        m[1].trim().replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&#39;/g, "'").trim()
+      );
+      const locations = [...html.matchAll(/<span class="job-search-card__location">([\s\S]*?)<\/span>/g)].map((m) =>
+        m[1].trim()
+      );
+      const links = [...html.matchAll(/<a class="base-card__full-link[^"]*" href="([^"]*)"/g)].map((m) =>
+        m[1].trim().split("?")[0]
+      );
+      const dates = [...html.matchAll(/<time class="[^"]*job-search-card__listdate[^"]*"[^>]*>([\s\S]*?)<\/time>/g)].map((m) =>
+        m[1].trim()
+      );
+
+      for (let i = 0; i < titles.length; i++) {
+        const rawTitle = titles[i] || "";
+        const rawCompany = companies[i] || "Entreprise Internationale";
+        const rawLocation = locations[i] || location;
+        const jobUrl =
+          links[i] ||
+          `https://www.linkedin.com/jobs/search/?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}&f_EA=true`;
+        const rawDate = dates[i] || "";
+        const formattedDate = formatTimeAgo(rawDate);
+
+        if (!isTechAiDomain(rawTitle, rawCompany)) continue;
+        const { count: applicantsCount } = extractApplicantsCount(rawTitle, formattedDate);
+        if (applicantsCount > 10) continue;
+
+        offers.push({
+          id: `live-linkedin-${country.toLowerCase()}-${i}-${rawCompany.slice(0, 10).replace(/[^a-z0-9]/gi, "").toLowerCase()}`,
+          company: rawCompany,
+          title: rawTitle,
+          location: rawLocation,
+          country: country,
+          countryFlag: countryFlag,
+          workplace: "Hybride",
+          compensation: country === "Suisse" ? "3,500 - 5,500 CHF / mois (est.)" : "2,000 - 3,200 € / mois (est.)",
+          skills: ["Python", "Machine Learning"],
+          url: jobUrl,
+          postedAgo: formattedDate,
+          isFresh: true,
+          timestamp: Date.now() - 24 * 3600 * 1000,
+          applicantsCount,
+          language: "fr",
+          description: `Offre LinkedIn ${country} : ${rawTitle} chez ${rawCompany}`,
+        });
+      }
     }
   } catch (err) {
     console.warn(`Erreur récupération LinkedIn pour ${location}:`, err);
