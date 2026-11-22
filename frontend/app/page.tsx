@@ -734,7 +734,17 @@ export default function Home() {
         checkLinkedInBotStatus();
       } else {
         setIsLinkedInBotRunning(false);
-        setPreferenceFeedbackToast(`⚠️ ${data.error || "Erreur de lancement"}`);
+        if (data.isServerless) {
+          setPreferenceFeedbackToast(`💡 Cloud Vercel : Exécutez Lancer_Bot_LinkedIn.bat sur votre PC (PC 1 ou PC 2) pour piloter le navigateur !`);
+          setLinkedInBotLogs((prev) => [
+            ...prev,
+            `[${new Date().toLocaleTimeString("fr-FR")}] 💡 [Notice Cloud Vercel] Vercel est un environnement serverless en lecture seule (/var/task).`,
+            `[${new Date().toLocaleTimeString("fr-FR")}] 🖥️ Pour postuler avec votre session Chrome et vos cookies LinkedIn réels, lancez 'Lancer_Bot_LinkedIn.bat' sur votre PC local (PC 1 ou PC 2).`,
+            `[${new Date().toLocaleTimeString("fr-FR")}] 📊 Vos candidatures locales seront synchronisées automatiquement dans ce Dashboard !`,
+          ]);
+        } else {
+          setPreferenceFeedbackToast(`⚠️ ${data.error || "Erreur de lancement"}`);
+        }
       }
     } catch (e: any) {
       setIsLinkedInBotRunning(false);
