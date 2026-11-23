@@ -59,6 +59,63 @@ def is_france_location(loc_str: str) -> bool:
     return False
 
 
+def detect_offer_language(title: str = "", desc: str = "") -> str:
+    """
+    Détecte la langue de rédaction de l'offre (0 token / ultra-rapide).
+    Retourne 'en' (anglais), 'fr' (français), 'de' (allemand), ou 'nl' (néerlandais).
+    """
+    combined = f"{title} {desc}".lower()
+    de_markers = [
+        "und", "oder", "für", "mit", "im", "ihre aufgaben", "wir suchen", "deine aufgaben",
+        "praktikum", "praktikant", "werkstudent", "anforderungen", "ab sofort", "m/w/d",
+        "kenntnisse", "standort", "über uns", "bewerbung", "qualifikationen"
+    ]
+    nl_markers = [
+        "en", "van", "het", "voor", "met", "wij zoeken", "jouw profiel",
+        "functieomschrijving", "stagiair", "nederlands", "opleiding"
+    ]
+    fr_markers = [
+        "le", "la", "les", "des", "dans", "pour", "avec", "stage", "stagiaire",
+        "pfe", "missions", "profil recherché", "ingénieur", "vos missions", "notre équipe"
+    ]
+    en_markers = [
+        "the", "and", "with", "for", "internship", "intern", "responsibilities",
+        "qualifications", "skills", "experience", "about the role", "what you'll do"
+    ]
+
+    de_score = sum(1 for m in de_markers if m in combined)
+    nl_score = sum(1 for m in nl_markers if m in combined)
+    fr_score = sum(1 for m in fr_markers if m in combined)
+    en_score = sum(1 for m in en_markers if m in combined)
+
+    if de_score >= 3 and de_score > en_score and de_score > fr_score:
+        return "de"
+    if nl_score >= 3 and nl_score > en_score and nl_score > fr_score:
+        return "nl"
+    if fr_score > en_score and fr_score >= 2:
+        return "fr"
+    return "en"
+
+
+def requires_non_en_fr(text: str = "") -> bool:
+    """Vérifie si l'offre exige l'allemand ou le néerlandais obligatoire."""
+    import re
+    t = text.lower()
+    patterns = [
+        r"\bfluent in german\b",
+        r"\bgerman is required\b",
+        r"\bgerman language skills\b",
+        r"\bsehr gute deutschkenntnisse\b",
+        r"\bfließend deutsch\b",
+        r"\bdeutschkenntnisse erforderlich\b",
+        r"\bfluent in dutch\b",
+        r"\bdutch is required\b",
+        r"\bnederlands vereist\b",
+    ]
+    return any(re.search(p, t) for p in patterns)
+
+
+
 class LinkedInBrowserAgent:
     """Agent d'automatisation de navigation et candidature LinkedIn via Playwright."""
 

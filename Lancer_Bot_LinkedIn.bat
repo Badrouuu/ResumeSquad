@@ -63,10 +63,10 @@ if "%HAS_SESSION%"=="0" (
 )
 
 echo.
-echo  [1] Mode Volume MAX Suisse [Turbo 5-10s, 25 offres, <= 10 Candidats, Easy Apply + ATS]
-echo  [2] Mode Easy Apply Exclusif Suisse [100%% sur LinkedIn, <= 10 Candidats, zero redirection]
-echo  [3] Mode Volume MAX Luxembourg [Turbo 5-10s, 25 offres, <= 10 Candidats]
-echo  [4] Mode Simulation Dry-Run [Suisse - Sans envoi reel, <= 10 Candidats]
+echo  [1] Mode Volume MAX Suisse [Turbo 5-10s, 25 offres, <= 10 Candidats, Anglais, Easy Apply + ATS]
+echo  [2] Mode Easy Apply Exclusif Suisse [100%% sur LinkedIn, <= 10 Candidats, Anglais, zero redirection]
+echo  [3] Mode Volume MAX Luxembourg [Turbo 5-10s, 25 offres, <= 10 Candidats, Anglais]
+echo  [4] Mode Simulation Dry-Run [Suisse - Sans envoi reel, <= 10 Candidats, Anglais]
 echo  [5] Connexion Manuelle / Verification Session LinkedIn [Fenetre ouverte]
 echo  [6] Lancer le Dashboard Web [Next.js sur http://localhost:3000]
 echo  [7] Diagnostiquer / Reinstaller les dependances sur ce PC
@@ -76,29 +76,29 @@ set /p choice="Votre choix (1-8) : "
 
 if "%choice%"=="1" (
     echo.
-    echo [*] Lancement du Mode Volume MAX Suisse [Turbo - 25 candidatures, <= 10 candidats]...
-    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Volume MAX Suisse [Turbo - 25 candidatures, <= 10 candidats, Anglais]...
+    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --keywords "Machine Learning Intern English" --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
     pause
     exit /b
 )
 if "%choice%"=="2" (
     echo.
-    echo [*] Lancement du Mode Easy Apply Exclusif Suisse [<= 10 candidats]...
-    python backend\run_linkedin_easy_apply.py --once --location "Suisse" --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Easy Apply Exclusif Suisse [<= 10 candidats, Anglais]...
+    python backend\run_linkedin_easy_apply.py --once --location "Suisse" --keywords "Machine Learning Intern English" --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
     pause
     exit /b
 )
 if "%choice%"=="3" (
     echo.
-    echo [*] Lancement du Mode Volume MAX Luxembourg [Turbo - 25 candidatures, <= 10 candidats]...
-    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Luxembourg" --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Volume MAX Luxembourg [Turbo - 25 candidatures, <= 10 candidats, Anglais]...
+    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Luxembourg" --keywords "Machine Learning Intern English" --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
     pause
     exit /b
 )
 if "%choice%"=="4" (
     echo.
-    echo [*] Lancement en mode simulation Dry-Run [Suisse, <= 10 candidats]...
-    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --dry-run --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement en mode simulation Dry-Run [Suisse, <= 10 candidats, Anglais]...
+    python backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --keywords "Machine Learning Intern English" --dry-run --exclude-france --under-10-applicants --max-applicants 10
     pause
     exit /b
 )

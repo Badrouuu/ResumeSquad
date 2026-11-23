@@ -17,7 +17,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from .browser_agent import LinkedInBrowserAgent
+from .browser_agent import LinkedInBrowserAgent, detect_offer_language, requires_non_en_fr
 from .gemini_agent import GeminiCoverLetterGenerator
 from .discord_notifier import DiscordNotifier
 
@@ -327,6 +327,16 @@ class LinkedInEasyApplyOrchestrator:
                     applied_identifiers.add(job_url.strip().rstrip("/"))
                 continue
 
+            # 2b. Contrôle Linguistique : Anglais et Français uniquement (exclusion stricte Allemand / Néerlandais)
+            offer_lang = detect_offer_language(title, desc)
+            if offer_lang not in ("en", "fr") or requires_non_en_fr(f"{title} {desc}"):
+                lang_label = "allemand" if offer_lang == "de" else ("néerlandais" if offer_lang == "nl" else offer_lang)
+                print(f"   🚫 [Filtre Langue] Offre rédigée en {lang_label.upper()} ou exigeant une langue non maîtrisée pour {company}. Ignorée sans appel IA.")
+                applied_identifiers.add(job_id)
+                if job_url:
+                    applied_identifiers.add(job_url.strip().rstrip("/"))
+                continue
+
             # 3. Contrôle immédiat : Vérification de la concurrence (<= max_applicants, défaut 10)
             if self.under_10_applicants:
                 applicants_count = self.browser_agent.extract_applicant_count_on_page()
@@ -388,10 +398,8 @@ class LinkedInEasyApplyOrchestrator:
                 continue
 
             # 5. Génération de la lettre de motivation pragmatique & technique avec Gemini 1.5 Flash
-            print("   🧠 [Gemini 1.5 Flash] Rédaction de la lettre technique sur-mesure...")
-            # Détection succincte de la langue
-            lang = "en" if any(w in desc.lower() for w in ("responsibilities", "requirements", "skills", "experience")) else "fr"
-            letter_text = self.gemini_agent.generate_cover_letter(desc, title, company, language=lang)
+            print(f"   🧠 [Gemini 1.5 Flash] Rédaction de la lettre technique sur-mesure (langue: {offer_lang.upper()})...")
+            letter_text = self.gemini_agent.generate_cover_letter(desc, title, company, language=offer_lang)
 
             # Exportation immédiate en PDF pour l'upload
             letter_pdf_path = self.gemini_agent.export_pdf(letter_text, title, company, output_dir=str(self.output_dir))

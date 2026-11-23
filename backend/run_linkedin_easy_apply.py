@@ -42,8 +42,8 @@ def main():
     parser.add_argument(
         "--keywords",
         type=str,
-        default="Machine Learning Stage",
-        help="Mots-clés de recherche (défaut : 'Machine Learning Stage')",
+        default="Machine Learning Intern English",
+        help="Mots-clés de recherche (défaut : 'Machine Learning Intern English')",
     )
     parser.add_argument(
         "--location",
