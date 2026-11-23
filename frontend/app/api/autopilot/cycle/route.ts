@@ -40,15 +40,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Récupération des offres candidates (Scan live dynamique si vivier non fourni)
+    // 1. Récupération des offres candidates (Scan live dynamique en direct de LinkedIn)
     let candidatePool: RadarJobOffer[] = customOffers;
     if (candidatePool.length === 0) {
-      log("📡 Déclenchement automatique du Radar Live (Suisse, Lux, Bel, All • IA, ML & Vision)...");
+      log("📡 Déclenchement du Radar Live LinkedIn (Suisse, Luxembourg, Belgique, Allemagne • IA & ML)...");
       try {
         const liveScanned = await fetchLiveRadarOffers("7d");
-        log(`📡 ${liveScanned.length} opportunités scannées en direct sur le marché européen.`);
-        // Fusionne les offres fraîches en direct avec les offres vérifiées
-        candidatePool = [...liveScanned, ...RADAR_JOB_OFFERS];
+        log(`📡 ${liveScanned.length} opportunités fraîches scannées en direct sur le marché européen.`);
+        // Priorité absolue aux offres réelles en direct scannées à la volée
+        candidatePool = liveScanned.length > 0 ? liveScanned : RADAR_JOB_OFFERS;
       } catch (scanErr: any) {
         log(`⚠️ Scan live indisponible, repli sur le vivier vérifié : ${scanErr.message}`);
         candidatePool = RADAR_JOB_OFFERS;
@@ -56,6 +56,9 @@ export async function POST(request: Request) {
     } else {
       log(`📡 Analyse de ${candidatePool.length} offres candidates en base...`);
     }
+
+    log("💡 [Fonctionnement] Le Dashboard Web génère vos dossiers sur-mesure (CV + Lettre).");
+    log("🖥️ [Envoi Automatique] Pour soumettre directement sur LinkedIn sans clic, lancez Lancer_Bot_LinkedIn.bat sur votre PC !");
 
     // 2. Filtrage des offres déjà traitées
     const unappliedOffers = candidatePool.filter((o) => !appliedIds.includes(o.id));
@@ -228,9 +231,7 @@ export async function POST(request: Request) {
           status: appStatus,
           notes: screenshotTaken
             ? `📸 Formulaire pré-rempli par Playwright. Capture d'écran envoyée sur Discord pour validation.`
-            : actionRequired
-            ? `⚠️ Action requise : ${blockReason}`
-            : `Candidature générée automatiquement par Auto-Pilot. Mode : ${offer.workplace || "Hybride"}. ${priority.priorityBadges.join(" • ")}`,
+            : `📄 Dossier IA prêt (CV + Lettre sur-mesure rédigés par Gemini). À soumettre sur l'offre ci-dessous ou via Lancer_Bot_LinkedIn.bat en local.`,
           jobUrl: offer.url,
           country: offer.country,
           generatedData: {
@@ -263,13 +264,9 @@ export async function POST(request: Request) {
                 avatar_url: "https://cdn-icons-png.flaticon.com/512/4712/4712109.png",
                 embeds: [
                   {
-                    title: actionRequired
-                      ? `⚠️ [Auto-Pilot Action Requise] ${offer.company}`
-                      : `🚀 [Auto-Pilot Candidature Prête] ${offer.company}`,
-                    description: actionRequired
-                      ? `Le CV et la lettre sont prêts, mais **une validation en 1 clic est nécessaire** (${blockReason}).`
-                      : `L'escouade d'agents a adapté tous les documents au poste avec succès.`,
-                    color: actionRequired ? 0xf59e0b : 0x10b981,
+                    title: `📄 [Dossier IA Prêt] ${offer.company}`,
+                    description: `CV STAR et lettre technique rédigés avec succès par Gemini. **Dossier prêt à être déposé** sur le portail recruteur ou automatiquement via le script local.`,
+                    color: 0x10b981,
                     fields: [
                       { name: "🏢 Entreprise", value: offer.company, inline: true },
                       { name: "💼 Intitulé", value: offer.title, inline: true },
