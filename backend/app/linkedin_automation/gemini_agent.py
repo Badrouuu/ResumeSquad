@@ -45,10 +45,10 @@ class GeminiCoverLetterGenerator:
     """Générateur de lettres de motivation ultra-ciblées avec Gemini 1.5 Flash / Flash Lite."""
 
     FALLBACK_MODELS = [
+        "gemini-3.1-flash-lite",
         "gemini-3.5-flash-lite",
         "gemini-3.5-flash",
         "gemini-flash-latest",
-        "gemini-2.5-flash",
         "gemini-1.5-flash",
     ]
 
@@ -62,7 +62,7 @@ class GeminiCoverLetterGenerator:
         candidate_email: str = "badroudinebacar@gmail.com",
     ):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY", "")
-        self.model_name = model_name or "gemini-3.5-flash-lite"
+        self.model_name = model_name or "gemini-3.1-flash-lite"
         self.candidate_name = candidate_name
         self.candidate_school = candidate_school
         self.candidate_phone = candidate_phone
