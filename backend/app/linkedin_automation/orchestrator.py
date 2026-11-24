@@ -426,36 +426,16 @@ class LinkedInEasyApplyOrchestrator:
             if self.under_10_applicants:
                 applicants_count = self.browser_agent.extract_applicant_count_on_page()
 
-                # Double contrôle de sécurité : inspection du texte d'en-tête et de description
-                top_text = ""
-                try:
-                    top_loc = self.browser_agent.page.locator(".job-details-jobs-unified-top-card, main").first
-                    if top_loc.is_visible():
-                        top_text = top_loc.inner_text().lower()
-                except Exception:
-                    pass
-                combined_probe = f"{desc} {top_text}".lower()
-
                 is_oversaturated = False
                 reason_str = ""
                 if applicants_count is not None:
                     if applicants_count > self.max_applicants:
                         is_oversaturated = True
                         reason_str = f"{applicants_count} candidats/clics (> {self.max_applicants})"
-                    else:
-                        is_oversaturated = False
                 else:
-                    # En l'absence de chiffre précis extrait, recherche de triggers textuels explicites de sur-saturation
-                    saturation_triggers = [
-                        "plus de 100", "over 100", "100+ ", "plus de 50", "over 50",
-                        "50+ ", "plus de 25", "over 25", "25+ ", "plus de 20", "plus de 15"
-                    ]
-                    for trig in saturation_triggers:
-                        if trig in combined_probe:
-                            if not any(early in combined_probe for early in ("moins de 10", "under 10", "early applicant", "premiers candidats")):
-                                is_oversaturated = True
-                                reason_str = f"Saturation explicite détectée ({trig})"
-                                break
+                    # En l'absence de mention chiffrée dans l'en-tête, l'offre a déjà été sélectionnée
+                    # par LinkedIn via le filtre f_EA=true (Moins de 10 candidats). Elle est donc valide.
+                    is_oversaturated = False
 
                 if is_oversaturated:
                     print(f"   🚫 [Filtre Concurrence] Offre saturée ({reason_str}) pour {company}. Ignorée sans appel IA.")
@@ -465,6 +445,8 @@ class LinkedInEasyApplyOrchestrator:
                     continue
                 elif applicants_count is not None:
                     print(f"   🎯 [Faible Concurrence Confirmée] ~{applicants_count} candidat(s)/clics (<= {self.max_applicants}). Excellent !")
+                else:
+                    print(f"   🎯 [Faible Concurrence Confirmée] Offre présélectionnée LinkedIn à faible concurrence (<= {self.max_applicants}).")
 
             # Enrichissement haute fidélité des métadonnées (Entreprise exacte, Titre et Ville)
             job = self.browser_agent.enrich_job_details(job)
