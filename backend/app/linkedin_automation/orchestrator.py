@@ -42,6 +42,7 @@ class LinkedInEasyApplyOrchestrator:
         exclude_france: bool = True,
         under_10_applicants: bool = True,
         max_applicants: int = 10,
+        time_filter: str = "24h",
     ):
         self.keywords = keywords
         self.location = location
@@ -54,6 +55,7 @@ class LinkedInEasyApplyOrchestrator:
         self.exclude_france = exclude_france
         self.under_10_applicants = under_10_applicants
         self.max_applicants = max_applicants
+        self.time_filter = time_filter
 
         # Chemins des données et artefacts
         base_dir = Path(__file__).resolve().parent.parent.parent
@@ -270,6 +272,7 @@ class LinkedInEasyApplyOrchestrator:
             exclude_france=self.exclude_france,
             under_10_applicants=self.under_10_applicants,
             max_applicants_threshold=self.max_applicants,
+            time_filter=self.time_filter,
         )
 
         if not queue:
@@ -297,8 +300,8 @@ class LinkedInEasyApplyOrchestrator:
 
             # Filtre de sécurité Mobilité Internationale EILCO
             from .browser_agent import is_france_location
-            if self.exclude_france and is_france_location(location):
-                print(f"   🚫 [Filtre EILCO Mobilité Internationale] Offre située en France ignorée ({location}).")
+            if self.exclude_france and (is_france_location(location) or is_france_location(title)):
+                print(f"   🚫 [Filtre EILCO Mobilité Internationale] Offre située en France ignorée ({title} - {location}).")
                 print(f"      Conformité EILCO requiert un stage à l'international (Suisse, Luxembourg, Belgique...).")
                 continue
 
@@ -353,23 +356,24 @@ class LinkedInEasyApplyOrchestrator:
 
                 is_oversaturated = False
                 reason_str = ""
-                if applicants_count is not None and applicants_count > self.max_applicants:
-                    is_oversaturated = True
-                    reason_str = f"{applicants_count} candidats/clics (> {self.max_applicants})"
-                elif (
-                    "plus de 100" in combined_probe
-                    or "over 100" in combined_probe
-                    or "100+ " in combined_probe
-                    or "plus de 50" in combined_probe
-                    or "over 50" in combined_probe
-                    or "plus de 25" in combined_probe
-                    or "over 25" in combined_probe
-                    or "cliqué sur postuler" in combined_probe
-                    or "clicked apply" in combined_probe
-                ):
-                    if "moins de 10" not in combined_probe and "under 10" not in combined_probe and "early applicant" not in combined_probe:
+                if applicants_count is not None:
+                    if applicants_count > self.max_applicants:
                         is_oversaturated = True
-                        reason_str = "Saturation explicite détectée sur la page (> 10 postulants ou clics)"
+                        reason_str = f"{applicants_count} candidats/clics (> {self.max_applicants})"
+                    else:
+                        is_oversaturated = False
+                else:
+                    # En l'absence de chiffre précis extrait, recherche de triggers textuels explicites de sur-saturation
+                    saturation_triggers = [
+                        "plus de 100", "over 100", "100+ ", "plus de 50", "over 50",
+                        "50+ ", "plus de 25", "over 25", "25+ ", "plus de 20", "plus de 15"
+                    ]
+                    for trig in saturation_triggers:
+                        if trig in combined_probe:
+                            if not any(early in combined_probe for early in ("moins de 10", "under 10", "early applicant", "premiers candidats")):
+                                is_oversaturated = True
+                                reason_str = f"Saturation explicite détectée ({trig})"
+                                break
 
                 if is_oversaturated:
                     print(f"   🚫 [Filtre Concurrence] Offre saturée ({reason_str}) pour {company}. Ignorée sans appel IA.")

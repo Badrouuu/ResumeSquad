@@ -161,6 +161,14 @@ def main():
         help="Nombre maximal de candidats autorisés sur une offre (défaut : 10)",
     )
 
+    parser.add_argument(
+        "--time-filter",
+        type=str,
+        default="24h",
+        choices=["24h", "week", "all"],
+        help="Filtre temporel des offres : '24h' (f_TPR=r86400, défaut), 'week' (f_TPR=r604800), ou 'all'",
+    )
+
     args = parser.parse_args()
 
     min_delay = 5 if args.turbo else args.min_delay
@@ -181,6 +189,7 @@ def main():
         exclude_france=args.exclude_france,
         under_10_applicants=args.under_10_applicants,
         max_applicants=args.max_applicants,
+        time_filter=args.time_filter,
     )
 
     if args.login:

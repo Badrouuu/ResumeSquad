@@ -50,7 +50,8 @@ def is_france_location(loc_str: str) -> bool:
         "grenoble", "sophia", "brest", "rouen", "reims", "clermont",
         "île-de-france", "ile-de-france", "hauts-de-france", "auvergne", "rhône-alpes",
         "occitanie", "nouvelle-aquitaine", "grand est", "pays de la loire", "bretagne",
-        "normandie", "bourgogne", "centre-val de loire", "corse", "calais", "dunkerque"
+        "normandie", "bourgogne", "centre-val de loire", "corse", "calais", "dunkerque",
+        "station f", "station-f"
     ]
     import re
     for ind in france_indicators:
@@ -440,11 +441,13 @@ class LinkedInBrowserAgent:
         exclude_france: bool = True,
         under_10_applicants: bool = True,
         max_applicants_threshold: int = 10,
+        time_filter: str = "24h",
     ) -> List[Dict[str, Any]]:
         """
-        Navigue sur LinkedIn Jobs avec filtres 'Candidature simplifiée' (f_AL=true) et
-        'Moins de 10 candidatures' (f_EA=true). Scanne la liste des offres fraîches,
-        écarte impérativement les offres expirées/fermées et celles à forte concurrence.
+        Navigue sur LinkedIn Jobs avec filtres 'Candidature simplifiée' (f_AL=true),
+        'Moins de 10 candidatures' (f_EA=true), 'Dernières 24h' (f_TPR=r86400) et geoId précis.
+        Scanne la liste des offres fraîches, écarte impérativement les offres expirées/fermées
+        et celles à forte concurrence.
         """
         if not self.page:
             raise RuntimeError("La page Playwright n'est pas initialisée.")
@@ -455,15 +458,41 @@ class LinkedInBrowserAgent:
         # Construction de l'URL avec filtres :
         # f_AL=true : Easy Apply uniquement (si easy_apply_only=True)
         # f_EA=true : Moins de 10 candidatures (si under_10_applicants=True)
+        # f_TPR=r86400 : Dernières 24 heures (si time_filter="24h")
+        # geoId : Verrouillage géographique strict du pays cible sur LinkedIn
         # sortBy=DD : Tri par date décroissante (offres fraîches)
         import urllib.parse
         encoded_kw = urllib.parse.quote(keywords)
         encoded_loc = urllib.parse.quote(location)
         al_param = "&f_AL=true" if easy_apply_only else ""
         ea_param = "&f_EA=true" if under_10_applicants else ""
+
+        # Paramètre temporel LinkedIn (24h = r86400, semaine = r604800)
+        tpr_param = ""
+        if time_filter == "24h":
+            tpr_param = "&f_TPR=r86400"
+        elif time_filter == "week":
+            tpr_param = "&f_TPR=r604800"
+
+        # Mapping geoId LinkedIn officiel
+        GEO_IDS = {
+            "suisse": "106693272",
+            "switzerland": "106693272",
+            "schweiz": "106693272",
+            "luxembourg": "104042105",
+            "belgique": "100565514",
+            "belgium": "100565514",
+            "allemagne": "101282230",
+            "germany": "101282230",
+            "france": "105015875",
+        }
+        loc_key = (location or "").lower().strip()
+        geo_id = GEO_IDS.get(loc_key)
+        geo_param = f"&geoId={geo_id}" if geo_id else ""
+
         search_url = (
             f"https://www.linkedin.com/jobs/search/?keywords={encoded_kw}"
-            f"&location={encoded_loc}{al_param}{ea_param}&sortBy=DD"
+            f"&location={encoded_loc}{geo_param}{al_param}{ea_param}{tpr_param}&sortBy=DD"
         )
 
         filter_parts = []
@@ -473,6 +502,10 @@ class LinkedInBrowserAgent:
             filter_parts.append("Easy Apply + Portails Externes")
         if under_10_applicants:
             filter_parts.append(f"Moins de {max_applicants_threshold} candidats (f_EA=true)")
+        if time_filter == "24h":
+            filter_parts.append("Dernières 24h (f_TPR=r86400)")
+        elif time_filter == "week":
+            filter_parts.append("Semaine passée (f_TPR=r604800)")
         filter_label = " | ".join(filter_parts)
 
         print(f"\n🔍 [Sourcing] Navigation vers les offres LinkedIn ({filter_label}) : {keywords} ({location})")
@@ -627,7 +660,7 @@ class LinkedInBrowserAgent:
                     loc = lines[2] if len(lines) > 2 else location
 
                 # 3. Filtre EILCO Mobilité Internationale (Interdiction de postuler en France)
-                if exclude_france and is_france_location(loc):
+                if exclude_france and (is_france_location(loc) or is_france_location(clean_title)):
                     print(f"   🚫 [Filtre EILCO] Offre en France écartée : {clean_title} ({loc})")
                     continue
 
