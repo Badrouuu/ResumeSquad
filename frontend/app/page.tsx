@@ -10,7 +10,7 @@ import {
 } from "./data/radarOffers";
 import { UserJobPreferences } from "./data/userPreferences";
 
-export type ApplicationStatus = "en_attente" | "entretien" | "offre" | "refus";
+export type ApplicationStatus = "en_attente" | "entretien" | "offre" | "refus" | "a_finaliser_manuellement";
 
 export interface TrackedApplication {
   id: string;
@@ -20,6 +20,9 @@ export interface TrackedApplication {
   atsScore: number;
   status: ApplicationStatus;
   notes: string;
+  jobUrl?: string;
+  url?: string;
+  screenshot?: string;
 }
 
 const DEFAULT_APPLICATIONS: TrackedApplication[] = [];
@@ -666,34 +669,64 @@ export default function Home() {
         if (data.logs && Array.isArray(data.logs) && data.logs.length > 0) {
           setLinkedInBotLogs(data.logs);
         }
-        if (Array.isArray(data.applications) && data.applications.length > 0) {
-          setApplications((prev) => {
-            const existingIds = new Set(prev.map((a) => a.id));
-            const existingKeys = new Set(prev.map((a) => `${a.company.toLowerCase().trim()}::${a.title.toLowerCase().trim()}`));
-            const toAdd = data.applications.filter((a: any) => {
-              if (existingIds.has(a.id)) return false;
-              const key = `${(a.company || "").toLowerCase().trim()}::${(a.title || "").toLowerCase().trim()}`;
-              return !existingKeys.has(key);
-            });
-            if (toAdd.length > 0) {
-              const formattedToAdd: TrackedApplication[] = toAdd.map((a: any) => ({
-                id: a.id || `app-${Date.now()}`,
-                company: a.company || "Entreprise",
-                title: a.title || "Poste IA",
-                appliedDate: a.appliedDate || new Date().toISOString().split("T")[0],
-                atsScore: a.atsScore || 92,
-                status: (a.status as ApplicationStatus) || "en_attente",
-                notes: a.notes || "Postulation automatique LinkedIn",
-              }));
-              const merged = [...formattedToAdd, ...prev];
-              try {
-                localStorage.setItem("resumesquad_applications", JSON.stringify(merged));
-              } catch {}
-              return merged;
+      let candidateApps: any[] = (res.ok && data.success && Array.isArray(data.applications)) ? data.applications : [];
+
+      // Si aucune candidature n'est retournée (notamment en environnement Vercel Cloud)
+      if (candidateApps.length === 0) {
+        try {
+          const syncRes = await fetch("/api/autopilot/sync-applications");
+          if (syncRes.ok) {
+            const syncData = await syncRes.json();
+            if (Array.isArray(syncData.applications) && syncData.applications.length > 0) {
+              candidateApps = syncData.applications;
             }
-            return prev;
+          }
+        } catch {}
+      }
+
+      if (candidateApps.length === 0) {
+        try {
+          const staticRes = await fetch("/data/applications_history.json");
+          if (staticRes.ok) {
+            const staticData = await staticRes.json();
+            if (Array.isArray(staticData) && staticData.length > 0) {
+              candidateApps = staticData;
+            }
+          }
+        } catch {}
+      }
+
+      if (candidateApps.length > 0) {
+        setApplications((prev) => {
+          const existingIds = new Set(prev.map((a) => a.id));
+          const existingKeys = new Set(prev.map((a) => `${a.company.toLowerCase().trim()}::${a.title.toLowerCase().trim()}`));
+          const toAdd = candidateApps.filter((a: any) => {
+            if (existingIds.has(a.id)) return false;
+            const key = `${(a.company || "").toLowerCase().trim()}::${(a.title || "").toLowerCase().trim()}`;
+            return !existingKeys.has(key);
           });
-        }
+          if (toAdd.length > 0) {
+            const formattedToAdd: TrackedApplication[] = toAdd.map((a: any) => ({
+              id: a.id || `app-${Date.now()}`,
+              company: a.company || "Entreprise",
+              title: a.title || "Poste IA",
+              appliedDate: a.appliedDate || new Date().toISOString().split("T")[0],
+              atsScore: a.atsScore || 92,
+              status: (a.status as ApplicationStatus) || "en_attente",
+              notes: a.notes || "Postulation automatique LinkedIn",
+              jobUrl: a.jobUrl || a.url || "",
+              url: a.url || a.jobUrl || "",
+              screenshot: a.screenshot || "",
+            }));
+            const merged = [...formattedToAdd, ...prev];
+            try {
+              localStorage.setItem("resumesquad_applications", JSON.stringify(merged));
+            } catch {}
+            return merged;
+          }
+          return prev;
+        });
+      }
       }
     } catch {}
   };
@@ -1956,6 +1989,8 @@ ${formattedParagraphs}
         return <span className="px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-medium">🟣 Entretien RH / Tech</span>;
       case "offre":
         return <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">🟢 Offre Reçue 🎉</span>;
+      case "a_finaliser_manuellement":
+        return <span className="px-2.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 text-xs font-semibold">🟠 À finaliser sur portail</span>;
       case "refus":
         return <span className="px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium">🔴 Refusé</span>;
     }
@@ -4085,7 +4120,7 @@ ${formattedParagraphs}
       {currentView === "tracker" && (
         <div className="space-y-6">
           {/* Métriques globales */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4">
               <div className="text-xs text-[#a1a1aa]">Total Candidatures</div>
               <div className="text-2xl font-bold text-white mt-1">{applications.length}</div>
@@ -4094,6 +4129,12 @@ ${formattedParagraphs}
               <div className="text-xs text-[#a1a1aa]">En attente de réponse</div>
               <div className="text-2xl font-bold text-amber-400 mt-1">
                 {applications.filter((a) => a.status === "en_attente").length}
+              </div>
+            </div>
+            <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4">
+              <div className="text-xs text-[#a1a1aa]">À finaliser sur portail</div>
+              <div className="text-2xl font-bold text-orange-400 mt-1">
+                {applications.filter((a) => a.status === "a_finaliser_manuellement").length}
               </div>
             </div>
             <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-4">
@@ -4117,12 +4158,13 @@ ${formattedParagraphs}
             </div>
           </div>
 
-          {/* Filtres de statut */}
+          {/* Filtres de statut & Boutons de synchronisation */}
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {[
                 { id: "all", label: "Toutes" },
                 { id: "en_attente", label: "🟡 En attente" },
+                { id: "a_finaliser_manuellement", label: "🟠 À finaliser sur portail" },
                 { id: "entretien", label: "🟣 Entretiens" },
                 { id: "offre", label: "🟢 Offres" },
                 { id: "refus", label: "🔴 Refus" },
@@ -4142,6 +4184,48 @@ ${formattedParagraphs}
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    let loadedApps: any[] = [];
+                    // 1. Essai API de sync
+                    try {
+                      const res = await fetch("/api/autopilot/sync-applications");
+                      const data = await res.json();
+                      if (res.ok && data.success && Array.isArray(data.applications)) {
+                        loadedApps = data.applications;
+                      }
+                    } catch {}
+
+                    // 2. Repli sur static json public (Vercel CDN)
+                    if (loadedApps.length === 0) {
+                      try {
+                        const sRes = await fetch("/data/applications_history.json");
+                        const sData = await sRes.json();
+                        if (Array.isArray(sData)) loadedApps = sData;
+                      } catch {}
+                    }
+
+                    if (loadedApps.length > 0) {
+                      setApplications(loadedApps);
+                      saveToLocalStorage(loadedApps);
+                      setPreferenceFeedbackToast(`✅ ${loadedApps.length} candidatures synchronisées avec succès !`);
+                      setTimeout(() => setPreferenceFeedbackToast(null), 4000);
+                    } else {
+                      setPreferenceFeedbackToast("ℹ️ Aucune nouvelle candidature trouvée sur le serveur.");
+                      setTimeout(() => setPreferenceFeedbackToast(null), 3000);
+                    }
+                  } catch (e: any) {
+                    alert("Erreur de synchronisation : " + e.message);
+                  }
+                }}
+                className="text-xs px-3 py-2 bg-[#27272a] hover:bg-emerald-600/30 hover:text-emerald-400 text-[#a1a1aa] rounded-xl font-medium transition flex items-center gap-1.5"
+                title="Synchroniser immédiatement avec le bot local ou Vercel"
+              >
+                <span>🔄</span>
+                <span>Sync Cloud / Bot ({applications.length})</span>
+              </button>
+
               <button
                 onClick={() => {
                   if (confirm("Voulez-vous vider l'historique de vos candidatures pour repartir à zéro ?")) {
@@ -4172,41 +4256,57 @@ ${formattedParagraphs}
                   Aucune candidature trouvée dans cette catégorie.
                 </div>
               ) : (
-                filteredApps.map((app) => (
-                  <div
-                    key={app.id}
-                    className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#1f1f23] transition"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-white text-sm">{app.company}</span>
-                        {getStatusBadge(app.status)}
-                      </div>
-                      <div className="text-xs text-[#a1a1aa]">{app.title}</div>
-                      <div className="text-[11px] text-[#71717a] flex items-center gap-3 pt-1">
-                        <span>📅 Postulé le : {app.appliedDate}</span>
-                        <span>•</span>
-                        <span className="text-blue-400 font-medium">🎯 Score ATS : {app.atsScore}/100</span>
-                      </div>
-                      {app.notes && (
-                        <div className="text-xs text-[#a1a1aa] italic pt-1">
-                          &quot;{app.notes}&quot;
+                filteredApps.map((app) => {
+                  const targetUrl = app.jobUrl || (app as any).url;
+                  return (
+                    <div
+                      key={app.id}
+                      className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#1f1f23] transition"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-white text-sm">{app.company}</span>
+                          {getStatusBadge(app.status)}
                         </div>
-                      )}
-                    </div>
+                        <div className="text-xs text-[#a1a1aa]">{app.title}</div>
+                        <div className="text-[11px] text-[#71717a] flex items-center gap-3 pt-1">
+                          <span>📅 Postulé le : {app.appliedDate}</span>
+                          <span>•</span>
+                          <span className="text-blue-400 font-medium">🎯 Score ATS : {app.atsScore}/100</span>
+                        </div>
+                        {app.notes && (
+                          <div className="text-xs text-[#a1a1aa] italic pt-1">
+                            &quot;{app.notes}&quot;
+                          </div>
+                        )}
+                        {targetUrl && (
+                          <div className="pt-2">
+                            <a
+                              href={targetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/40 hover:text-white transition shadow-sm"
+                            >
+                              <span>👉 Ouvrir le portail recruteur</span>
+                              <span className="text-[10px]">↗</span>
+                            </a>
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Actions de changement de statut */}
-                    <div className="flex items-center gap-2 self-end md:self-center">
-                      <select
-                        value={app.status}
-                        onChange={(e) => handleStatusChange(app.id, e.target.value as ApplicationStatus)}
-                        className="text-xs bg-[#09090b] border border-[#27272a] text-white rounded-xl px-3 py-1.5 focus:outline-none focus:border-blue-500"
-                      >
-                        <option value="en_attente">🟡 En attente</option>
-                        <option value="entretien">🟣 Entretien</option>
-                        <option value="offre">🟢 Offre reçue</option>
-                        <option value="refus">🔴 Refusé</option>
-                      </select>
+                      {/* Actions de changement de statut */}
+                      <div className="flex items-center gap-2 self-end md:self-center">
+                        <select
+                          value={app.status}
+                          onChange={(e) => handleStatusChange(app.id, e.target.value as ApplicationStatus)}
+                          className="text-xs bg-[#09090b] border border-[#27272a] text-white rounded-xl px-3 py-1.5 focus:outline-none focus:border-blue-500"
+                        >
+                          <option value="en_attente">🟡 En attente</option>
+                          <option value="a_finaliser_manuellement">🟠 À finaliser sur portail</option>
+                          <option value="entretien">🟣 Entretien</option>
+                          <option value="offre">🟢 Offre reçue</option>
+                          <option value="refus">🔴 Refusé</option>
+                        </select>
 
                       <button
                         onClick={() => handleDeleteApplication(app.id)}
@@ -4217,8 +4317,9 @@ ${formattedParagraphs}
                       </button>
                     </div>
                   </div>
-                ))
-              )}
+                );
+              })
+            )}
             </div>
           </div>
         </div>

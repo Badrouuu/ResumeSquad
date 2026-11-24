@@ -219,33 +219,42 @@ def ensure_cv_pdf(page: Page, profile: dict) -> Path:
     return cv_path
 
 
-def send_discord_hitl_report(webhook_url: str, company: str, title: str, job_url: str, screenshot_path: Path, filled_fields: list):
+def send_discord_hitl_report(
+    webhook_url: str,
+    company: str,
+    title: str,
+    job_url: str,
+    screenshot_path: Path,
+    filled_fields: list,
+    cv_filename: Optional[str] = None,
+):
     """Envoie un rapport riche avec capture d'écran sur Discord pour validation humaine."""
     if not webhook_url or not webhook_url.startswith("https://discord.com/api/webhooks/"):
         return False
 
     summary_text = "\n".join([f"• **{f['label']}** : `{f['value']}`" for f in filled_fields[:8]])
+    used_cv = cv_filename or "CV_Badroudine_Bacar.pdf"
 
     payload_json = {
-        "username": "ResumeSquad Browser Agent",
+        "username": "ResumeSquad Assistant",
         "avatar_url": "https://cdn-icons-png.flaticon.com/512/4712/4712109.png",
         "embeds": [
             {
-                "title": f"📸 [Validation Requise] Formulaire Rempli : {company}",
+                "title": f"📸 [Pré-Validation Formulaire] {company} — {title}",
                 "description": (
-                    f"L'agent Playwright a navigué sur le portail et a pré-rempli **100% des champs**.\n\n"
-                    f"**Champs complétés :**\n{summary_text}\n\n"
-                    f"⚠️ **Action requise :** Consultez la capture d'écran ci-dessous. Le bot est en pause avant le clic d'envoi définitif (*Submit*)."
+                    f"Badroudine, l'agent Playwright a analysé le portail et a pré-rempli **{len(filled_fields)} champs** avec ton profil.\n\n"
+                    f"**Extrait des champs complétés :**\n{summary_text}\n\n"
+                    f"⚠️ **Statut :** Formulaire prêt. Capture d'écran jointe ci-dessous."
                 ),
                 "color": 0x2563eb,
                 "fields": [
-                    {"name": "🏢 Entreprise", "value": company, "inline": True},
+                    {"name": "🏢 Entreprise", "value": f"**{company}**", "inline": True},
                     {"name": "💼 Intitulé", "value": title or "Poste Ciblé", "inline": True},
-                    {"name": "📄 CV Attaché", "value": "✅ PDF officiel inclus", "inline": True},
-                    {"name": "🔗 Page de l'offre", "value": f"[Ouvrir l'offre]({job_url})", "inline": False},
+                    {"name": "📄 CV Sur-Mesure Téléversé", "value": f"📄 **`{used_cv}`**", "inline": False},
+                    {"name": "🔗 Page Directe du Formulaire", "value": f"[Accéder à l'offre]({job_url})", "inline": False},
                 ],
                 "image": {"url": "attachment://pre_submission_screenshot.png"},
-                "footer": {"text": "ResumeSquad • Human-in-the-Loop Browser Bot"},
+                "footer": {"text": "ResumeSquad • Salon Validation & Arbitrage Opérateur"},
                 "timestamp": datetime.utcnow().isoformat() + "Z",
             }
         ],
@@ -266,6 +275,97 @@ def send_discord_hitl_report(webhook_url: str, company: str, title: str, job_url
     except Exception as e:
         print(f"⚠️ Erreur transmission capture Discord : {e}")
         return False
+
+
+def prompt_operator_decision(
+    company: str,
+    title: str,
+    cv_filename: str,
+    screenshot_path: Path,
+    filled_count: int,
+    auto_submit: bool = True,
+    countdown_seconds: int = 5,
+) -> str:
+    """
+    Interface d'arbitrage interactif opérateur :
+    - 'submit' : Confirme l'envoi direct
+    - 'manual' : Déplace immédiatement dans 'À faire moi-même' (alerte Discord + CRM)
+    - 'reject' : Rejette / ignore cette offre
+    - 'cancel' : Annule sans soumettre
+    """
+    print("\n" + "=" * 72)
+    print(f"📋 [CANDIDATURE PRÊTE] {company} — {title}")
+    print(f"   🏢 Entreprise : {company}")
+    print(f"   💼 Poste      : {title}")
+    print(f"   📄 CV Dédié   : {cv_filename}")
+    print(f"   ✍️ Champs     : {filled_count} champ(s) renseigné(s)")
+    print(f"   📸 Capture    : {screenshot_path.name}")
+    print("-" * 72)
+    print("⚡ OPTIONS OPÉRATEUR :")
+    if auto_submit:
+        print(f"   👉 [Entrée / Attendre {countdown_seconds}s] Confirmer l'envoi automatique")
+    else:
+        print("   👉 [Entrée] Confirmer et envoyer la candidature")
+    print("   👉 [m] ✋ Déplacer dans 'À faire moi-même' (Escalade Discord + CRM)")
+    print("   👉 [r] 🚫 Rejeter / Ignorer cette opportunité (ne pas postuler)")
+    print("   👉 [p] ⏸️ Pause indéfinie (prendre le temps d'examiner l'écran)")
+    print("=" * 72)
+
+    try:
+        import msvcrt
+        has_msvcrt = True
+    except ImportError:
+        has_msvcrt = False
+
+    # Mode semi-automatique : saisie bloquante standard
+    if not auto_submit:
+        try:
+            choice = input("\nVotre choix [Entrée = Envoyer / m = Manuel / r = Rejeter] : ").strip().lower()
+            if choice == "m":
+                return "manual"
+            elif choice == "r":
+                return "reject"
+            elif choice in ("q", "cancel"):
+                return "cancel"
+            return "submit"
+        except (KeyboardInterrupt, EOFError):
+            return "cancel"
+
+    # Mode Auto-Submit avec compte à rebours interactif non-bloquant
+    if has_msvcrt and sys.stdin.isatty():
+        start_time = time.time()
+        while time.time() - start_time < countdown_seconds:
+            remaining = int(countdown_seconds - (time.time() - start_time)) + 1
+            print(f"\r⏳ [Auto-Submit dans {remaining}s...] [m = manuel | r = rejeter | p = pause | Entrée = direct]  ", end="", flush=True)
+            if msvcrt.kbhit():
+                ch = msvcrt.getwch().lower()
+                print()
+                if ch in ("\r", "\n"):
+                    print("🚀 Envoi immédiat confirmé.")
+                    return "submit"
+                elif ch == "m":
+                    print("✋ Basculement en mode 'À faire moi-même' validé par l'opérateur.")
+                    return "manual"
+                elif ch == "r":
+                    print("🚫 Offre rejetée par l'opérateur. Passage à la suite.")
+                    return "reject"
+                elif ch == "p":
+                    print("\n⏸️ [PAUSE INDÉFINIE ACTIVE] Prenez votre temps pour examiner le navigateur et la capture.")
+                    try:
+                        p_choice = input("Votre décision [Entrée = Envoyer / m = Manuel / r = Rejeter] : ").strip().lower()
+                        if p_choice == "m":
+                            return "manual"
+                        elif p_choice == "r":
+                            return "reject"
+                        return "submit"
+                    except (KeyboardInterrupt, EOFError):
+                        return "cancel"
+            time.sleep(0.1)
+        print("\n🚀 [Auto-Submit] Délai écoulé : Validation automatique de l'envoi.")
+        return "submit"
+    else:
+        time.sleep(1.0)
+        return "submit"
 
 
 def fill_input(page: Page, selectors: list, value: str, field_name: str, filled_list: list) -> bool:
@@ -700,41 +800,81 @@ def run_browser_applicant(
 
         # Étape 5 : Rapport et Alerte Discord Webhook
         print(f"\n📲 [5/5] Transmission du rapport et de la capture sur Discord...")
+        cv_filename = os.path.basename(str(cv_pdf_path)) if cv_pdf_path else "CV_Badroudine_Bacar.pdf"
         discord_sent = False
         if webhook_url:
             discord_sent = send_discord_hitl_report(
-                webhook_url, company, title, url, screenshot_path, filled_fields
+                webhook_url, company, title, url, screenshot_path, filled_fields, cv_filename=cv_filename
             )
             if discord_sent:
-                print("   ✅ Notification et capture reçues sur ton Discord !")
+                print(f"   ✅ Notification envoyée sur Discord avec CV : {cv_filename}")
             else:
                 print("   ⚠️ Échec de transmission du webhook Discord.")
 
         # =========================================================================
-        # ARBITRAGE HUMAIN (HUMAN-IN-THE-LOOP)
+        # ARBITRAGE HUMAIN (HUMAN-IN-THE-LOOP) & INTERFACE OPÉRATEUR
         # =========================================================================
-        print("\n" + "#" * 70)
-        print("⏸️  [EN ATTENTE DE VALIDATION HUMAINE]")
-        print(f"   Offre : {company} — {title}")
-        print(f"   {len(filled_fields)} champs ont été renseignés avec succès.")
-        print(f"   Image de vérification disponible : {screenshot_path}")
-        print("#" * 70)
+        decision = prompt_operator_decision(
+            company=company,
+            title=title,
+            cv_filename=cv_filename,
+            screenshot_path=screenshot_path,
+            filled_count=len(filled_fields),
+            auto_submit=auto_submit,
+            countdown_seconds=5,
+        )
 
-        should_submit = False
-        if auto_submit:
-            print("🚀 Mode Auto-Submit actif : Envoi direct sans pause.")
-            should_submit = True
-        else:
-            print("\nOptions :")
-            print("  👉 Appuyez sur [ENTRÉE] pour soumettre la candidature sur le site recruteur.")
-            print("  👉 Tapez 'q' puis [ENTRÉE] pour annuler sans soumettre.")
-            try:
-                user_choice = input("\nVotre décision [Entrée = Envoyer / q = Annuler] : ").strip().lower()
-                should_submit = user_choice != "q"
-            except (KeyboardInterrupt, EOFError):
-                print("\nAnnulation par l'utilisateur.")
-                should_submit = False
+        if decision == "manual":
+            if webhook_url:
+                try:
+                    from app.linkedin_automation.discord_notifier import DiscordNotifier
+                    dn = DiscordNotifier(webhook_url=webhook_url)
+                    dn.notify_manual_action_required(
+                        company=company,
+                        title=title,
+                        location="International",
+                        job_url=url,
+                        portal_url=url,
+                        reason="Déplacé dans 'À faire moi-même' par décision de l'opérateur",
+                        screenshot_path=str(screenshot_path),
+                        cv_name=cv_filename,
+                    )
+                except Exception:
+                    pass
+            return {
+                "success": False,
+                "status": "a_finaliser_manuellement",
+                "portal_url": url,
+                "screenshot": str(screenshot_path),
+                "cv_name": cv_filename,
+                "error": "Basculé dans 'À faire moi-même' par l'utilisateur",
+                "filled_fields": filled_fields,
+            }
 
+        if decision == "reject":
+            return {
+                "success": False,
+                "status": "rejetee",
+                "portal_url": url,
+                "screenshot": str(screenshot_path),
+                "cv_name": cv_filename,
+                "error": "Opportunité rejetée par l'opérateur",
+                "filled_fields": filled_fields,
+            }
+
+        if decision == "cancel":
+            print("\n❌ Annulation de la soumission par l'utilisateur.")
+            return {
+                "success": False,
+                "status": "annulee",
+                "portal_url": url,
+                "screenshot": str(screenshot_path),
+                "cv_name": cv_filename,
+                "error": "Annulation opérateur",
+                "filled_fields": filled_fields,
+            }
+
+        should_submit = (decision == "submit")
         result_status = "valide_non_soumis"
         post_screenshot_path = None
 
@@ -774,28 +914,18 @@ def run_browser_applicant(
                 print(f"🎉 Candidature soumise avec succès pour {company} !")
                 print(f"📸 Capture de confirmation : {post_screenshot_path}")
 
-                # Ping Discord de succès
+                # Notification Discord enrichie
                 if webhook_url:
                     try:
-                        requests.post(
-                            webhook_url,
-                            json={
-                                "username": "ResumeSquad Browser Agent",
-                                "avatar_url": "https://cdn-icons-png.flaticon.com/512/4712/4712109.png",
-                                "embeds": [
-                                    {
-                                        "title": f"🎉 [Candidature Envoyée] {company}",
-                                        "description": f"La candidature pour **{title}** a été soumise avec succès via Playwright !",
-                                        "color": 0x10b981,
-                                        "fields": [
-                                            {"name": "🏢 Entreprise", "value": company, "inline": True},
-                                            {"name": "💼 Poste", "value": title, "inline": True},
-                                            {"name": "⏱️ Horodatage", "value": datetime.now().strftime("%d/%m/%Y %H:%M"), "inline": True},
-                                        ],
-                                    }
-                                ],
-                            },
-                            timeout=10,
+                        from app.linkedin_automation.discord_notifier import DiscordNotifier
+                        dn = DiscordNotifier(webhook_url=webhook_url)
+                        dn.notify_application_success(
+                            company=company,
+                            title=title,
+                            location="International",
+                            job_url=url,
+                            screenshot_path=str(post_screenshot_path),
+                            cv_name=cv_filename,
                         )
                     except Exception:
                         pass
@@ -814,6 +944,7 @@ def run_browser_applicant(
                             portal_url=page.url,
                             reason=fail_reason,
                             screenshot_path=str(screenshot_path),
+                            cv_name=cv_filename,
                         )
                     except Exception as de:
                         print(f"   ℹ️ Note Discord: {de}")
@@ -834,6 +965,7 @@ def run_browser_applicant(
             "status": result_status if is_real_success else "action_manuelle_requise",
             "company": company,
             "title": title,
+            "cv_name": cv_filename,
             "filled_fields": filled_fields,
             "screenshot": str(screenshot_path),
             "portal_url": page.url,

@@ -73,14 +73,18 @@ class LinkedInEasyApplyOrchestrator:
 
         # Chemins des données et artefacts
         base_dir = Path(__file__).resolve().parent.parent.parent
+        self.backend_dir = base_dir
+        self.root_dir = base_dir.parent
         self.data_dir = base_dir / "data"
         self.output_dir = base_dir / "output"
         self.screenshots_dir = self.output_dir / "screenshots"
         self.history_file = self.data_dir / "linkedin_applications_history.json"
+        self.public_data_file = self.root_dir / "frontend" / "public" / "data" / "applications_history.json"
 
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.screenshots_dir.mkdir(parents=True, exist_ok=True)
+        self.public_data_file.parent.mkdir(parents=True, exist_ok=True)
 
         # CV principal de Badroudine Bacar
         default_cv = self.output_dir / "CV_Badroudine_Bacar.pdf"
@@ -198,9 +202,38 @@ class LinkedInEasyApplyOrchestrator:
         })
         self.save_history(history)
 
-        # 2. Synchronisation instantanée dans applications_history.json (Dashboard Web CRM)
-        crm_file = self.data_dir / "applications_history.json"
+        # 2. Synchronisation instantanée dans applications_history.json
+        country = "Suisse" if any(w in location.lower() for w in ("suisse", "switzerland", "geneva", "genève", "zurich", "lausanne")) else (
+            "Luxembourg" if "luxembourg" in location.lower() else ("Belgique" if "belgi" in location.lower() else "International")
+        )
+        crm_entry = {
+            "id": f"linkedin-{job_id}",
+            "company": company,
+            "title": title,
+            "location": location,
+            "country": country,
+            "appliedDate": date_str,
+            "atsScore": 92,
+            "status": "en_attente",
+            "cv_name": cv_name or f"CV_Badroudine_Bacar_{company.replace(' ', '_')}.pdf",
+            "notes": f"Postulation LinkedIn ({'Easy Apply' if apply_type == 'easy_apply' else 'Portail ATS'}) - Candidature autonome ResumeSquad",
+            "jobUrl": job_url,
+            "url": job_url,
+            "source": "LinkedIn Autonomous Bot",
+            "dry_run": self.dry_run,
+            "screenshot": screenshot_path,
+        }
+        self._save_crm_entry(crm_entry, company, is_manual=False)
+
+    def _save_crm_entry(self, crm_entry: Dict[str, Any], company: str, is_manual: bool = False):
+        """
+        Enregistre la candidature de façon atomique dans :
+        1. backend/data/applications_history.json
+        2. frontend/public/data/applications_history.json (Asset statique pour Vercel CDN)
+        3. Envoie un POST sur VERCEL_SYNC_URL/api/autopilot/sync-applications si configuré
+        """
         crm_apps = []
+        crm_file = self.data_dir / "applications_history.json"
         if crm_file.exists():
             try:
                 with open(crm_file, "r", encoding="utf-8") as f:
@@ -209,34 +242,50 @@ class LinkedInEasyApplyOrchestrator:
                 crm_apps = []
 
         existing_crm_ids = {a.get("id") for a in crm_apps}
-        crm_id = f"linkedin-{job_id}"
-        if crm_id not in existing_crm_ids:
-            country = "Suisse" if any(w in location.lower() for w in ("suisse", "switzerland", "geneva", "genève", "zurich", "lausanne")) else (
-                "Luxembourg" if "luxembourg" in location.lower() else ("Belgique" if "belgi" in location.lower() else "International")
-            )
-            crm_entry = {
-                "id": crm_id,
-                "company": company,
-                "title": title,
-                "location": location,
-                "country": country,
-                "appliedDate": date_str,
-                "atsScore": 92,
-                "status": "en_attente",
-                "notes": f"Postulation LinkedIn ({'Easy Apply' if apply_type == 'easy_apply' else 'Portail ATS'}) - Candidature autonome ResumeSquad",
-                "jobUrl": job_url,
-                "url": job_url,
-                "source": "LinkedIn Autonomous Bot",
-                "dry_run": self.dry_run,
-                "screenshot": screenshot_path,
-            }
+        if crm_entry["id"] in existing_crm_ids:
+            idx = next((i for i, a in enumerate(crm_apps) if a.get("id") == crm_entry["id"]), -1)
+            if idx != -1:
+                crm_apps[idx] = crm_entry
+        else:
             crm_apps.insert(0, crm_entry)
+
+        # 1. Sauvegarde locale backend
+        try:
+            with open(crm_file, "w", encoding="utf-8") as f:
+                json.dump(crm_apps, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"   ⚠️ [CRM Dashboard] Erreur sauvegarde locale : {e}")
+
+        # 2. Sauvegarde dans frontend/public/data/applications_history.json (pour Vercel CDN)
+        try:
+            self.public_data_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.public_data_file, "w", encoding="utf-8") as pf:
+                json.dump(crm_apps, pf, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+        # 3. Synchronisation Cloud temps réel (si VERCEL_SYNC_URL ou NEXT_PUBLIC_SITE_URL configuré)
+        sync_url = os.getenv("VERCEL_SYNC_URL") or os.getenv("NEXT_PUBLIC_SITE_URL")
+        if sync_url and sync_url.startswith("http"):
             try:
-                with open(crm_file, "w", encoding="utf-8") as f:
-                    json.dump(crm_apps, f, indent=2, ensure_ascii=False)
-                print(f"   📊 [CRM Dashboard] Offre '{company}' synchronisée avec succès dans le Tracker Web !")
-            except Exception as e:
-                print(f"   ⚠️ [CRM Dashboard] Erreur synchronisation : {e}")
+                endpoint = sync_url.rstrip("/") + "/api/autopilot/sync-applications"
+                import urllib.request
+                req = urllib.request.Request(
+                    endpoint,
+                    data=json.dumps({"application": crm_entry}).encode("utf-8"),
+                    headers={"Content-Type": "application/json", "User-Agent": "ResumeSquadBot/1.0"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    if resp.status == 200:
+                        print(f"   ☁️ [Sync Vercel Cloud] Synchronisation en direct avec le Dashboard Vercel réussie !")
+            except Exception:
+                pass
+
+        if is_manual:
+            print(f"   📊 [CRM Dashboard] Offre '{company}' enregistrée sous 'À finaliser manuellement' avec lien direct !")
+        else:
+            print(f"   📊 [CRM Dashboard] Offre '{company}' synchronisée avec succès dans le Tracker Web !")
 
     def record_manual_action_application(
         self,
@@ -244,7 +293,8 @@ class LinkedInEasyApplyOrchestrator:
         apply_type: str,
         reason: str,
         portal_url: str,
-        screenshot_path: Optional[str] = None
+        screenshot_path: Optional[str] = None,
+        cv_name: Optional[str] = None
     ):
         """Enregistre l'offre dans le CRM Tracker Web sous le statut 'a_finaliser_manuellement'."""
         job_id = job.get("id", "")
@@ -254,44 +304,58 @@ class LinkedInEasyApplyOrchestrator:
         job_url = job.get("url", "")
         date_str = datetime.now().strftime("%Y-%m-%d")
 
-        crm_file = self.data_dir / "applications_history.json"
-        crm_apps = []
-        if crm_file.exists():
-            try:
-                with open(crm_file, "r", encoding="utf-8") as f:
-                    crm_apps = json.load(f)
-            except Exception:
-                crm_apps = []
+        country = "Suisse" if any(w in location.lower() for w in ("suisse", "switzerland", "geneva", "zurich")) else (
+            "Luxembourg" if "luxembourg" in location.lower() else ("Belgique" if "belgi" in location.lower() else "International")
+        )
+        crm_entry = {
+            "id": f"manual-{job_id}",
+            "company": company,
+            "title": title,
+            "location": location,
+            "country": country,
+            "appliedDate": date_str,
+            "atsScore": 88,
+            "status": "a_finaliser_manuellement",
+            "cv_name": cv_name or f"CV_Badroudine_Bacar_{company.replace(' ', '_')}.pdf",
+            "notes": f"Portail externe avec garde-fou ({reason}). Lien direct : {portal_url}",
+            "jobUrl": portal_url or job_url,
+            "url": portal_url or job_url,
+            "source": "LinkedIn Autonomous Bot",
+            "dry_run": self.dry_run,
+            "screenshot": screenshot_path,
+        }
+        self._save_crm_entry(crm_entry, company, is_manual=True)
 
-        existing_crm_ids = {a.get("id") for a in crm_apps}
-        crm_id = f"manual-{job_id}"
-        if crm_id not in existing_crm_ids:
-            country = "Suisse" if any(w in location.lower() for w in ("suisse", "switzerland", "geneva", "zurich")) else (
-                "Luxembourg" if "luxembourg" in location.lower() else ("Belgique" if "belgi" in location.lower() else "International")
-            )
-            crm_entry = {
-                "id": crm_id,
-                "company": company,
-                "title": title,
-                "location": location,
-                "country": country,
-                "appliedDate": date_str,
-                "atsScore": 88,
-                "status": "a_finaliser_manuellement",
-                "notes": f"Portail externe avec garde-fou ({reason}). Lien direct : {portal_url}",
-                "jobUrl": portal_url or job_url,
-                "url": portal_url or job_url,
-                "source": "LinkedIn Autonomous Bot",
-                "dry_run": self.dry_run,
-                "screenshot": screenshot_path,
-            }
-            crm_apps.insert(0, crm_entry)
-            try:
-                with open(crm_file, "w", encoding="utf-8") as f:
-                    json.dump(crm_apps, f, indent=2, ensure_ascii=False)
-                print(f"   📊 [CRM Dashboard] Offre '{company}' enregistrée sous 'À finaliser manuellement' avec lien direct !")
-            except Exception as e:
-                print(f"   ⚠️ [CRM Dashboard] Erreur synchronisation : {e}")
+    def _interactive_safety_pause(self, sleep_delay: int):
+        """Temporisation humaine avec contrôle interactif en direct."""
+        print(f"\n⏳ [Pause de Sécurité - {sleep_delay}s avant la prochaine offre]")
+        print("   👉 [Entrée] Passer immédiatement à la suite  |  [p] Pause indéfinie")
+        try:
+            import msvcrt
+            has_msvcrt = True
+        except ImportError:
+            has_msvcrt = False
+
+        if has_msvcrt and sys.stdin.isatty():
+            start = time.time()
+            while time.time() - start < sleep_delay:
+                rem = int(sleep_delay - (time.time() - start)) + 1
+                print(f"\r⏳ Prochaine offre dans {rem}s... [Entrée = passer | p = pause]   ", end="", flush=True)
+                if msvcrt.kbhit():
+                    ch = msvcrt.getwch().lower()
+                    print()
+                    if ch in ("\r", "\n"):
+                        print("⚡ Délai accéléré par l'opérateur.")
+                        return
+                    elif ch == "p":
+                        print("⏸️ [PAUSE INDÉFINIE ACTIVE] Le bot attend vos instructions.")
+                        input("👉 Appuyez sur [Entrée] pour reprendre le cycle...")
+                        print("▶️ Reprise du cycle !")
+                        return
+                time.sleep(0.1)
+            print()
+        else:
+            time.sleep(sleep_delay)
 
     def run_worker_cycle(self) -> int:
         """
@@ -610,6 +674,17 @@ class LinkedInEasyApplyOrchestrator:
                     screenshots_dir=str(self.screenshots_dir),
                 )
 
+            # Si l'utilisateur a rejeté l'opportunité lors de l'arbitrage
+            if result.get("status") == "rejetee":
+                print(f"   🚫 [Arbitrage Opérateur] Offre '{company}' rejetée selon vos instructions.")
+                applied_identifiers.add(job_id)
+                applied_identifiers.add(comp_key)
+                continue
+
+            if result.get("status") == "annulee":
+                print(f"   ℹ️ [Annulation Opérateur] Candidature pour '{company}' passée sans soumission.")
+                continue
+
             is_really_successful = result.get("success") and result.get("status", "candidature_envoyee") == "candidature_envoyee"
 
             if is_really_successful:
@@ -622,7 +697,7 @@ class LinkedInEasyApplyOrchestrator:
                 else:
                     sleep_delay = random.randint(self.min_delay, self.max_delay)
 
-                # 4. Déclenchement de la notification Discord
+                # 4. Déclenchement de la notification Discord (Salon #candidatures-soumises)
                 self.discord_notifier.notify_application_success(
                     company=company,
                     title=title,
@@ -631,19 +706,19 @@ class LinkedInEasyApplyOrchestrator:
                     screenshot_path=screenshot_path,
                     next_delay_seconds=sleep_delay,
                     dry_run=self.dry_run,
+                    cv_name=company_cv_name,
                 )
 
                 # Enregistrement atomique dans l'historique LinkedIn ET le CRM Web Tracker
-                self.record_successful_application(job, apply_type, screenshot_path)
+                self.record_successful_application(job, apply_type, screenshot_path, cv_name=company_cv_name)
                 applied_identifiers.add(job_id)
                 if job_url:
                     applied_identifiers.add(job_url.strip().rstrip("/"))
                 applied_identifiers.add(comp_key)
 
-                # 5. Temporisation entre deux postulations réussies
+                # 5. Temporisation humaine interactive entre deux postulations réussies
                 if idx < len(queue) and processed_count < self.max_applications:
-                    print(f"⏳ [Pause de Sécurité] {sleep_delay}s avant la prochaine offre...")
-                    time.sleep(sleep_delay)
+                    self._interactive_safety_pause(sleep_delay)
             else:
                 err_text = str(result.get('error') or result.get('status') or 'Action manuelle requise')
                 screenshot_path = result.get("screenshot")
@@ -652,9 +727,11 @@ class LinkedInEasyApplyOrchestrator:
                 print(f"   📲 [Alerte Discord] Lien direct disponible : {portal_url}")
 
                 # Enregistrement dans le CRM Tracker sous statut 'a_finaliser_manuellement'
-                self.record_manual_action_application(job, apply_type, err_text, portal_url, screenshot_path)
+                self.record_manual_action_application(
+                    job, apply_type, err_text, portal_url, screenshot_path, cv_name=company_cv_name
+                )
 
-                # Alerte Discord avec lien direct pour finaliser en un clic
+                # Alerte Discord avec lien direct pour finaliser en un clic (Salon #actions-manuelles)
                 self.discord_notifier.notify_manual_action_required(
                     company=company,
                     title=title,
@@ -663,6 +740,7 @@ class LinkedInEasyApplyOrchestrator:
                     portal_url=portal_url,
                     reason=err_text,
                     screenshot_path=screenshot_path,
+                    cv_name=company_cv_name,
                 )
 
                 applied_identifiers.add(job_id)

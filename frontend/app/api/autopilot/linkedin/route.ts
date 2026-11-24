@@ -58,7 +58,7 @@ async function isProcessRunning(pid: number): Promise<boolean> {
 // GET : État du bot, derniers logs et candidatures synchronisées du Tracker CRM
 export async function GET() {
   try {
-    const { pidFile, logFile, applicationsHistoryFile, isServerless } = getPaths();
+    const { rootDir, backendDir, pidFile, logFile, applicationsHistoryFile, isServerless } = getPaths();
 
     let pid: number | null = null;
     let running = false;
@@ -87,11 +87,24 @@ export async function GET() {
     }
 
     let applications: any[] = [];
-    if (fs.existsSync(applicationsHistoryFile)) {
-      try {
-        const rawApps = fs.readFileSync(applicationsHistoryFile, "utf-8");
-        applications = JSON.parse(rawApps);
-      } catch {}
+    const appFileCandidates = [
+      applicationsHistoryFile,
+      path.resolve(process.cwd(), "public", "data", "applications_history.json"),
+      path.resolve(rootDir, "frontend", "public", "data", "applications_history.json"),
+      path.resolve(backendDir, "data", "applications_history.json"),
+    ];
+
+    for (const cand of appFileCandidates) {
+      if (fs.existsSync(cand)) {
+        try {
+          const rawApps = fs.readFileSync(cand, "utf-8");
+          const parsed = JSON.parse(rawApps);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            applications = parsed;
+            break;
+          }
+        } catch {}
+      }
     }
 
     return NextResponse.json({
