@@ -238,6 +238,61 @@ class LinkedInEasyApplyOrchestrator:
             except Exception as e:
                 print(f"   ⚠️ [CRM Dashboard] Erreur synchronisation : {e}")
 
+    def record_manual_action_application(
+        self,
+        job: Dict[str, Any],
+        apply_type: str,
+        reason: str,
+        portal_url: str,
+        screenshot_path: Optional[str] = None
+    ):
+        """Enregistre l'offre dans le CRM Tracker Web sous le statut 'a_finaliser_manuellement'."""
+        job_id = job.get("id", "")
+        company = job.get("company", "")
+        title = job.get("title", "")
+        location = job.get("location", "")
+        job_url = job.get("url", "")
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+        crm_file = self.data_dir / "applications_history.json"
+        crm_apps = []
+        if crm_file.exists():
+            try:
+                with open(crm_file, "r", encoding="utf-8") as f:
+                    crm_apps = json.load(f)
+            except Exception:
+                crm_apps = []
+
+        existing_crm_ids = {a.get("id") for a in crm_apps}
+        crm_id = f"manual-{job_id}"
+        if crm_id not in existing_crm_ids:
+            country = "Suisse" if any(w in location.lower() for w in ("suisse", "switzerland", "geneva", "zurich")) else (
+                "Luxembourg" if "luxembourg" in location.lower() else ("Belgique" if "belgi" in location.lower() else "International")
+            )
+            crm_entry = {
+                "id": crm_id,
+                "company": company,
+                "title": title,
+                "location": location,
+                "country": country,
+                "appliedDate": date_str,
+                "atsScore": 88,
+                "status": "a_finaliser_manuellement",
+                "notes": f"Portail externe avec garde-fou ({reason}). Lien direct : {portal_url}",
+                "jobUrl": portal_url or job_url,
+                "url": portal_url or job_url,
+                "source": "LinkedIn Autonomous Bot",
+                "dry_run": self.dry_run,
+                "screenshot": screenshot_path,
+            }
+            crm_apps.insert(0, crm_entry)
+            try:
+                with open(crm_file, "w", encoding="utf-8") as f:
+                    json.dump(crm_apps, f, indent=2, ensure_ascii=False)
+                print(f"   📊 [CRM Dashboard] Offre '{company}' enregistrée sous 'À finaliser manuellement' avec lien direct !")
+            except Exception as e:
+                print(f"   ⚠️ [CRM Dashboard] Erreur synchronisation : {e}")
+
     def run_worker_cycle(self) -> int:
         """
         Exécute un cycle de travail complet :
@@ -469,8 +524,23 @@ class LinkedInEasyApplyOrchestrator:
             print(f"   🧠 [Gemini 1.5 Flash] Rédaction de la lettre technique sur-mesure (langue: {offer_lang.upper()})...")
             letter_text = self.gemini_agent.generate_cover_letter(desc, title, company, language=offer_lang)
 
-            # Exportation immédiate en PDF pour l'upload
+            # Exportation immédiate de la lettre en PDF pour l'upload
             letter_pdf_path = self.gemini_agent.export_pdf(letter_text, title, company, output_dir=str(self.output_dir))
+
+            # Préparation du CV personnalisé au nom de l'entreprise (ex: CV_Badroudine_Bacar_Intel.pdf)
+            clean_comp_slug = re.sub(r'[^a-zA-Z0-9]', '_', company).strip('_')
+            company_cv_name = f"CV_Badroudine_Bacar_{clean_comp_slug}.pdf" if clean_comp_slug else "CV_Badroudine_Bacar.pdf"
+            company_cv_path = self.output_dir / company_cv_name
+            active_cv_path = self.cv_pdf_path
+
+            if self.cv_pdf_path and os.path.exists(self.cv_pdf_path):
+                try:
+                    import shutil
+                    shutil.copy2(self.cv_pdf_path, str(company_cv_path))
+                    active_cv_path = str(company_cv_path)
+                    print(f"   📄 [CV Entreprise] Document dédié généré : {company_cv_name}")
+                except Exception as cve:
+                    print(f"   ℹ️ [Note CV]: {cve}")
 
             if apply_type == "external":
                 print(f"   🌐 [Site Externe / ATS Détecté] Redirection vers le portail recruteur pour {company}...")
@@ -502,8 +572,8 @@ class LinkedInEasyApplyOrchestrator:
                         cmd.append("--auto-submit")
                     if self.discord_notifier.webhook_url:
                         cmd.extend(["--webhook", self.discord_notifier.webhook_url])
-                    if self.cv_pdf_path and os.path.exists(self.cv_pdf_path):
-                        cmd.extend(["--cv-pdf", self.cv_pdf_path])
+                    if active_cv_path and os.path.exists(active_cv_path):
+                        cmd.extend(["--cv-pdf", active_cv_path])
 
                     print(f"   🚀 [Processus Dédié Playwright] Démarrage du sous-processus isolé pour {company}...")
                     proc = subprocess.run(cmd, timeout=360)
@@ -521,23 +591,28 @@ class LinkedInEasyApplyOrchestrator:
                     is_ok = applicant_res.get("success", False) if proc.returncode == 0 else False
                     result = {
                         "success": is_ok,
+                        "status": applicant_res.get("status", "candidature_envoyee" if is_ok else "action_manuelle_requise"),
                         "screenshot": applicant_res.get("screenshot"),
+                        "portal_url": applicant_res.get("portal_url", ext_url),
+                        "error": applicant_res.get("error"),
                         "mode": "external_portal",
                     }
                 except Exception as ext_err:
                     print(f"   ⚠️ Erreur exécution externe Playwright : {ext_err}")
-                    result = {"success": False, "error": str(ext_err)}
+                    result = {"success": False, "error": str(ext_err), "portal_url": ext_url}
             else:
                 # 3b. Postulation automatique LinkedIn Easy Apply via Playwright
                 result = self.browser_agent.submit_easy_apply(
                     job_info=job,
-                    cv_pdf_path=self.cv_pdf_path,
+                    cv_pdf_path=active_cv_path,
                     cover_letter_pdf_path=letter_pdf_path,
                     dry_run=self.dry_run,
                     screenshots_dir=str(self.screenshots_dir),
                 )
 
-            if result.get("success"):
+            is_really_successful = result.get("success") and result.get("status", "candidature_envoyee") == "candidature_envoyee"
+
+            if is_really_successful:
                 processed_count += 1
                 screenshot_path = result.get("screenshot")
 
@@ -570,11 +645,30 @@ class LinkedInEasyApplyOrchestrator:
                     print(f"⏳ [Pause de Sécurité] {sleep_delay}s avant la prochaine offre...")
                     time.sleep(sleep_delay)
             else:
-                err_text = str(result.get('error', 'Erreur inconnue'))
-                if "compte" in err_text.lower() or "captcha" in err_text.lower() or result.get("skipped"):
-                    print(f"   ⏩ [Skip Rapide] {company} : {err_text}. Enchaînement immédiat sur la prochaine offre...")
-                else:
-                    print(f"   ❌ Candidature non soumise pour {company}: {err_text}")
+                err_text = str(result.get('error') or result.get('status') or 'Action manuelle requise')
+                screenshot_path = result.get("screenshot")
+                portal_url = result.get("portal_url", job_url)
+                print(f"   ⚠️ [Action Manuelle Requise] {company} : {err_text}")
+                print(f"   📲 [Alerte Discord] Lien direct disponible : {portal_url}")
+
+                # Enregistrement dans le CRM Tracker sous statut 'a_finaliser_manuellement'
+                self.record_manual_action_application(job, apply_type, err_text, portal_url, screenshot_path)
+
+                # Alerte Discord avec lien direct pour finaliser en un clic
+                self.discord_notifier.notify_manual_action_required(
+                    company=company,
+                    title=title,
+                    location=location,
+                    job_url=job_url,
+                    portal_url=portal_url,
+                    reason=err_text,
+                    screenshot_path=screenshot_path,
+                )
+
+                applied_identifiers.add(job_id)
+                if job_url:
+                    applied_identifiers.add(job_url.strip().rstrip("/"))
+                applied_identifiers.add(comp_key)
                 time.sleep(1.0)
 
         self.browser_agent.close()

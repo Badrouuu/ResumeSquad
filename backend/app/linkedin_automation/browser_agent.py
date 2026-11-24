@@ -1241,11 +1241,20 @@ class LinkedInBrowserAgent:
             file_inputs = (modal or self.page).locator("input[type='file']").all()
             for f_in in file_inputs:
                 try:
-                    # Choix du document pertinent (lettre si demandée, sinon CV principal)
-                    file_to_upload = cover_letter_pdf_path if (cover_letter_pdf_path and os.path.exists(cover_letter_pdf_path)) else cv_pdf_path
-                    if os.path.exists(file_to_upload):
-                        f_in.set_input_files(file_to_upload)
-                        print(f"      📎 Document PDF joint : {os.path.basename(file_to_upload)}")
+                    p_text = (f_in.locator("xpath=..").inner_text() or "").lower()
+                    aria = (f_in.get_attribute("aria-label") or "").lower()
+                    combined_info = f"{p_text} {aria}"
+
+                    # Si le champ demande expressément une lettre de motivation
+                    if any(w in combined_info for w in ("lettre", "cover", "motivation")):
+                        target_file = cover_letter_pdf_path if (cover_letter_pdf_path and os.path.exists(cover_letter_pdf_path)) else cv_pdf_path
+                    else:
+                        # Sur LinkedIn Easy Apply, le champ principal d'upload est STRICTEMENT le CV !
+                        target_file = cv_pdf_path if (cv_pdf_path and os.path.exists(cv_pdf_path)) else cover_letter_pdf_path
+
+                    if target_file and os.path.exists(target_file):
+                        f_in.set_input_files(target_file)
+                        print(f"      📎 Document PDF joint : {os.path.basename(target_file)}")
                         self.human_delay(1.0, 2.0)
                 except Exception as up_err:
                     print(f"      ⚠️ Note upload: {up_err}")

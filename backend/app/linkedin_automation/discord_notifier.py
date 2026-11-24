@@ -17,13 +17,84 @@ class DiscordNotifier:
         self.webhook_url = webhook_url or os.getenv("DISCORD_WEBHOOK_URL", "")
 
         if not self.webhook_url:
-            env_file = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
-            if os.path.exists(env_file):
-                with open(env_file, "r", encoding="utf-8") as f:
-                    for line in f:
-                        if line.startswith("DISCORD_WEBHOOK_URL="):
-                            self.webhook_url = line.strip().split("=", 1)[1].strip("'\"")
-                            break
+            for cand in [
+                os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
+                os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env"),
+            ]:
+                if os.path.exists(cand):
+                    try:
+                        with open(cand, "r", encoding="utf-8") as f:
+                            for line in f:
+                                if line.strip().startswith("DISCORD_WEBHOOK_URL="):
+                                    self.webhook_url = line.strip().split("=", 1)[1].strip("'\"")
+                                    break
+                    except Exception:
+                        pass
+                if self.webhook_url:
+                    break
+
+    def notify_manual_action_required(
+        self,
+        company: str,
+        title: str,
+        location: str,
+        job_url: str,
+        portal_url: Optional[str] = None,
+        reason: str = "Action manuelle requise (Portail externe complexe ou compte obligatoire)",
+        screenshot_path: Optional[str] = None,
+    ) -> bool:
+        """Envoie une alerte immédiate sur Discord quand un portail nécessite une intervention manuelle."""
+        if not self.webhook_url or not self.webhook_url.startswith("https://discord.com/api/webhooks/"):
+            print("ℹ️ [Discord] Aucun webhook valide configuré. Alerte manuelle passée.")
+            return False
+
+        fields = [
+            {"name": "🏢 Entreprise", "value": company, "inline": True},
+            {"name": "💼 Poste", "value": title, "inline": True},
+            {"name": "⚠️ Garde-fou / Raison", "value": reason, "inline": False},
+        ]
+        if portal_url:
+            fields.append({"name": "🌐 Portail Recruteur Direct", "value": f"[Accéder au formulaire employeur]({portal_url})", "inline": False})
+        if job_url:
+            fields.append({"name": "🔗 Annonce LinkedIn", "value": f"[Voir sur LinkedIn]({job_url})", "inline": True})
+        fields.append({"name": "⏱️ Horodatage", "value": datetime.now().strftime("%d/%m/%Y à %H:%M:%S"), "inline": True})
+
+        embed = {
+            "title": f"⚠️ [Action Manuelle Requise] {company} — {title}",
+            "description": (
+                f"L'agent a préparé la candidature mais a rencontré un obstacle : **{reason}**.\n"
+                f"👉 **Cliquez sur le lien direct du portail ci-dessous pour finaliser l'envoi en quelques clics !**"
+            ),
+            "color": 0xeab308,  # Jaune / Alerte
+            "fields": fields,
+            "footer": {"text": "ResumeSquad • Alertes Candidatures (Playwright + Gemini 1.5)"},
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        }
+
+        if screenshot_path and os.path.exists(screenshot_path):
+            return self._send_multipart(embed, screenshot_path)
+
+        payload = {
+            "username": "LinkedIn Autopilot Agent",
+            "avatar_url": "https://cdn-icons-png.flaticon.com/512/3536/3536505.png",
+            "embeds": [embed],
+        }
+
+        try:
+            req = urllib.request.Request(
+                self.webhook_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json", "User-Agent": "ResumeSquadBot/1.0"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as res:
+                if res.status in (200, 204):
+                    print(f"📲 [Discord] Alerte d'action manuelle transmise avec succès pour {company} !")
+                    return True
+        except Exception as e:
+            print(f"⚠️ [Discord] Erreur d'envoi alerte: {e}")
+            return False
+        return False
 
     def notify_application_success(
         self,

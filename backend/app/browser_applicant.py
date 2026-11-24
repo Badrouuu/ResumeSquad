@@ -489,16 +489,52 @@ def run_browser_applicant(
             except Exception:
                 continue
 
-        # Détection rapide de barrière de compte / mot de passe / captcha
+        # Détection rapide de barrière de compte / mot de passe / captcha / Workday
+        is_barrier = False
+        barrier_reason = ""
         if page.locator('input[type="password"]').count() > 0:
-            print("   ⏩ [Passage Rapide] Portail avec création de compte obligatoire (mot de passe/e-mail). Offre ignorée pour volume maximal.")
-            browser.close()
-            return {"success": False, "skipped": True, "error": "Création de compte obligatoire"}
+            is_barrier = True
+            barrier_reason = "Création de compte / Mot de passe obligatoire (Workday ou portail sécurisé)"
+        elif page.locator('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], div.g-recaptcha, div.h-captcha').count() > 0:
+            is_barrier = True
+            barrier_reason = "Captcha tiers détecté"
+        elif "create account" in (page.inner_text("body").lower() if page.locator("body").count() > 0 else ""):
+            is_barrier = True
+            barrier_reason = "Création de compte requise"
 
-        if page.locator('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], div.g-recaptcha, div.h-captcha').count() > 0:
-            print("   ⏩ [Passage Rapide] Captcha tiers détecté. Offre ignorée pour postulation ininterrompue.")
+        if is_barrier:
+            print(f"   ⚠️ [Garde-fou Détecté] {barrier_reason}. Envoi d'une alerte Discord pour finalisation en 1 clic...")
+            barrier_screenshot = SCREENSHOTS_DIR / f"barrier_{clean_comp}_{timestamp}.png"
+            try:
+                page.screenshot(path=str(barrier_screenshot), full_page=True)
+            except Exception:
+                page.screenshot(path=str(barrier_screenshot), full_page=False)
+
+            if webhook_url:
+                try:
+                    from app.linkedin_automation.discord_notifier import DiscordNotifier
+                    dn = DiscordNotifier(webhook_url=webhook_url)
+                    dn.notify_manual_action_required(
+                        company=company,
+                        title=title,
+                        location="",
+                        job_url=url,
+                        portal_url=page.url,
+                        reason=barrier_reason,
+                        screenshot_path=str(barrier_screenshot),
+                    )
+                except Exception as de:
+                    print(f"   ℹ️ Note Discord: {de}")
+
             browser.close()
-            return {"success": False, "skipped": True, "error": "Captcha tiers"}
+            return {
+                "success": False,
+                "status": "action_manuelle_requise",
+                "skipped": True,
+                "error": barrier_reason,
+                "portal_url": page.url,
+                "screenshot": str(barrier_screenshot),
+            }
 
         # Étape 3 : Remplissage automatique des champs de saisie
         print("\n✍️ [3/5] Remplissage automatique des coordonnées du candidat...")
@@ -764,8 +800,24 @@ def run_browser_applicant(
                     except Exception:
                         pass
             else:
-                print("⚠️ Bouton de soumission introuvable automatiquement. Veuillez finaliser le clic sur la fenêtre du navigateur.")
-                time.sleep(5)
+                fail_reason = "Bouton de soumission introuvable ou compte requis (action manuelle)"
+                print(f"⚠️ {fail_reason}. Envoi de l'alerte Discord avec lien direct...")
+                if webhook_url:
+                    try:
+                        from app.linkedin_automation.discord_notifier import DiscordNotifier
+                        dn = DiscordNotifier(webhook_url=webhook_url)
+                        dn.notify_manual_action_required(
+                            company=company,
+                            title=title,
+                            location="",
+                            job_url=url,
+                            portal_url=page.url,
+                            reason=fail_reason,
+                            screenshot_path=str(screenshot_path),
+                        )
+                    except Exception as de:
+                        print(f"   ℹ️ Note Discord: {de}")
+                time.sleep(2)
         else:
             print(f"🛡️ Envoi annulé. La candidature n'a pas été soumise.")
 
@@ -775,14 +827,18 @@ def run_browser_applicant(
 
         browser.close()
 
+        is_real_success = (result_status == "candidature_envoyee" and len(filled_fields) > 0)
+
         return {
-            "success": True,
-            "status": result_status,
+            "success": is_real_success,
+            "status": result_status if is_real_success else "action_manuelle_requise",
             "company": company,
             "title": title,
             "filled_fields": filled_fields,
             "screenshot": str(screenshot_path),
+            "portal_url": page.url,
             "post_screenshot": str(post_screenshot_path) if post_screenshot_path else None,
+            "error": None if is_real_success else "Candidature à finaliser manuellement sur le portail recruteur",
         }
 
 
