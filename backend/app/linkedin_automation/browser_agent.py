@@ -1181,77 +1181,156 @@ class LinkedInBrowserAgent:
                 except Exception:
                     pass
 
-            # D. Groupes de questions (Fieldsets : Radios et Checkboxes avec sélection JS robuste)
-            fieldsets = (modal or self.page).locator("fieldset").all()
-            for fs in fieldsets:
+            # D. Groupes de questions (Radios et Checkboxes avec sélection robuste compatible LinkedIn Artdeco)
+            # 1. Regroupement intelligent de tous les boutons radio par 'name' (groupe HTML standard)
+            all_radios = (modal or self.page).locator("input[type='radio']").all()
+            radio_groups: Dict[str, List[Any]] = {}
+            for r in all_radios:
                 try:
-                    # 1. Radios
-                    radios = fs.locator("input[type='radio']").all()
-                    if radios and not any(r.is_checked() for r in radios):
-                        q_text = ""
+                    grp_name = r.get_attribute("name") or "default_group"
+                    radio_groups.setdefault(grp_name, []).append(r)
+                except Exception:
+                    pass
+
+            for grp_name, r_list in radio_groups.items():
+                try:
+                    # Si déjà coché, passer au groupe suivant
+                    if any(r.is_checked() for r in r_list):
+                        continue
+
+                    # Détection du texte de la question pour ce groupe radio
+                    q_text = ""
+                    first_r = r_list[0]
+                    for q_sel in [
+                        "xpath=ancestor::fieldset[1]//legend",
+                        "xpath=ancestor::div[contains(@class,'fb-form-element')][1]//label",
+                        "xpath=ancestor::div[contains(@class,'form-element')][1]//legend",
+                        "xpath=ancestor::fieldset[1]",
+                        "xpath=ancestor::div[@data-test-form-builder-radio-button-form-component][1]",
+                        "xpath=ancestor::div[contains(@class,'jobs-easy-apply')][1]",
+                    ]:
                         try:
-                            q_elem = fs.locator("xpath=preceding-sibling::p[1]").first
-                            if q_elem.is_visible():
-                                q_text = q_elem.inner_text().lower()
+                            q_cand = first_r.locator(q_sel).first
+                            if q_cand.count() > 0:
+                                q_text = q_cand.inner_text().strip().lower()
+                                if q_text:
+                                    break
                         except Exception:
                             pass
-                        if not q_text and radios:
-                            q_text = (radios[0].get_attribute("aria-label") or "").lower()
 
-                        selected_radio = None
-                        for r in radios:
-                            parent_txt = r.locator("xpath=ancestor::div[contains(@class,'mg1') or contains(@class,'i87mg1')]").inner_text().lower()
-                            if not parent_txt:
-                                parent_txt = r.locator("xpath=../..").inner_text().lower()
+                    # Détermination de la réponse attendue (Yes par défaut, No uniquement pour parrainage/visa/handicap)
+                    desired = "yes"
+                    negative_keywords = ["sponsor", "visa", "parrainage", "disability", "handicap", "require sponsorship"]
+                    if any(nk in q_text for nk in negative_keywords):
+                        desired = "no"
 
-                            if "sponsor" in q_text or "visa" in q_text:
-                                if "no" in parent_txt or "non" in parent_txt:
-                                    selected_radio = r
-                                    break
-                            elif "authoriz" in q_text or "autoris" in q_text or "commute" in q_text or "permis" in q_text:
-                                if "yes" in parent_txt or "oui" in parent_txt:
-                                    selected_radio = r
-                                    break
+                    # Recherche du bouton radio correspondant au choix souhaité
+                    chosen_radio = None
+                    for r in r_list:
+                        r_id = r.get_attribute("id") or ""
+                        r_val = (r.get_attribute("value") or "").strip().lower()
+                        lbl_txt = ""
 
-                        if not selected_radio:
-                            selected_radio = radios[0]
+                        # Extraction du libellé du bouton radio (label[for] ou parent)
+                        if r_id:
+                            lbl_elem = (modal or self.page).locator(f"label[for='{r_id}']").first
+                            if lbl_elem.count() > 0:
+                                try:
+                                    lbl_txt = lbl_elem.inner_text().strip().lower()
+                                except Exception:
+                                    pass
+                        if not lbl_txt:
+                            try:
+                                parent_elem = r.locator("xpath=ancestor::label[1] | xpath=following-sibling::label[1] | xpath=..").first
+                                if parent_elem.count() > 0:
+                                    lbl_txt = parent_elem.inner_text().strip().lower()
+                            except Exception:
+                                pass
 
-                        selected_radio.evaluate("""el => {
-                            el.click();
+                        is_yes = any(w in lbl_txt for w in ("yes", "oui", "true", "vrai")) or r_val in ("yes", "oui", "true", "1")
+                        is_no = any(w in lbl_txt for w in ("no", "non", "false", "faux")) or r_val in ("no", "non", "false", "0")
+
+                        if desired == "yes" and is_yes:
+                            chosen_radio = r
+                            break
+                        elif desired == "no" and is_no:
+                            chosen_radio = r
+                            break
+
+                    # Fallback si aucun libellé explicite n'a matché
+                    if not chosen_radio:
+                        chosen_radio = r_list[0] if desired == "yes" else r_list[-1]
+
+                    # Activation robuste du bouton radio (clic sur le label + input + JS event)
+                    target_id = chosen_radio.get_attribute("id") or ""
+                    clicked = False
+
+                    if target_id:
+                        lbl_to_click = (modal or self.page).locator(f"label[for='{target_id}']").first
+                        if lbl_to_click.count() > 0 and lbl_to_click.is_visible():
+                            try:
+                                lbl_to_click.scroll_into_view_if_needed(timeout=1000)
+                                lbl_to_click.click(force=True, timeout=2000)
+                                clicked = True
+                            except Exception:
+                                pass
+
+                    if not clicked:
+                        try:
+                            parent_lbl = chosen_radio.locator("xpath=ancestor::label[1] | xpath=following-sibling::label[1] | xpath=..").first
+                            if parent_lbl.count() > 0:
+                                parent_lbl.scroll_into_view_if_needed(timeout=1000)
+                                parent_lbl.click(force=True, timeout=2000)
+                                clicked = True
+                        except Exception:
+                            pass
+
+                    if not clicked:
+                        try:
+                            chosen_radio.click(force=True, timeout=2000)
+                        except Exception:
+                            pass
+
+                    # Forçage des propriétés DOM et événements de validation LinkedIn
+                    try:
+                        chosen_radio.check(force=True)
+                    except Exception:
+                        pass
+                    try:
+                        chosen_radio.evaluate("""el => {
+                            el.checked = true;
+                            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        }""")
+                    except Exception:
+                        pass
+
+                    display_q = (q_text[:50] + "...") if len(q_text) > 50 else (q_text or "Question d'éligibilité")
+                    print(f"      🔘 Option radio validée : '{desired.upper()}' ({display_q})")
+                except Exception as r_err:
+                    print(f"      ⚠️ Note radio: {r_err}")
+
+            # 2. Checkboxes non cochées
+            checkboxes = (modal or self.page).locator("input[type='checkbox']").all()
+            for cb in checkboxes:
+                try:
+                    if not cb.is_checked():
+                        cb_id = cb.get_attribute("id") or ""
+                        if cb_id:
+                            lbl_cb = (modal or self.page).locator(f"label[for='{cb_id}']").first
+                            if lbl_cb.count() > 0 and lbl_cb.is_visible():
+                                lbl_cb.click(force=True, timeout=1500)
+                        try:
+                            cb.check(force=True)
+                        except Exception:
+                            pass
+                        cb.evaluate("""el => {
                             el.checked = true;
                             el.dispatchEvent(new Event('input', { bubbles: true }));
                             el.dispatchEvent(new Event('change', { bubbles: true }));
                         }""")
-                        print(f"      🔘 Option radio validée ({selected_radio.get_attribute('id') or 'ok'})")
-
-                    # 2. Checkboxes
-                    checkboxes = fs.locator("input[type='checkbox']").all()
-                    if checkboxes and not any(cb.is_checked() for cb in checkboxes):
-                        q_text = ""
-                        try:
-                            q_elem = fs.locator("xpath=preceding-sibling::p[1]").first
-                            if q_elem.is_visible():
-                                q_text = q_elem.inner_text().lower()
-                        except Exception:
-                            pass
-                        chosen_cb = None
-                        for cb in checkboxes:
-                            cb_txt = cb.locator("xpath=ancestor::div[contains(@class,'mg1') or contains(@class,'i87mg1')]").inner_text().lower()
-                            if not cb_txt:
-                                cb_txt = cb.locator("xpath=../..").inner_text().lower()
-                            if "luxembourg" in cb_txt or "suisse" in cb_txt or "both" in cb_txt or "geneve" in cb_txt:
-                                chosen_cb = cb
-                                break
-                        if not chosen_cb:
-                            chosen_cb = checkboxes[0]
-
-                        chosen_cb.evaluate("""el => {
-                            el.click();
-                            el.checked = true;
-                            el.dispatchEvent(new Event('input', { bubbles: true }));
-                            el.dispatchEvent(new Event('change', { bubbles: true }));
-                        }""")
-                        print(f"      ☑️ Case à cocher validée ({chosen_cb.get_attribute('id') or 'ok'})")
+                        print(f"      ☑️ Case à cocher validée ({cb_id or 'ok'})")
                 except Exception:
                     pass
 
@@ -1316,6 +1395,37 @@ class LinkedInBrowserAgent:
                 print("   ⚠️ Aucun bouton d'avancement visible. Annulation de la modale.")
                 self._dismiss_modal()
                 return {"success": False, "error": "Blocage modale"}
+
+            self.human_delay(1.5, 2.0)
+
+            # Filet de sécurité : Détection et résolution immédiate d'erreurs résiduelles (ex: "Ce champ est obligatoire")
+            try:
+                err_feedback = (modal or self.page).locator(
+                    ".artdeco-inline-feedback--error, [data-test-form-element-error-messages], p:has-text('obligatoire'), p:has-text('required')"
+                )
+                if err_feedback.count() > 0 and err_feedback.first.is_visible():
+                    print("      ⚠️ Champ obligatoire manqué détecté. Correction forcée immédiate...")
+                    for unchk in (modal or self.page).locator("input[type='radio']:not(:checked)").all():
+                        try:
+                            u_id = unchk.get_attribute("id") or ""
+                            if u_id:
+                                lbl = (modal or self.page).locator(f"label[for='{u_id}']").first
+                                if lbl.count() > 0:
+                                    lbl.click(force=True, timeout=1000)
+                            unchk.evaluate("""el => {
+                                el.checked = true;
+                                el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                                el.dispatchEvent(new Event('change', { bubbles: true }));
+                            }""")
+                        except Exception:
+                            pass
+                    self.human_delay(1.0, 1.5)
+                    if review_btn.is_visible():
+                        review_btn.click()
+                    elif next_btn.is_visible():
+                        next_btn.click()
+            except Exception:
+                pass
 
         self._dismiss_modal()
         return {"success": False, "error": "Nombre maximal d'étapes atteint"}
