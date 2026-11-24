@@ -50,8 +50,8 @@ def is_france_location(loc_str: str) -> bool:
         "grenoble", "sophia", "brest", "rouen", "reims", "clermont",
         "île-de-france", "ile-de-france", "hauts-de-france", "auvergne", "rhône-alpes",
         "occitanie", "nouvelle-aquitaine", "grand est", "pays de la loire", "bretagne",
-        "normandie", "bourgogne", "centre-val de loire", "corse", "calais", "dunkerque",
-        "station f", "station-f"
+        "normandie", "normandy", "bourgogne", "centre-val de loire", "corse", "calais", "dunkerque",
+        "caligny", "flers", "caen", "le havre", "station f", "station-f"
     ]
     import re
     for ind in france_indicators:
@@ -250,6 +250,31 @@ class LinkedInBrowserAgent:
         self.page = self.context.new_page()
         self.page.set_default_timeout(30000)
         return self.page
+
+    def dismiss_cookie_banner(self, target_page=None) -> bool:
+        """Détecte et accepte ou refuse automatiquement le bandeau de consentement cookies LinkedIn."""
+        p = target_page or self.page
+        if not p or p.is_closed():
+            return False
+        for sel in [
+            'button:has-text("Accepter")',
+            'button:has-text("Accept")',
+            'button[action-type="ACCEPT"]',
+            'button[data-control-name="ga-cookie-consent-accept"]',
+            'button:has-text("Tout accepter")',
+            'button:has-text("Refuser")',
+            'button:has-text("Reject")',
+        ]:
+            try:
+                btn = p.locator(sel).first
+                if btn.count() > 0 and btn.is_visible():
+                    print("   🍪 [Cookies] Fermeture automatique du bandeau de consentement LinkedIn...")
+                    btn.click(timeout=1500)
+                    time.sleep(0.5)
+                    return True
+            except Exception:
+                pass
+        return False
 
     def human_delay(self, min_sec: float = 1.0, max_sec: float = 3.0):
         """Pause naturelle aléatoire simulant l'hésitation humaine."""
@@ -1026,38 +1051,92 @@ class LinkedInBrowserAgent:
 
     def extract_external_apply_url(self) -> Optional[str]:
         """
-        Extrait l'URL externe de postulation sur le site recruteur en inspectant le lien
-        ou en observant la redirection d'onglet.
+        Extrait l'URL externe réelle de postulation sur le site recruteur :
+        - Inspecte le bouton externe (href direct).
+        - Ouvre le popup si nécessaire.
+        - Franchit automatiquement le bandeau cookies LinkedIn ("LinkedIn respecte votre confidentialité").
+        - Franchit automatiquement l'interstitiel LinkedIn ("Vous quittez LinkedIn" / "Si vous faites confiance à ce lien").
+        - Récupère l'URL de redirection finale sur le site employeur / ATS.
         """
         if not self.page:
             return None
         try:
-            # 1. Lien direct href dans le bouton externe
+            # 1. Vérification si un lien direct externe (non-LinkedIn) est présent dans le DOM
             for sel in [
                 "a.jobs-apply-button[href]",
                 "a[data-job-id][href*='apply']",
-                "a[href*='externalApply']",
                 "a:has-text('Postuler')[href]",
                 "a:has-text('Apply')[href]",
             ]:
-                link = self.page.locator(sel).first
-                if link.is_visible():
-                    href = link.get_attribute("href")
-                    if href and href.startswith("http"):
-                        return href
+                try:
+                    link = self.page.locator(sel).first
+                    if link.count() > 0 and link.is_visible():
+                        href = link.get_attribute("href") or ""
+                        # Si le lien pointe déjà directement vers un domaine tiers
+                        if href.startswith("http") and "linkedin.com" not in href:
+                            return href
+                except Exception:
+                    pass
 
-            # 2. Clic sur bouton externe avec attente d'ouverture d'un nouvel onglet
+            # 2. Clic sur le bouton de candidature externe avec écoute de popup
             ext_btn = self.page.locator(
-                "button.jobs-apply-button, button:has-text('Postuler'), button:has-text('Apply')"
+                "button.jobs-apply-button, a.jobs-apply-button, button:has-text('Postuler'), button:has-text('Apply'), a:has-text('Postuler'), a:has-text('Apply')"
             ).first
-            if ext_btn.is_visible():
-                with self.page.expect_popup(timeout=8000) as popup_info:
-                    ext_btn.click()
-                popup_page = popup_info.value
-                popup_page.wait_for_load_state("domcontentloaded", timeout=12000)
-                ext_url = popup_page.url
-                popup_page.close()
-                return ext_url
+
+            if ext_btn.count() > 0 and ext_btn.is_visible():
+                popup_page = None
+                try:
+                    with self.page.expect_popup(timeout=8000) as popup_info:
+                        ext_btn.click()
+                    popup_page = popup_info.value
+                except Exception:
+                    pass
+
+                if popup_page:
+                    try:
+                        popup_page.wait_for_load_state("domcontentloaded", timeout=12000)
+                        time.sleep(1.5)
+
+                        # Étape A : Fermeture du bandeau cookies LinkedIn sur le popup
+                        self.dismiss_cookie_banner(popup_page)
+
+                        # Étape B : Détection de l'interstitiel "Vous quittez LinkedIn"
+                        body_txt = popup_page.inner_text("body").lower() if popup_page.locator("body").count() > 0 else ""
+                        is_leaving = "quittez linkedin" in body_txt or "leaving linkedin" in body_txt or "externalapply" in popup_page.url.lower()
+
+                        if is_leaving:
+                            print("   🔄 [Interstitiel Détecté] Page 'Vous quittez LinkedIn' détectée dans le popup...")
+                            # Recherche du lien cliquable affiché au centre de la page (ex: recruitics, company career)
+                            redirect_elem = popup_page.locator("a[href^='http']:not([href*='linkedin.com'])").first
+                            if redirect_elem.count() > 0 and redirect_elem.is_visible():
+                                target_url = redirect_elem.get_attribute("href") or ""
+                                print(f"   👉 [Lien Sortant Trouvé] {target_url[:80]}...")
+                                try:
+                                    redirect_elem.click(timeout=3000)
+                                    popup_page.wait_for_load_state("domcontentloaded", timeout=10000)
+                                    time.sleep(2.0)
+                                    final_url = popup_page.url
+                                    if "linkedin.com" not in final_url:
+                                        target_url = final_url
+                                except Exception:
+                                    pass
+
+                                popup_page.close()
+                                return target_url
+
+                        # Attente d'éventuelle redirection HTTP automatique vers le site employeur
+                        for _ in range(5):
+                            if "linkedin.com" not in popup_page.url:
+                                break
+                            time.sleep(1.0)
+
+                        final_url = popup_page.url
+                        popup_page.close()
+                        return final_url
+                    except Exception as pe:
+                        print(f"ℹ️ [Popup Traitement] : {pe}")
+                        if popup_page and not popup_page.is_closed():
+                            popup_page.close()
         except Exception as e:
             print(f"ℹ️ [Externe] Détection URL via popup : {e}")
         return None

@@ -377,6 +377,23 @@ class LinkedInEasyApplyOrchestrator:
                 print("   ⚠️ Impossible d'extraire la description du poste. Poursuite...")
                 continue
 
+            # 1b. Double vérification EILCO Mobilité Internationale sur la description
+            if self.exclude_france:
+                import re
+                desc_lower = desc[:600].lower()
+                fr_terms = [
+                    "france", "paris", "lyon", "toulouse", "bordeaux", "nantes", "lille",
+                    "marseille", "rennes", "strasbourg", "grenoble", "normandie", "normandy",
+                    "caligny", "hauts-de-france", "île-de-france", "ile-de-france"
+                ]
+                if any(re.search(r'\b' + re.escape(t) + r'\b', desc_lower) for t in fr_terms):
+                    if not any(exc in desc_lower for exc in ["outside france", "hors de france", "hors france", "except france"]):
+                        print(f"   🚫 [Filtre EILCO Mobilité Internationale] Mention de localisation en France détectée dans la description ({title} - {company}). Ignorée.")
+                        applied_identifiers.add(job_id)
+                        if job_url:
+                            applied_identifiers.add(job_url.strip().rstrip("/"))
+                        continue
+
             # 2. Contrôle immédiat : Vérification si l'offre est clôturée ("Les candidatures ne sont plus acceptées")
             is_closed, closed_reason = self.browser_agent.check_if_job_closed()
             if is_closed:

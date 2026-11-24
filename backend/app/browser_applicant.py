@@ -405,6 +405,67 @@ def run_browser_applicant(
             browser.close()
             return {"success": False, "error": f"Erreur de chargement : {e}"}
 
+        # Étape 1b : Traitement proactif du bandeau cookies et de l'interstitiel "Vous quittez LinkedIn"
+        try:
+            # 1. Gestion des bandeaux de consentement cookies (LinkedIn, OneTrust, Cookiebot, etc.)
+            for c_sel in [
+                'button:has-text("Accepter")',
+                'button:has-text("Accept")',
+                'button:has-text("Tout accepter")',
+                'button:has-text("Accept all")',
+                '#onetrust-accept-btn-handler',
+                'button#onetrust-accept-btn-handler',
+                'button[action-type="ACCEPT"]',
+                'button[data-control-name="ga-cookie-consent-accept"]',
+                'button:has-text("Refuser")',
+                'button:has-text("Reject")',
+            ]:
+                try:
+                    c_btn = page.locator(c_sel).first
+                    if c_btn.count() > 0 and c_btn.is_visible():
+                        print("   🍪 [Cookies] Fermeture automatique du bandeau de consentement...")
+                        c_btn.click(timeout=1500)
+                        time.sleep(1.0)
+                        break
+                except Exception:
+                    pass
+
+            # 2. Détection de l'interstitiel LinkedIn "Vous quittez LinkedIn" / "externalApply"
+            page_text = page.inner_text("body").lower() if page.locator("body").count() > 0 else ""
+            if "quittez linkedin" in page_text or "leaving linkedin" in page_text or "externalapply" in page.url.lower():
+                print("   🔄 [Interstitiel Détecté] Écran 'Vous quittez LinkedIn' affiché. Franchissement automatique...")
+                dest_found = False
+                ext_links = page.locator("a[href^='http']:not([href*='linkedin.com'])")
+                if ext_links.count() > 0:
+                    for i in range(ext_links.count()):
+                        l = ext_links.nth(i)
+                        href = l.get_attribute("href") or ""
+                        if href and "linkedin.com" not in href:
+                            print(f"   👉 [Lien Sortant Détecté] Navigation vers le portail recruteur : {href[:90]}...")
+                            try:
+                                page.goto(href, wait_until="domcontentloaded", timeout=45000)
+                                time.sleep(3.0)
+                                dest_found = True
+                                break
+                            except Exception as nav_e:
+                                print(f"   ⚠️ Navigation directe ({nav_e}), clic sur le lien...")
+                                l.click(timeout=3000)
+                                time.sleep(3.0)
+                                dest_found = True
+                                break
+
+                # Si non trouvé par le sélecteur ci-dessus, parcourir tous les liens http
+                if not dest_found:
+                    for l in page.locator("a[href]").all():
+                        h = l.get_attribute("href") or ""
+                        if h.startswith("http") and "linkedin.com" not in h:
+                            print(f"   👉 [Lien Sortant Alternatif] Navigation vers : {h[:90]}...")
+                            page.goto(h, wait_until="domcontentloaded", timeout=45000)
+                            time.sleep(3.0)
+                            break
+        except Exception as inter_err:
+            print(f"   ℹ️ [Interstitiel] Traitement de redirection : {inter_err}")
+
         # Étape 2 : Détection d'un bouton 'Postuler' intermédiaire
         print("🔍 [2/5] Détection du formulaire de postulation...")
         apply_buttons = [
