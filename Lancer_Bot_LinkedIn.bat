@@ -9,9 +9,10 @@ cd /d "%~dp0"
 
 :menu
 echo ====================================================================
-echo    ResumeSquad - Agent Autonome LinkedIn [Mode Volume MAX]
-echo    Conformite EILCO : Suisse, Luxembourg, Belgique [France Exclue]
-echo    Support Multi-PC : PC 1 et PC 2 [Auto-Setup integre]
+echo    ResumeSquad - Agent Autonome LinkedIn [Mode Volume Europe & UE]
+echo    Couverture : Toute l'Union Europeenne & Suisse [France Exclue - EILCO]
+echo    Priorite   : IA -> Agentic -> Vision -> ML -> Cloud -> Dev -> Data
+echo    Filtres    : Anglais Uniquement, Offres Remunerees, Concurrence <= 10
 echo ====================================================================
 
 rem 1. Verification de Python (support python et py launcher)
@@ -64,10 +65,10 @@ if "%HAS_SESSION%"=="0" (
 )
 
 echo.
-echo  [1] Mode Volume MAX Suisse [Turbo 5-10s, 25 offres, 24h, max 10 candidats, Anglais, Easy Apply + ATS]
-echo  [2] Mode Easy Apply Exclusif Suisse [100%% sur LinkedIn, 24h, max 10 candidats, Anglais, zero redirection]
-echo  [3] Mode Volume MAX Luxembourg [Turbo 5-10s, 25 offres, 24h, max 10 candidats, Anglais]
-echo  [4] Mode Simulation Dry-Run [Suisse - Sans envoi reel, 24h, max 10 candidats, Anglais]
+echo  [1] Mode Volume MAX Europe / UE [Priorite IA -> Data, 25 offres, 24h, Remunere, Anglais, Easy Apply + ATS]
+echo  [2] Mode Easy Apply Exclusif Europe [100%% sur LinkedIn, 24h, Priorite IA -> Data, max 10 candidats]
+echo  [3] Mode Cible Suisse & Luxembourg [25 offres, 24h, Priorite IA -> Data, Remunere]
+echo  [4] Mode Simulation Dry-Run Europe [Sans envoi reel, audit des formulaires et offres]
 echo  [5] Connexion Manuelle / Verification Session LinkedIn [Fenetre ouverte]
 echo  [6] Lancer le Dashboard Web [Next.js sur http://localhost:3000]
 echo  [7] Diagnostiquer / Reinstaller les dependances sur ce PC
@@ -78,32 +79,32 @@ set /p choice="Votre choix (1-8) : "
 
 if "%choice%"=="1" (
     echo.
-    echo [*] Lancement du Mode Volume MAX Suisse [Turbo - 25 candidatures, 24h, max 10 candidats, Anglais]...
-    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --keywords "Machine Learning Intern English" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Volume MAX Europe / UE [Priorite P1-P8, 25 candidatures, 24h, max 10 candidats, Anglais, Remunere]...
+    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Europe" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
     echo.
     pause
     goto menu
 )
 if "%choice%"=="2" (
     echo.
-    echo [*] Lancement du Mode Easy Apply Exclusif Suisse [24h, max 10 candidats, Anglais]...
-    %PY_CMD% backend\run_linkedin_easy_apply.py --once --location "Suisse" --keywords "Machine Learning Intern English" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Easy Apply Exclusif Europe [24h, Priorite P1-P8, max 10 candidats, Anglais, Remunere]...
+    %PY_CMD% backend\run_linkedin_easy_apply.py --once --location "Europe" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
     echo.
     pause
     goto menu
 )
 if "%choice%"=="3" (
     echo.
-    echo [*] Lancement du Mode Volume MAX Luxembourg [Turbo - 25 candidatures, 24h, max 10 candidats, Anglais]...
-    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Luxembourg" --keywords "Machine Learning Intern English" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Cible Suisse & Luxembourg [Priorite P1-P8, 25 candidatures, 24h, max 10 candidats]...
+    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
     echo.
     pause
     goto menu
 )
 if "%choice%"=="4" (
     echo.
-    echo [*] Lancement en mode simulation Dry-Run [Suisse, 24h, max 10 candidats, Anglais]...
-    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --keywords "Machine Learning Intern English" --time-filter 24h --dry-run --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement en mode simulation Dry-Run Europe [Sans envoi reel, 24h, max 10 candidats, Anglais, Remunere]...
+    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Europe" --keywords "all" --time-filter 24h --dry-run --exclude-france --under-10-applicants --max-applicants 10
     echo.
     pause
     goto menu

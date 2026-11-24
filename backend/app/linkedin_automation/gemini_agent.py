@@ -90,6 +90,13 @@ class GeminiCoverLetterGenerator:
             except Exception:
                 pass
 
+        # Métriques de Quotas et Consommation de Tokens (100% Free Tier Google AI Studio)
+        self.total_tokens_consumed = 0
+        self.total_prompt_tokens = 0
+        self.total_candidate_tokens = 0
+        self.total_requests_made = 0
+        self.last_quota_info: Dict[str, Any] = {}
+
     def generate_cover_letter(
         self,
         job_description: str,
@@ -159,6 +166,29 @@ Génère la lettre de motivation technique sur-mesure pour ce poste."""
                     letter_text = re.sub(r"^```markdown\s*", "", letter_text)
                     letter_text = re.sub(r"^```\s*", "", letter_text)
                     letter_text = re.sub(r"\s*```$", "", letter_text)
+
+                    # Extraction des métriques de quota et de tokens
+                    p_tok = getattr(response.usage_metadata, "prompt_token_count", 0) if hasattr(response, "usage_metadata") else 0
+                    c_tok = getattr(response.usage_metadata, "candidates_token_count", 0) if hasattr(response, "usage_metadata") else 0
+                    t_tok = getattr(response.usage_metadata, "total_token_count", 0) if hasattr(response, "usage_metadata") else (p_tok + c_tok)
+
+                    self.total_prompt_tokens += p_tok
+                    self.total_candidate_tokens += c_tok
+                    self.total_tokens_consumed += t_tok
+                    self.total_requests_made += 1
+
+                    self.last_quota_info = {
+                        "model": m,
+                        "prompt_tokens": p_tok,
+                        "candidate_tokens": c_tok,
+                        "total_tokens": t_tok,
+                        "session_total_tokens": self.total_tokens_consumed,
+                        "requests_count": self.total_requests_made,
+                        "cost_eur": "0.00 € (Free Tier)",
+                        "daily_limit": "1 500 req/jour",
+                    }
+
+                    print(f"   📊 [Quota & Conso Tokens] Modèle: {m} | In: {p_tok} tok | Out: {c_tok} tok | Total: {t_tok} tok | Session: {self.total_tokens_consumed} tok | Coût: 0.00 € (Plan Gratuit Google AI Studio)")
                     return letter_text
                 except Exception as e:
                     continue
@@ -177,6 +207,28 @@ Génère la lettre de motivation technique sur-mesure pour ce poste."""
                     letter_text = re.sub(r"^```markdown\s*", "", letter_text)
                     letter_text = re.sub(r"^```\s*", "", letter_text)
                     letter_text = re.sub(r"\s*```$", "", letter_text)
+
+                    p_tok = getattr(response.usage_metadata, "prompt_token_count", 0) if hasattr(response, "usage_metadata") else 0
+                    c_tok = getattr(response.usage_metadata, "candidates_token_count", 0) if hasattr(response, "usage_metadata") else 0
+                    t_tok = getattr(response.usage_metadata, "total_token_count", 0) if hasattr(response, "usage_metadata") else (p_tok + c_tok)
+
+                    self.total_prompt_tokens += p_tok
+                    self.total_candidate_tokens += c_tok
+                    self.total_tokens_consumed += t_tok
+                    self.total_requests_made += 1
+
+                    self.last_quota_info = {
+                        "model": m,
+                        "prompt_tokens": p_tok,
+                        "candidate_tokens": c_tok,
+                        "total_tokens": t_tok,
+                        "session_total_tokens": self.total_tokens_consumed,
+                        "requests_count": self.total_requests_made,
+                        "cost_eur": "0.00 € (Free Tier)",
+                        "daily_limit": "1 500 req/jour",
+                    }
+
+                    print(f"   📊 [Quota & Conso Tokens] Modèle: {m} | In: {p_tok} tok | Out: {c_tok} tok | Total: {t_tok} tok | Session: {self.total_tokens_consumed} tok | Coût: 0.00 € (Plan Gratuit Google AI Studio)")
                     return letter_text
                 except Exception:
                     continue

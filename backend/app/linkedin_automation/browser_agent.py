@@ -116,6 +116,32 @@ def requires_non_en_fr(text: str = "") -> bool:
     return any(re.search(p, t) for p in patterns)
 
 
+def is_unpaid_offer(desc: str = "") -> Tuple[bool, str]:
+    """
+    Vérifie si l'offre mentionne explicitement qu'elle est non rémunérée ou bénévole.
+    Retourne (True, raison) si non rémunérée, (False, '') sinon.
+    """
+    import re
+    t = desc.lower()
+    unpaid_patterns = [
+        (r"\bunpaid\b", "Non rémunéré ('unpaid')"),
+        (r"\bnon[\s-]r[ée]mun[ée]r[ée]\b", "Non rémunéré"),
+        (r"\bvoluntary\b", "Bénévole / volontaire ('voluntary')"),
+        (r"\bvolunteer\b", "Bénévole ('volunteer')"),
+        (r"\buncompensated\b", "Non indemnisé ('uncompensated')"),
+        (r"\bno\s+compensation\b", "Aucune compensation ('no compensation')"),
+        (r"\bno\s+salary\b", "Aucun salaire ('no salary')"),
+        (r"\bfor\s+college\s+credit\s+only\b", "Uniquement crédits académiques ('college credit only')"),
+        (r"\bb[ée]n[ée]vole\b", "Bénévolat"),
+    ]
+    for pat, label in unpaid_patterns:
+        if re.search(pat, t):
+            # Vérifier qu'il ne s'agit pas d'une négation (ex: 'not unpaid')
+            if not re.search(r"\b(?:not|never|no)\s+" + pat, t):
+                return True, label
+    return False, ""
+
+
 
 class LinkedInBrowserAgent:
     """Agent d'automatisation de navigation et candidature LinkedIn via Playwright."""
@@ -476,6 +502,10 @@ class LinkedInBrowserAgent:
 
         # Mapping geoId LinkedIn officiel
         GEO_IDS = {
+            "europe": "91000002",
+            "union européenne": "91000002",
+            "european union": "91000002",
+            "ue": "91000002",
             "suisse": "106693272",
             "switzerland": "106693272",
             "schweiz": "106693272",
@@ -484,6 +514,16 @@ class LinkedInBrowserAgent:
             "belgium": "100565514",
             "allemagne": "101282230",
             "germany": "101282230",
+            "pays-bas": "102890719",
+            "netherlands": "102890719",
+            "irlande": "104738515",
+            "ireland": "104738515",
+            "suède": "105117694",
+            "sweden": "105117694",
+            "espagne": "105646813",
+            "spain": "105646813",
+            "italie": "103350119",
+            "italy": "103350119",
             "france": "105015875",
         }
         loc_key = (location or "").lower().strip()

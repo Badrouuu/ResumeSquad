@@ -17,9 +17,23 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from .browser_agent import LinkedInBrowserAgent, detect_offer_language, requires_non_en_fr
+from .browser_agent import LinkedInBrowserAgent, detect_offer_language, requires_non_en_fr, is_unpaid_offer
 from .gemini_agent import GeminiCoverLetterGenerator
 from .discord_notifier import DiscordNotifier
+
+
+# Ordre strict de priorité des domaines d'opportunités (Demandé par l'utilisateur) :
+# 1. IA -> 2. Agentic -> 3. Computer Vision -> 4. ML -> 5. Cloud -> 6. Software Eng -> 7. Full Stack / Backend -> 8. Data
+DOMAIN_PRIORITIES = [
+    {"prio": 1, "domain": "IA / Intelligence Artificielle", "kw": '"Artificial Intelligence" Intern English'},
+    {"prio": 2, "domain": "Agentic AI / LLM Agents", "kw": '"Agentic" OR "AI Agents" Intern English'},
+    {"prio": 3, "domain": "Computer Vision", "kw": '"Computer Vision" Intern English'},
+    {"prio": 4, "domain": "Machine Learning & Deep Learning", "kw": '"Machine Learning" OR "Deep Learning" Intern English'},
+    {"prio": 5, "domain": "Cloud & MLOps & Déploiement", "kw": '"Cloud" OR "DevOps" OR "MLOps" Intern English'},
+    {"prio": 6, "domain": "Software Engineering (Python / C++)", "kw": '"Software Engineer" OR "Python Developer" Intern English'},
+    {"prio": 7, "domain": "Full Stack / Backend / Frontend", "kw": '"Full Stack" OR "Backend" OR "Frontend" Intern English'},
+    {"prio": 8, "domain": "Data Science & Data Engineering", "kw": '"Data Science" OR "Data Engineer" Intern English'},
+]
 
 
 class LinkedInEasyApplyOrchestrator:
@@ -262,18 +276,57 @@ class LinkedInEasyApplyOrchestrator:
                     self.browser_agent.close()
                     return 0
 
-        # Scraping de la file d'attente (Easy Apply uniquement ou Toutes Offres, avec filtre faible concurrence)
-        queue = self.browser_agent.search_easy_apply_jobs(
-            keywords=self.keywords,
-            location=self.location,
-            max_jobs=max(35, self.max_applications * 2),
-            applied_ids=applied_identifiers,
-            easy_apply_only=not self.all_jobs,
-            exclude_france=self.exclude_france,
-            under_10_applicants=self.under_10_applicants,
-            max_applicants_threshold=self.max_applicants,
-            time_filter=self.time_filter,
+        # Scraping de la file d'attente (Support multi-domaines prioritaires IA -> Data)
+        target_queue_size = max(40, self.max_applications * 2)
+        queue = []
+        seen_job_ids = set()
+
+        is_multi_track = (
+            self.keywords.lower() in ("all", "multi", "priority", "europe", "ue", "auto")
+            or "europe" in self.location.lower()
+            or "union" in self.location.lower()
         )
+
+        if is_multi_track:
+            print(f"\n🚀 [Multi-Pistes Europe] Recherche par ordre strict de priorité (1. IA -> 8. Data)...")
+            for track in DOMAIN_PRIORITIES:
+                if len(queue) >= target_queue_size:
+                    break
+                p_num = track["prio"]
+                p_name = track["domain"]
+                p_kw = track["kw"]
+                print(f"\n🔎 [Priorité {p_num} : {p_name}] Sourcing : {p_kw} ({self.location})...")
+                sub_queue = self.browser_agent.search_easy_apply_jobs(
+                    keywords=p_kw,
+                    location=self.location,
+                    max_jobs=target_queue_size - len(queue),
+                    applied_ids=applied_identifiers.union(seen_job_ids),
+                    easy_apply_only=not self.all_jobs,
+                    exclude_france=self.exclude_france,
+                    under_10_applicants=self.under_10_applicants,
+                    max_applicants_threshold=self.max_applicants,
+                    time_filter=self.time_filter,
+                )
+                added_count = 0
+                for j in sub_queue:
+                    if j["id"] not in seen_job_ids:
+                        seen_job_ids.add(j["id"])
+                        j["domain_priority"] = f"P{p_num} - {p_name}"
+                        queue.append(j)
+                        added_count += 1
+                print(f"   ✨ +{added_count} offre(s) retenue(s) pour {p_name} (Total file : {len(queue)}/{target_queue_size})")
+        else:
+            queue = self.browser_agent.search_easy_apply_jobs(
+                keywords=self.keywords,
+                location=self.location,
+                max_jobs=target_queue_size,
+                applied_ids=applied_identifiers,
+                easy_apply_only=not self.all_jobs,
+                exclude_france=self.exclude_france,
+                under_10_applicants=self.under_10_applicants,
+                max_applicants_threshold=self.max_applicants,
+                time_filter=self.time_filter,
+            )
 
         if not queue:
             print("✅ [Worker] Aucune nouvelle offre à traiter pour le moment.")
@@ -292,10 +345,13 @@ class LinkedInEasyApplyOrchestrator:
             company = job["company"]
             location = job["location"]
             job_url = job["url"]
+            domain_prio = job.get("domain_priority", "")
 
             print(f"\n[{idx}/{len(queue)}] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             print(f"🏢 Entreprise : {company}")
             print(f"💼 Poste      : {title} ({location})")
+            if domain_prio:
+                print(f"🏷️ Priorité   : {domain_prio}")
             print(f"🔗 URL        : {job_url}")
 
             # Filtre de sécurité Mobilité Internationale EILCO
@@ -335,6 +391,15 @@ class LinkedInEasyApplyOrchestrator:
             if offer_lang not in ("en", "fr") or requires_non_en_fr(f"{title} {desc}"):
                 lang_label = "allemand" if offer_lang == "de" else ("néerlandais" if offer_lang == "nl" else offer_lang)
                 print(f"   🚫 [Filtre Langue] Offre rédigée en {lang_label.upper()} ou exigeant une langue non maîtrisée pour {company}. Ignorée sans appel IA.")
+                applied_identifiers.add(job_id)
+                if job_url:
+                    applied_identifiers.add(job_url.strip().rstrip("/"))
+                continue
+
+            # 2c. Contrôle Rémunération : Rejet strict des offres non rémunérées ou bénévoles
+            is_unpaid, unpaid_reason = is_unpaid_offer(desc)
+            if is_unpaid:
+                print(f"   🚫 [Filtre Rémunération] Offre non rémunérée ou bénévole ({unpaid_reason}) pour {company}. Ignorée sans appel IA.")
                 applied_identifiers.add(job_id)
                 if job_url:
                     applied_identifiers.add(job_url.strip().rstrip("/"))
@@ -514,7 +579,10 @@ class LinkedInEasyApplyOrchestrator:
                 time.sleep(1.0)
 
         self.browser_agent.close()
+        total_tok = self.gemini_agent.total_tokens_consumed
+        req_count = self.gemini_agent.total_requests_made
         print(f"\n🎉 [Cycle Terminé] {processed_count} candidature(s) validée(s) avec succès !")
+        print(f"📊 [Bilan Quota & Facturation IA] {req_count} appel(s) Gemini effectués | {total_tok} tokens consommés | Coût total: 0,00 € (100% Gratuit Google AI Studio)")
         return processed_count
 
     def run_daemon(self, cycle_interval_minutes: int = 60):

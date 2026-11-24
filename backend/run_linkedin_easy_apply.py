@@ -42,14 +42,14 @@ def main():
     parser.add_argument(
         "--keywords",
         type=str,
-        default="Machine Learning Intern English",
-        help="Mots-clés de recherche (défaut : 'Machine Learning Intern English')",
+        default="all",
+        help="Mots-clés de recherche (défaut : 'all' pour parcourir les 8 priorités IA -> Agentic -> Vision -> ML -> Cloud -> SE -> Fullstack -> Data)",
     )
     parser.add_argument(
         "--location",
         type=str,
-        default="Suisse",
-        help="Localisation géographique (défaut : 'Suisse' pour conformité EILCO)",
+        default="Europe",
+        help="Localisation géographique (défaut : 'Europe' pour couvrir l'UE entière + Suisse hors France)",
     )
     parser.add_argument(
         "--exclude-france",
