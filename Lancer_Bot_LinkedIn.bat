@@ -9,10 +9,10 @@ cd /d "%~dp0"
 
 :menu
 echo ====================================================================
-echo    ResumeSquad - Agent Autonome LinkedIn [Mode Volume Europe & UE]
-echo    Couverture : Toute l'Union Europeenne & Suisse [France Exclue - EILCO]
-echo    Priorite   : IA -> Agentic -> Vision -> ML -> Cloud -> Dev -> Data
-echo    Filtres    : Anglais Uniquement, Offres Remunerees, Concurrence <= 10
+echo    ResumeSquad - Agent Autonome LinkedIn [Mode Volume Europe + UE]
+echo    Couverture : Toute l'Union Europeenne + Suisse [France Exclue - EILCO]
+echo    Priorite   : IA / Agentic / Vision / ML / Cloud / Dev / Data
+echo    Filtres    : Anglais Uniquement, Offres Remunerees, Concurrence max 10
 echo ====================================================================
 
 rem 1. Verification de Python (support python et py launcher)
@@ -65,9 +65,9 @@ if "%HAS_SESSION%"=="0" (
 )
 
 echo.
-echo  [1] Mode Volume MAX Europe / UE [Priorite IA -> Data, 25 offres, 24h, Remunere, Anglais, Easy Apply + ATS]
-echo  [2] Mode Easy Apply Exclusif Europe [100%% sur LinkedIn, 24h, Priorite IA -> Data, max 10 candidats]
-echo  [3] Mode Cible Suisse & Luxembourg [25 offres, 24h, Priorite IA -> Data, Remunere]
+echo  [1] Mode Volume MAX Europe + UE [Priorite IA vers Data, 25 offres, 24h, Remunere, Anglais, Easy Apply + ATS]
+echo  [2] Mode Easy Apply Exclusif Europe [100%% sur LinkedIn, 24h, Priorite IA vers Data, max 10 candidats]
+echo  [3] Mode Cible Suisse + Luxembourg [25 offres, 24h, Priorite IA vers Data, Remunere]
 echo  [4] Mode Simulation Dry-Run Europe [Sans envoi reel, audit des formulaires et offres]
 echo  [5] Connexion Manuelle / Verification Session LinkedIn [Fenetre ouverte]
 echo  [6] Lancer le Dashboard Web [Next.js sur http://localhost:3000]
@@ -79,7 +79,7 @@ set /p choice="Votre choix (1-8) : "
 
 if "%choice%"=="1" (
     echo.
-    echo [*] Lancement du Mode Volume MAX Europe / UE [Priorite P1-P8, 25 candidatures, 24h, max 10 candidats, Anglais, Remunere]...
+    echo [*] Lancement du Mode Volume MAX Europe + UE [Priorite P1-P8, 25 candidatures, 24h, max 10 candidats, Anglais, Remunere]...
     %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Europe" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
     echo.
     pause
@@ -95,7 +95,7 @@ if "%choice%"=="2" (
 )
 if "%choice%"=="3" (
     echo.
-    echo [*] Lancement du Mode Cible Suisse & Luxembourg [Priorite P1-P8, 25 candidatures, 24h, max 10 candidats]...
+    echo [*] Lancement du Mode Cible Suisse + Luxembourg [Priorite P1-P8, 25 candidatures, 24h, max 10 candidats]...
     %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
     echo.
     pause
