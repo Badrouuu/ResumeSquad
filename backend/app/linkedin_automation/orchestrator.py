@@ -17,7 +17,14 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from .browser_agent import LinkedInBrowserAgent, detect_offer_language, requires_non_en_fr, is_unpaid_offer
+from .browser_agent import (
+    LinkedInBrowserAgent,
+    detect_offer_language,
+    requires_non_en_fr,
+    is_unpaid_offer,
+    is_france_location,
+    is_relevant_tech_role,
+)
 from .gemini_agent import GeminiCoverLetterGenerator
 from .discord_notifier import DiscordNotifier
 
@@ -447,6 +454,28 @@ class LinkedInEasyApplyOrchestrator:
                 time_filter=self.time_filter,
             )
 
+        if not queue and self.time_filter == "24h":
+            print("\n🔄 [Élargissement Intelligent] Aucune offre < 24h disponible. Élargissement sur les 7 derniers jours (P1 à P4 IA/ML/Vision)...")
+            for track in DOMAIN_PRIORITIES[:4]:
+                if len(queue) >= target_queue_size:
+                    break
+                sub_queue = self.browser_agent.search_easy_apply_jobs(
+                    keywords=track["kw"],
+                    location=self.location,
+                    max_jobs=target_queue_size - len(queue),
+                    applied_ids=applied_identifiers.union(seen_job_ids),
+                    easy_apply_only=not self.all_jobs,
+                    exclude_france=self.exclude_france,
+                    under_10_applicants=False,
+                    max_applicants_threshold=max(25, self.max_applicants),
+                    time_filter="week",
+                )
+                for j in sub_queue:
+                    if j["id"] not in seen_job_ids:
+                        seen_job_ids.add(j["id"])
+                        j["domain_priority"] = f"P{track['prio']} - {track['domain']}"
+                        queue.append(j)
+
         if not queue:
             print("✅ [Worker] Aucune nouvelle offre à traiter pour le moment.")
             self.browser_agent.close()
@@ -522,17 +551,31 @@ class LinkedInEasyApplyOrchestrator:
                     applied_identifiers.add(job_url.strip().rstrip("/"))
                 continue
 
-            # 2b. Contrôle Linguistique : Anglais et Français uniquement (exclusion stricte Allemand / Néerlandais)
+            # 2b. Contrôle Linguistique : Anglais et Français uniquement (exclusion stricte DE/NL/IT/ES/DA/NO/CS/PL)
             offer_lang = detect_offer_language(title, desc)
             if offer_lang not in ("en", "fr") or requires_non_en_fr(f"{title} {desc}"):
-                lang_label = "allemand" if offer_lang == "de" else ("néerlandais" if offer_lang == "nl" else offer_lang)
-                print(f"   🚫 [Filtre Langue] Offre rédigée en {lang_label.upper()} ou exigeant une langue non maîtrisée pour {company}. Ignorée sans appel IA.")
+                lang_names = {
+                    "de": "allemand", "nl": "néerlandais", "it": "italien",
+                    "es": "espagnol", "da": "danois", "no": "norvégien",
+                    "sv": "suédois", "cs": "tchèque", "pl": "polonais",
+                }
+                lang_label = lang_names.get(offer_lang, offer_lang)
+                print(f"   🚫 [Filtre Langue] Offre en {lang_label.upper()} ou exigeant une langue non maîtrisée pour {company}. Ignorée sans appel IA.")
                 applied_identifiers.add(job_id)
                 if job_url:
                     applied_identifiers.add(job_url.strip().rstrip("/"))
                 continue
 
-            # 2c. Contrôle Rémunération : Rejet strict des offres non rémunérées ou bénévoles
+            # 2c. Contrôle Métier Strict : Écarter Customer Support, SAP ABAP, Mainframe, Finance, Bali, etc.
+            is_tech_ok, domain_reject_reason = is_relevant_tech_role(title, desc)
+            if not is_tech_ok:
+                print(f"   🚫 [Filtre Métier IA/Tech] Offre hors cible écartée ({domain_reject_reason}) : {title} ({company}).")
+                applied_identifiers.add(job_id)
+                if job_url:
+                    applied_identifiers.add(job_url.strip().rstrip("/"))
+                continue
+
+            # 2d. Contrôle Rémunération : Rejet strict des offres non rémunérées ou bénévoles
             is_unpaid, unpaid_reason = is_unpaid_offer(desc)
             if is_unpaid:
                 print(f"   🚫 [Filtre Rémunération] Offre non rémunérée ou bénévole ({unpaid_reason}) pour {company}. Ignorée sans appel IA.")
@@ -541,20 +584,15 @@ class LinkedInEasyApplyOrchestrator:
                     applied_identifiers.add(job_url.strip().rstrip("/"))
                 continue
 
-            # 3. Contrôle immédiat : Vérification de la concurrence (<= max_applicants, défaut 10)
+            # 3. Contrôle immédiat : Vérification de la concurrence
             if self.under_10_applicants:
                 applicants_count = self.browser_agent.extract_applicant_count_on_page()
 
                 is_oversaturated = False
                 reason_str = ""
-                if applicants_count is not None:
-                    if applicants_count > self.max_applicants:
-                        is_oversaturated = True
-                        reason_str = f"{applicants_count} candidats/clics (> {self.max_applicants})"
-                else:
-                    # En l'absence de mention chiffrée dans l'en-tête, l'offre a déjà été sélectionnée
-                    # par LinkedIn via le filtre f_EA=true (Moins de 10 candidats). Elle est donc valide.
-                    is_oversaturated = False
+                if applicants_count is not None and applicants_count > self.max_applicants:
+                    is_oversaturated = True
+                    reason_str = f"{applicants_count} candidats/clics (> {self.max_applicants})"
 
                 if is_oversaturated:
                     print(f"   🚫 [Filtre Concurrence] Offre saturée ({reason_str}) pour {company}. Ignorée sans appel IA.")
@@ -563,15 +601,21 @@ class LinkedInEasyApplyOrchestrator:
                         applied_identifiers.add(job_url.strip().rstrip("/"))
                     continue
                 elif applicants_count is not None:
-                    print(f"   🎯 [Faible Concurrence Confirmée] ~{applicants_count} candidat(s)/clics (<= {self.max_applicants}). Excellent !")
+                    print(f"   🎯 [Concurrence OK] ~{applicants_count} candidat(s)/clics (<= {self.max_applicants}).")
                 else:
-                    print(f"   🎯 [Faible Concurrence Confirmée] Offre présélectionnée LinkedIn à faible concurrence (<= {self.max_applicants}).")
+                    print(f"   🎯 [Concurrence OK] Offre présélectionnée (<= {self.max_applicants}).")
 
             # Enrichissement haute fidélité des métadonnées (Entreprise exacte, Titre et Ville)
             job = self.browser_agent.enrich_job_details(job)
             title = job.get("title", title)
             company = job.get("company", company)
             location = job.get("location", location)
+
+            # Re-vérification EILCO / hors-Europe après enrichissement (ex: EDF, CNRS, Bali)
+            if self.exclude_france and (is_france_location(location) or is_france_location(title) or is_france_location(company)):
+                print(f"   🚫 [Filtre EILCO Post-Enrichissement] Offre France/Hors-UE écartée : {title} — {company} ({location}).")
+                applied_identifiers.add(job_id)
+                continue
 
             # 4. Détection du type de postulation : Easy Apply ou Portail Externe
             apply_type_info = self.browser_agent.detect_job_apply_type()
@@ -584,27 +628,31 @@ class LinkedInEasyApplyOrchestrator:
                     applied_identifiers.add(job_url.strip().rstrip("/"))
                 continue
 
-            # 5. Génération de la lettre de motivation pragmatique & technique avec Gemini 1.5 Flash
-            print(f"   🧠 [Gemini 1.5 Flash] Rédaction de la lettre technique sur-mesure (langue: {offer_lang.upper()})...")
+            # 5. Génération de la lettre de motivation & du CV PDF 1-page sur-mesure
+            print(f"   🧠 [Gemini Flash-Lite] Adaptation CV + Lettre sur-mesure (langue: {offer_lang.upper()})...")
             letter_text = self.gemini_agent.generate_cover_letter(desc, title, company, language=offer_lang)
+            letter_pdf_path = self.gemini_agent.export_pdf(
+                letter_text, title, company, output_dir=str(self.output_dir), language=offer_lang
+            )
 
-            # Exportation immédiate de la lettre en PDF pour l'upload
-            letter_pdf_path = self.gemini_agent.export_pdf(letter_text, title, company, output_dir=str(self.output_dir))
-
-            # Préparation du CV personnalisé au nom de l'entreprise (ex: CV_Badroudine_Bacar_Intel.pdf)
-            clean_comp_slug = re.sub(r'[^a-zA-Z0-9]', '_', company).strip('_')
+            # Génération réelle d'un CV PDF adapté à CETTE offre (EN ou FR, vrai téléphone +33 7 67 56 07 86)
+            import re
+            clean_comp_slug = re.sub(r'[^a-zA-Z0-9]', '_', company).strip('_')[:32]
             company_cv_name = f"CV_Badroudine_Bacar_{clean_comp_slug}.pdf" if clean_comp_slug else "CV_Badroudine_Bacar.pdf"
             company_cv_path = self.output_dir / company_cv_name
-            active_cv_path = self.cv_pdf_path
+            active_cv_path = str(company_cv_path)
 
-            if self.cv_pdf_path and os.path.exists(self.cv_pdf_path):
-                try:
+            try:
+                cv_data = self.gemini_agent.generate_tailored_cv_data(desc, title, company, language=offer_lang)
+                self.gemini_agent.export_tailored_cv_pdf(cv_data, output_path=active_cv_path, language=offer_lang)
+                print(f"   📄 [CV Sur-Mesure Compilé] {company_cv_name} ({offer_lang.upper()} | ATS 1-page)")
+            except Exception as cve:
+                print(f"   ⚠️ [Fallback CV] {cve}")
+                if self.cv_pdf_path and os.path.exists(self.cv_pdf_path):
                     import shutil
-                    shutil.copy2(self.cv_pdf_path, str(company_cv_path))
-                    active_cv_path = str(company_cv_path)
-                    print(f"   📄 [CV Entreprise] Document dédié généré : {company_cv_name}")
-                except Exception as cve:
-                    print(f"   ℹ️ [Note CV]: {cve}")
+                    shutil.copy2(self.cv_pdf_path, active_cv_path)
+                else:
+                    active_cv_path = self.cv_pdf_path
 
             if apply_type == "external":
                 print(f"   🌐 [Site Externe / ATS Détecté] Redirection vers le portail recruteur pour {company}...")

@@ -31,17 +31,31 @@ from playwright.sync_api import sync_playwright, Page, BrowserContext, ElementHa
 
 def is_france_location(loc_str: str) -> bool:
     """
-    Vérifie si la localisation est située en France.
-    Pour les élèves de l'EILCO, le stage PFE doit obligatoirement être à l'international
-    (Suisse, Luxembourg, Belgique, Allemagne, UK, Remote International...).
-    Les offres en France doivent être automatiquement rejetées.
+    Vérifie si la localisation est située en France ou hors zone UE/Suisse autorisée
+    (ex: Bali, Indonésie, USA). Pour les élèves de l'EILCO, le stage PFE doit être
+    en Europe hors France (Suisse, Luxembourg, Belgique, Allemagne, Pays-Bas, Suède, Irlande...).
     """
     if not loc_str:
         return False
     s = loc_str.lower().strip()
+    import re
 
-    # Exceptions pays autorisés
-    if any(k in s for k in ["suisse", "switzerland", "schweiz", "luxembourg", "belgique", "belgium", "germany", "allemagne", "remote", "télétravail"]):
+    # Exclusion absolue des destinations hors Europe / pièges
+    non_europe = [
+        "bali", "indonesia", "indonésie", "indonesie", "india", "inde",
+        "united states", "usa", "canada", "australia", "dubai", "singapore",
+    ]
+    if any(re.search(r'\b' + re.escape(ne) + r'\b', s) for ne in non_europe):
+        return True
+
+    # Exceptions pays européens autorisés (attention : ne pas autoriser 'remote' si couplé à France/Bali)
+    eu_allowed = [
+        "suisse", "switzerland", "schweiz", "luxembourg", "belgique", "belgium",
+        "germany", "allemagne", "netherlands", "pays-bas", "holland", "sweden", "suède",
+        "denmark", "danemark", "ireland", "irlande", "austria", "autriche", "norway", "norvège",
+        "finland", "finlande", "poland", "pologne", "spain", "espagne", "italy", "italie",
+    ]
+    if any(k in s for k in eu_allowed):
         return False
 
     france_indicators = [
@@ -51,9 +65,9 @@ def is_france_location(loc_str: str) -> bool:
         "île-de-france", "ile-de-france", "hauts-de-france", "auvergne", "rhône-alpes",
         "occitanie", "nouvelle-aquitaine", "grand est", "pays de la loire", "bretagne",
         "normandie", "normandy", "bourgogne", "centre-val de loire", "corse", "calais", "dunkerque",
-        "caligny", "flers", "caen", "le havre", "station f", "station-f"
+        "caligny", "flers", "caen", "le havre", "station f", "station-f",
+        "edf", "cnrs", "inria", "cea saclay", "cea grenoble",
     ]
-    import re
     for ind in france_indicators:
         if re.search(r'\b' + re.escape(ind) + r'\b', s):
             return True
@@ -62,58 +76,123 @@ def is_france_location(loc_str: str) -> bool:
 
 def detect_offer_language(title: str = "", desc: str = "") -> str:
     """
-    Détecte la langue de rédaction de l'offre (0 token / ultra-rapide).
-    Retourne 'en' (anglais), 'fr' (français), 'de' (allemand), ou 'nl' (néerlandais).
+    Détecte avec précision la langue de rédaction de l'offre (0 token / ultra-rapide).
+    Retourne 'en', 'fr', 'de', 'nl', 'it', 'es', 'da', 'no', 'sv', 'cs', ou 'pl'.
     """
-    combined = f"{title} {desc}".lower()
-    de_markers = [
-        "und", "oder", "für", "mit", "im", "ihre aufgaben", "wir suchen", "deine aufgaben",
-        "praktikum", "praktikant", "werkstudent", "anforderungen", "ab sofort", "m/w/d",
-        "kenntnisse", "standort", "über uns", "bewerbung", "qualifikationen"
-    ]
-    nl_markers = [
-        "en", "van", "het", "voor", "met", "wij zoeken", "jouw profiel",
-        "functieomschrijving", "stagiair", "nederlands", "opleiding"
-    ]
-    fr_markers = [
-        "le", "la", "les", "des", "dans", "pour", "avec", "stage", "stagiaire",
-        "pfe", "missions", "profil recherché", "ingénieur", "vos missions", "notre équipe"
-    ]
-    en_markers = [
-        "the", "and", "with", "for", "internship", "intern", "responsibilities",
-        "qualifications", "skills", "experience", "about the role", "what you'll do"
-    ]
+    import re
+    title_l = (title or "").lower()
+    combined = f"{title} {desc[:2000]}".lower()
 
-    de_score = sum(1 for m in de_markers if m in combined)
-    nl_score = sum(1 for m in nl_markers if m in combined)
-    fr_score = sum(1 for m in fr_markers if m in combined)
-    en_score = sum(1 for m in en_markers if m in combined)
-
-    if de_score >= 3 and de_score > en_score and de_score > fr_score:
+    # 1. Signaux explicites immédiats dans le titre (100% déterministes)
+    if re.search(r"\b(tirocinio|stage curriculare|ricerca|sviluppatore)\b", title_l):
+        return "it"
+    if re.search(r"\b(prácticas|practicas|beca|becario)\b", title_l):
+        return "es"
+    if re.search(r"\b(praktikum|praktikant|werkstudent|abschlussarbeit|duales|ausbildung|fachinformatiker)\b", title_l):
         return "de"
-    if nl_score >= 3 and nl_score > en_score and nl_score > fr_score:
+    if re.search(r"\b(meeloopstage|afstudeerstage|stagiair|hbo stage)\b", title_l):
         return "nl"
-    if fr_score > en_score and fr_score >= 2:
+    if re.search(r"\b(studentermedhjælper|sommerjob|praktikplads)\b", title_l):
+        return "da"
+    if re.search(r"\b(sommerprosjekt|sommerjobb)\b", title_l):
+        return "no"
+    if re.search(r"\b(diplomové|bakalářské|stáže|praxe)\b", title_l):
+        return "cs"
+    if re.search(r"\b(praktyki|staż|staz)\b", title_l):
+        return "pl"
+
+    def count_words(words):
+        return sum(1 for w in words if re.search(r'\b' + re.escape(w) + r'\b', combined))
+
+    scores = {
+        "de": count_words(["und", "oder", "für", "mit", "ihre aufgaben", "wir suchen", "deine aufgaben", "praktikum", "werkstudent", "anforderungen", "kenntnisse", "bewerbung"]),
+        "nl": count_words(["wij zoeken", "jouw profiel", "functieomschrijving", "stagiair", "afstudeerstage", "nederlands", "opleiding", "ervaring met", "het", "voor"]),
+        "it": count_words(["tirocinio", "ricerca", "siamo", "requisiti", "competenze", "sviluppo", "conoscenza", "lavoro", "presenza", "aziendale", "offerta", "italiano"]),
+        "es": count_words(["prácticas", "practicas", "beca", "buscamos", "requisitos", "funciones", "conocimientos", "experiencia", "español", "empresa", "estudiante"]),
+        "da": count_words(["vi søger", "arbejdsopgaver", "kvalifikationer", "studentermedhjælper", "dansk", "studerende", "erfaring"]),
+        "no": count_words(["vi søker", "sommerprosjekt", "arbeidsoppgaver", "kvalifikasjoner", "norsk", "erfaring"]),
+        "sv": count_words(["vi söker", "arbetsuppgifter", "kvalifikationer", "svenska", "erfarenhet"]),
+        "pl": count_words(["poszukujemy", "wymagania", "obowiązki", "oferujemy", "praktyki", "staż", "polski"]),
+        "cs": count_words(["hledáme", "požadavky", "nabízíme", "diplomové", "stáže", "praxe"]),
+        "fr": count_words(["vos missions", "profil recherché", "stage", "stagiaire", "école d'ingénieurs", "compétences", "développement", "notre équipe", "conception", "apprentissage"]),
+        "en": count_words(["the", "and", "with", "for", "internship", "intern", "responsibilities", "qualifications", "requirements", "skills", "experience", "about the role", "what you'll do"]),
+    }
+
+    # Si une langue non-FR/non-EN obtient un score clair (>= 3) devant EN et FR
+    en_score = scores["en"]
+    fr_score = scores["fr"]
+    for lang in ("de", "nl", "it", "es", "da", "no", "sv", "pl", "cs"):
+        if scores[lang] >= 3 and scores[lang] >= en_score * 0.6 and scores[lang] >= fr_score:
+            return lang
+
+    if fr_score > en_score and fr_score >= 3:
         return "fr"
     return "en"
 
 
 def requires_non_en_fr(text: str = "") -> bool:
-    """Vérifie si l'offre exige l'allemand ou le néerlandais obligatoire."""
+    """Vérifie si l'offre exige une langue non maîtrisée (allemand, néerlandais, italien, espagnol, nordique...)."""
     import re
     t = text.lower()
     patterns = [
-        r"\bfluent in german\b",
-        r"\bgerman is required\b",
-        r"\bgerman language skills\b",
-        r"\bsehr gute deutschkenntnisse\b",
-        r"\bfließend deutsch\b",
-        r"\bdeutschkenntnisse erforderlich\b",
-        r"\bfluent in dutch\b",
-        r"\bdutch is required\b",
-        r"\bnederlands vereist\b",
+        r"\bfluent in german\b", r"\bgerman is required\b", r"\bgerman language skills\b",
+        r"\bsehr gute deutschkenntnisse\b", r"\bfließend deutsch\b", r"\bdeutschkenntnisse erforderlich\b",
+        r"\bfluent in dutch\b", r"\bdutch is required\b", r"\bnederlands vereist\b",
+        r"\bfluent in italian\b", r"\bitalian is required\b", r"\bitalian language\b",
+        r"\bfluent in spanish\b", r"\bspanish is required\b",
+        r"\bfluent in polish\b", r"\bfluent in swedish\b", r"\bfluent in danish\b", r"\bfluent in norwegian\b",
     ]
     return any(re.search(p, t) for p in patterns)
+
+
+def is_relevant_tech_role(title: str = "", desc: str = "") -> Tuple[bool, str]:
+    """
+    Filtre métier strict pour le bot : écarte le support client, content management,
+    SAP/ABAP, mainframe, QA usine, finance/sales/marketing, tout en gardant IA/ML/Vision/Cloud/SE/Data.
+    """
+    import re
+    t = (title or "").lower().strip()
+    combined = f"{title} {desc[:1800]}".lower()
+
+    non_tech_blacklist = [
+        (r"\bcustomer\s+(?:support|success|service)\b", "Support Client / Customer Success"),
+        (r"\bsupport\s+client\b", "Support Client"),
+        (r"\bdigital\s+content\b", "Digital Content Management"),
+        (r"\bcontent\s+management\b", "Content Management"),
+        (r"\bsap\b", "SAP / ERP (hors cible IA/Dev)"),
+        (r"\babap\b", "SAP ABAP"),
+        (r"\bmainframe\b", "Mainframe Finance"),
+        (r"\bbusiness\s+development\b", "Business Development / Sales"),
+        (r"\bbusiness\s+analyst\b", "Business Analyst"),
+        (r"\b(?:financial|finance)\b", "Finance / Comptabilité"),
+        (r"\baccounting\b|\baudit(?:or)?\b", "Comptabilité / Audit"),
+        (r"\bmarketing\b|\bsales\b|\bcommercial\b", "Marketing / Commercial"),
+        (r"\bhuman\s+resources\b|\bhr\s+intern\b|\brecruit(?:er|ment)\b", "Ressources Humaines"),
+        (r"\blegal\b|\bjuriste\b|\bcompliance\b", "Juridique / Compliance"),
+        (r"\bsupply\s+chain\b|\blogistic(?:s|que)\b|\bprocurement\b", "Logistique / Achats"),
+        (r"\bausbildung\b|\bfachinformatiker\b", "Apprentissage lycée allemand (Ausbildung)"),
+        (r"\bquality\s+assurance\b.*\bplant\b|\bplant\b.*\bquality\b", "Qualité Industrielle Usine"),
+        (r"\bux\s+research\b", "UX Research (non technique)"),
+        (r"\binternships\s+in\s+bali\b", "Agence de placement Bali"),
+    ]
+
+    for pat, label in non_tech_blacklist:
+        if re.search(pat, t):
+            # Exception uniquement si le titre contient explicitement AI/ML/Vision Engineer
+            if not re.search(r"\b(ai\s+engineer|machine\s+learning\s+engineer|computer\s+vision|deep\s+learning|mlops)\b", t):
+                return False, label
+
+    # Vérification qu'il s'agit bien d'un rôle technique IA / ML / Vision / Cloud / Software / Data
+    tech_signals = [
+        "ai", "artificial intelligence", "intelligence artificielle", "agentic", "llm", "rag",
+        "machine learning", "deep learning", "computer vision", "machine vision", "nlp",
+        "pytorch", "tensorflow", "python", "data scien", "data engineer", "data analy",
+        "mlops", "cloud", "devops", "software engineer", "software developer",
+        "full stack", "fullstack", "backend", "frontend", "robotics", "autonomous", "neural",
+    ]
+    if any(sig in combined for sig in tech_signals):
+        return True, ""
+    return False, "Aucun signal technique IA/ML/Software détecté"
 
 
 def is_unpaid_offer(desc: str = "") -> Tuple[bool, str]:
@@ -151,7 +230,7 @@ class LinkedInBrowserAgent:
         user_data_dir: Optional[str] = None,
         cookies_path: Optional[str] = None,
         headless: bool = False,
-        phone_number: str = "07 67 56 07 86",
+        phone_number: str = "+33 7 67 56 07 86",
         candidate_name: str = "Badroudine Bacar",
         candidate_email: str = "badroudinebacar@gmail.com",
     ):
@@ -201,7 +280,7 @@ class LinkedInBrowserAgent:
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
             ),
-            locale="fr-FR",
+            locale="en-US",
             timezone_id="Europe/Paris",
             args=launch_args,
         )
@@ -212,7 +291,7 @@ class LinkedInBrowserAgent:
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
             window.navigator.chrome = { runtime: {} };
             Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-            Object.defineProperty(navigator, 'languages', { get: () => ['fr-FR', 'fr', 'en-US', 'en'] });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en', 'fr-FR', 'fr'] });
             """
         )
 
@@ -913,15 +992,16 @@ class LinkedInBrowserAgent:
                 self.human_scroll(min_scrolls=2, max_scrolls=4)
 
             # Clic éventuel sur "Voir plus" / "Show more"
-            show_more = self.page.locator("button.jobs-description__footer-button, button[aria-label*='plus']").first
+            show_more = self.page.locator("button.jobs-description__footer-button, button[aria-label*='more'], button[aria-label*='plus']").first
             if show_more.is_visible():
                 show_more.click()
                 time.sleep(0.5)
 
             for sel in [
+                ".jobs-description-content__text",
+                "#job-details",
                 ".jobs-description__content",
                 ".jobs-box__html-content",
-                "#job-details",
                 ".jobs-description",
                 "article",
                 "main#workspace",
@@ -943,40 +1023,40 @@ class LinkedInBrowserAgent:
             return job
         try:
             # 1. Titre exact
-            for sel in ["h1.job-details-jobs-unified-top-card__job-title", "h1.top-card-layout__title", "h1", ".jobs-unified-top-card__job-title"]:
+            for sel in ["h1.job-details-jobs-unified-top-card__job-title", "h1.top-card-layout__title", ".jobs-unified-top-card__job-title", "h1"]:
                 elem = self.page.locator(sel).first
                 if elem.is_visible():
                     t = elem.inner_text().strip()
-                    if t and len(t) > 3:
+                    if t and 3 < len(t) < 140:
                         job["title"] = t
                         break
 
             # 2. Entreprise exacte
             for sel in [
                 ".job-details-jobs-unified-top-card__company-name a",
-                ".job-details-jobs-unified-top-card__primary-description a",
+                ".job-details-jobs-unified-top-card__company-name",
                 "a.topcard__org-name-link",
+                ".jobs-unified-top-card__company-name a",
                 ".jobs-unified-top-card__company-name",
-                "div[class*='primary-description'] a",
             ]:
                 elem = self.page.locator(sel).first
                 if elem.is_visible():
                     c = elem.inner_text().strip()
-                    if c and len(c) > 1 and not any(w in c.lower() for w in ("intern", "stage", "engineer", "poste")):
+                    if c and 1 < len(c) < 80 and c != job.get("title") and not any(w in c.lower() for w in ("intern", "stage", "engineer", "poste", "thesis")):
                         job["company"] = c
                         break
 
             # 3. Localisation exacte
             for sel in [
+                ".job-details-jobs-unified-top-card__primary-description-container .tvm__text",
                 ".job-details-jobs-unified-top-card__bullet",
-                ".job-details-jobs-unified-top-card__primary-description span:nth-child(2)",
                 "span.topcard__flavor--bullet",
                 ".jobs-unified-top-card__bullet",
             ]:
                 elem = self.page.locator(sel).first
                 if elem.is_visible():
                     l = elem.inner_text().strip()
-                    if l and len(l) > 2:
+                    if l and len(l) > 2 and l != job.get("company") and l != job.get("title"):
                         job["location"] = l
                         break
         except Exception:
@@ -1207,55 +1287,111 @@ class LinkedInBrowserAgent:
             city_inputs = (modal or self.page).locator(
                 "input[id*='city' i], input[name*='city' i], input[placeholder*='ville' i], input[placeholder*='city' i], input[aria-label*='city' i], input[aria-label*='ville' i]"
             ).all()
+            import re as _re
+            raw_loc = _re.sub(r"\(.*?\)", "", str(job_info.get("location", ""))).strip()
+            inferred_city = raw_loc.split(",")[0].strip() if raw_loc else "Zurich"
+            if not inferred_city or len(inferred_city) < 2:
+                inferred_city = "Zurich"
+
             for c_in in city_inputs:
                 try:
                     if c_in.is_visible() and not c_in.input_value():
-                        target_city = "Genève"
-                        c_in.fill(target_city)
+                        c_in.fill(inferred_city)
                         time.sleep(0.8)
                         opt = self.page.locator("div[role='option'], .basic-typeahead__selectable-list li, [class*='typeahead-result']").first
                         if opt.is_visible(timeout=1500):
                             opt.click()
-                            print(f"      📍 Ville renseignée : {target_city}")
+                            print(f"      📍 Ville renseignée : {inferred_city}")
                 except Exception:
                     pass
 
-            # C. Lettre de motivation (textarea)
+            # C. Lettre de motivation / Cover Note (textarea)
+            offer_is_fr = detect_offer_language(title, "") == "fr"
             textareas = (modal or self.page).locator("textarea").all()
             for ta in textareas:
                 try:
                     if ta.is_visible() and not ta.input_value():
-                        snippet = (
-                            f"Madame, Monsieur,\n\n"
-                            f"Actuellement en dernière année d'école d'ingénieurs à l'EILCO (spécialité IA & Machine Learning), "
-                            f"je souhaite vivement rejoindre {company} pour mon stage de fin d'études. "
-                            f"Mon profil en Computer Vision et pipelines RAG est directement aligné avec vos défis techniques.\n\n"
-                            f"Restant à votre entière disposition,\n{self.candidate_name}"
-                        )
+                        if offer_is_fr:
+                            snippet = (
+                                f"Madame, Monsieur,\n\n"
+                                f"Élève-ingénieur en dernière année à l'EILCO (spécialité IA & Machine Learning, TOEIC 905 C1), "
+                                f"je souhaite vivement rejoindre {company} pour mon stage de fin d'études de 6 mois dès mars 2027. "
+                                f"Mon expérience en Computer Vision, pipelines RAG et déploiement FastAPI/Docker correspond directement à vos besoins.\n\n"
+                                f"Cordialement,\n{self.candidate_name} ({self.phone_number})"
+                            )
+                        else:
+                            snippet = (
+                                f"Dear Hiring Team at {company},\n\n"
+                                f"As a final-year MSc AI & Software Engineering student at EILCO (EU Citizen, no visa sponsorship required, TOEIC 905/990 C1), "
+                                f"I am applying for the {title} internship starting March 2027 (6 months). "
+                                f"My hands-on experience building PyTorch Computer Vision models, RAG/LLM pipelines, and FastAPI/Docker microservices aligns directly with your team.\n\n"
+                                f"Best regards,\n{self.candidate_name} ({self.phone_number})"
+                            )
                         ta.fill(snippet)
-                        print("      ✍️ Lettre de motivation insérée dans le champ dédié.")
+                        print("      ✍️ Note de motivation insérée dans le champ dédié.")
                 except Exception:
                     pass
 
-            # D. Upload du CV ou de la Lettre PDF
+            # D. Upload du CV ou de la Lettre PDF + Vérification stricte de sélection radio
             file_inputs = (modal or self.page).locator("input[type='file']").all()
+            expected_cv_base = os.path.basename(cv_pdf_path) if cv_pdf_path else ""
             for f_in in file_inputs:
                 try:
                     p_text = (f_in.locator("xpath=..").inner_text() or "").lower()
                     aria = (f_in.get_attribute("aria-label") or "").lower()
                     combined_info = f"{p_text} {aria}"
 
-                    # Si le champ demande expressément une lettre de motivation
                     if any(w in combined_info for w in ("lettre", "cover", "motivation")):
                         target_file = cover_letter_pdf_path if (cover_letter_pdf_path and os.path.exists(cover_letter_pdf_path)) else cv_pdf_path
                     else:
-                        # Sur LinkedIn Easy Apply, le champ principal d'upload est STRICTEMENT le CV !
                         target_file = cv_pdf_path if (cv_pdf_path and os.path.exists(cv_pdf_path)) else cover_letter_pdf_path
 
                     if target_file and os.path.exists(target_file):
-                        f_in.set_input_files(target_file)
-                        print(f"      📎 Document PDF joint : {os.path.basename(target_file)}")
-                        self.human_delay(1.0, 2.0)
+                        t_base = os.path.basename(target_file)
+                        t_prefix = t_base[:20].lower()
+                        # Ne ré-uploade pas si ce CV exact est déjà présent et coché dans la modale
+                        already_present = False
+                        try:
+                            modal_txt = (modal or self.page).inner_text().lower()
+                            if t_prefix in modal_txt:
+                                already_present = True
+                        except Exception:
+                            pass
+
+                        if not already_present:
+                            f_in.set_input_files(target_file)
+                            print(f"      📎 Upload du PDF en cours : {t_base}...")
+                            # Attente active jusqu'à 6s que LinkedIn affiche la nouvelle carte PDF
+                            for _ in range(12):
+                                time.sleep(0.5)
+                                try:
+                                    if t_prefix in (modal or self.page).inner_text().lower():
+                                        break
+                                except Exception:
+                                    pass
+
+                        # Sélection explicite du bouton radio correspondant au CV cible
+                        if target_file == cv_pdf_path and t_prefix:
+                            try:
+                                cards = (modal or self.page).locator(
+                                    ".jobs-document-upload-redesign-card__container, div[class*='document-upload'], label, fieldset div"
+                                ).all()
+                                for card in cards:
+                                    try:
+                                        ctxt = (card.inner_text() or "").lower()
+                                        if t_prefix in ctxt:
+                                            r_btn = card.locator("input[type='radio'], input[type='checkbox']").first
+                                            if r_btn.count() > 0:
+                                                if not r_btn.is_checked():
+                                                    card.click(force=True, timeout=2000)
+                                                    r_btn.check(force=True)
+                                                print(f"      ✅ CV cible vérifié & sélectionné : {t_base}")
+                                                break
+                                    except Exception:
+                                        continue
+                            except Exception:
+                                pass
+                        self.human_delay(0.8, 1.5)
                 except Exception as up_err:
                     print(f"      ⚠️ Note upload: {up_err}")
 
@@ -1455,10 +1591,37 @@ class LinkedInBrowserAgent:
 
             # F. Détection de l'état final : Bouton "Envoyer la candidature" / "Submit application"
             submit_btn = (modal or self.page).locator(
-                "button:has-text('Envoyer la candidature'), button:has-text('Submit application'), button[aria-label*='Envoyer']"
+                "button:has-text('Envoyer la candidature'), button:has-text('Submit application'), button[aria-label='Envoyer la candidature'], button[aria-label='Submit application']"
             ).first
 
             if submit_btn.is_visible():
+                # Garde-fou anti-erreur CV : vérifier qu'un CV d'une autre entreprise n'est pas coché par erreur
+                if expected_cv_base:
+                    expected_prefix = expected_cv_base[:18].lower()
+                    try:
+                        checked_radios = (modal or self.page).locator("input[type='radio']:checked").all()
+                        for cr in checked_radios:
+                            c_txt = ""
+                            try:
+                                c_txt = (cr.locator("xpath=ancestor::div[contains(@class,'document-upload') or contains(@class,'jobs-document')][1]").inner_text() or "").lower()
+                            except Exception:
+                                pass
+                            if "cv_badroudine_bacar_" in c_txt and expected_prefix not in c_txt:
+                                print(f"   🛑 [Garde-fou CV] LinkedIn a gardé un ancien CV sélectionné ({c_txt.splitlines()[0][:40]}) au lieu de {expected_cv_base}. Annulation par sécurité !")
+                                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                                clean_comp = "".join(c for c in company if c.isalnum() or c in ('_', '-'))
+                                screenshot_path = os.path.join(screenshots_dir, f"linkedin_easyapply_wrongcv_{clean_comp}_{timestamp}.png")
+                                self.page.screenshot(path=screenshot_path, full_page=True)
+                                self._dismiss_modal()
+                                return {
+                                    "success": False,
+                                    "status": "action_manuelle_requise",
+                                    "screenshot": screenshot_path,
+                                    "error": f"CV cible non sélectionné sur Easy Apply (ancien CV détecté au lieu de {expected_cv_base})",
+                                }
+                    except Exception:
+                        pass
+
                 print("   🎯 Écran final de vérification atteint !")
                 # Capture d'écran pré-soumission
                 timestamp = time.strftime("%Y%m%d_%H%M%S")

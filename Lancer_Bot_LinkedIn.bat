@@ -12,7 +12,7 @@ echo ====================================================================
 echo    ResumeSquad - Agent Autonome LinkedIn [Mode Volume Europe + UE]
 echo    Couverture : Toute l'Union Europeenne + Suisse [France Exclue - EILCO]
 echo    Priorite   : IA / Agentic / Vision / ML / Cloud / Dev / Data
-echo    Filtres    : Anglais Uniquement, Offres Remunerees, Concurrence max 10
+echo    Filtres    : Anglais Uniquement, Offres Remunerees, Concurrence max 35
 echo ====================================================================
 
 rem 1. Verification de Python (support python et py launcher)
@@ -65,9 +65,9 @@ if "%HAS_SESSION%"=="0" (
 )
 
 echo.
-echo  [1] Mode Volume MAX Europe + UE [Priorite IA vers Data, 25 offres, 24h, Remunere, Anglais, Easy Apply + ATS]
-echo  [2] Mode Easy Apply Exclusif Europe [100%% sur LinkedIn, 24h, Priorite IA vers Data, max 10 candidats]
-echo  [3] Mode Cible Suisse + Luxembourg [25 offres, 24h, Priorite IA vers Data, Remunere]
+echo  [1] Mode Volume MAX Europe + UE [Priorite IA vers Data, 25 offres, 24h auto-7j, Remunere, Anglais]
+echo  [2] Mode Easy Apply Exclusif Europe [100%% sur LinkedIn, 24h auto-7j, Priorite IA vers Data, max 35 clics]
+echo  [3] Mode Cible Suisse + Luxembourg [25 offres, 7 jours, Priorite IA vers Data, max 35 clics]
 echo  [4] Mode Simulation Dry-Run Europe [Sans envoi reel, audit des formulaires et offres]
 echo  [5] Connexion Manuelle / Verification Session LinkedIn [Fenetre ouverte]
 echo  [6] Lancer le Dashboard Web [Next.js sur http://localhost:3000]
@@ -79,32 +79,32 @@ set /p choice="Votre choix (1-8) : "
 
 if "%choice%"=="1" (
     echo.
-    echo [*] Lancement du Mode Volume MAX Europe + UE [Priorite P1-P8, 25 candidatures, 24h, max 10 candidats, Anglais, Remunere]...
-    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Europe" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Volume MAX Europe + UE [Priorite P1-P8, 25 candidatures, max 35 clics, Anglais, Remunere]...
+    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Europe" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 35
     echo.
     pause
     goto menu
 )
 if "%choice%"=="2" (
     echo.
-    echo [*] Lancement du Mode Easy Apply Exclusif Europe [24h, Priorite P1-P8, max 10 candidats, Anglais, Remunere]...
-    %PY_CMD% backend\run_linkedin_easy_apply.py --once --location "Europe" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Easy Apply Exclusif Europe [Priorite P1-P8, max 35 clics, Anglais, Remunere]...
+    %PY_CMD% backend\run_linkedin_easy_apply.py --once --location "Europe" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 35
     echo.
     pause
     goto menu
 )
 if "%choice%"=="3" (
     echo.
-    echo [*] Lancement du Mode Cible Suisse + Luxembourg [Priorite P1-P8, 25 candidatures, 24h, max 10 candidats]...
-    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --keywords "all" --time-filter 24h --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement du Mode Cible Suisse + Luxembourg [7 jours, Priorite P1-P8, 25 candidatures, max 35 clics]...
+    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Suisse" --keywords "all" --time-filter week --max-apps 25 --turbo --exclude-france --under-10-applicants --max-applicants 35
     echo.
     pause
     goto menu
 )
 if "%choice%"=="4" (
     echo.
-    echo [*] Lancement en mode simulation Dry-Run Europe [Sans envoi reel, 24h, max 10 candidats, Anglais, Remunere]...
-    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Europe" --keywords "all" --time-filter 24h --dry-run --exclude-france --under-10-applicants --max-applicants 10
+    echo [*] Lancement en mode simulation Dry-Run Europe [Sans envoi reel, max 35 clics, Anglais, Remunere]...
+    %PY_CMD% backend\run_linkedin_easy_apply.py --once --all-jobs --location "Europe" --keywords "all" --time-filter 24h --dry-run --exclude-france --under-10-applicants --max-applicants 35
     echo.
     pause
     goto menu

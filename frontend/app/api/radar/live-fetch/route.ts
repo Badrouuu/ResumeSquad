@@ -40,7 +40,7 @@ function formatTimeAgo(raw: string): string {
 async function fetchLinkedInGuestJobs(
   keywords: string,
   location: string,
-  country: "Suisse" | "Luxembourg" | "Belgique" | "Allemagne",
+  country: "Suisse" | "Luxembourg" | "Belgique" | "Allemagne" | "International",
   countryFlag: string,
   fTpr: string
 ): Promise<RadarJobOffer[]> {
@@ -48,8 +48,8 @@ async function fetchLinkedInGuestJobs(
   try {
     const encodedKeywords = encodeURIComponent(keywords);
     const encodedLocation = encodeURIComponent(location);
-    // sortBy=DD force le tri par date, f_TPR restreint la fenêtre, f_EA=true filtre pour <= 10 candidats
-    const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}&f_EA=true&start=0`;
+    // sortBy=DD force le tri par date, f_TPR restreint la fenêtre temporelle
+    const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodedKeywords}&location=${encodedLocation}&sortBy=DD&f_TPR=${fTpr}&start=0`;
 
     const res = await fetch(url, {
       headers: {
@@ -153,7 +153,7 @@ async function fetchLinkedInGuestJobs(
 
         // Extraction et estimation du nombre de candidats actuels (strictement <= 10)
         const { count: applicantsCount } = extractApplicantsCount(`${rawTitle} ${cardText}`, formattedDate);
-        if (applicantsCount > 10) continue;
+        if (applicantsCount > 35) continue;
 
         // Déduction dynamique des compétences techniques
         const lower = rawTitle.toLowerCase();
@@ -225,7 +225,7 @@ Source : Flux LinkedIn Jobs trié du plus récent au plus ancien.`,
 
         if (!isTechAiDomain(rawTitle, rawCompany)) continue;
         const { count: applicantsCount } = extractApplicantsCount(rawTitle, formattedDate);
-        if (applicantsCount > 10) continue;
+        if (applicantsCount > 35) continue;
 
         offers.push({
           id: `live-linkedin-${country.toLowerCase()}-${i}-${rawCompany.slice(0, 10).replace(/[^a-z0-9]/gi, "").toLowerCase()}`,
@@ -291,6 +291,12 @@ export async function fetchLiveRadarOffers(timeframeParam: string = "7d"): Promi
     fetchLinkedInGuestJobs('"Computer Vision" Intern', "Munich", "Allemagne", "🇩🇪", fTpr),
     fetchLinkedInGuestJobs('"Machine Vision" Intern', "Germany", "Allemagne", "🇩🇪", fTpr),
     fetchLinkedInGuestJobs('"Deep Learning" Intern', "Germany", "Allemagne", "🇩🇪", fTpr),
+    // Pays-Bas, Suède, Irlande (Hubs IA anglophones UE)
+    fetchLinkedInGuestJobs('"Machine Learning" Intern', "Netherlands", "International", "🇳🇱", fTpr),
+    fetchLinkedInGuestJobs('"AI" Intern', "Amsterdam", "International", "🇳🇱", fTpr),
+    fetchLinkedInGuestJobs('"Computer Vision" Intern', "Sweden", "International", "🇸🇪", fTpr),
+    fetchLinkedInGuestJobs('"Machine Learning" Intern', "Stockholm", "International", "🇸🇪", fTpr),
+    fetchLinkedInGuestJobs('"Machine Learning" Intern', "Dublin", "International", "🇮🇪", fTpr),
     // SwissDevJobs API
     (async () => {
       const res = await fetch("https://swissdevjobs.ch/api/jobsLight", {

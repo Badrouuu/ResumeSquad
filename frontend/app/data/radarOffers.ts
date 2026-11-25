@@ -141,6 +141,9 @@ export function detectOfferLanguage(
 
   // En cas de texte succinct (titre seul)
   const titleLower = title.toLowerCase();
+  if (/\b(tirocinio|prácticas|practicas|beca|sommerprosjekt|diplomové|bakalářské|studentermedhjælper|meeloopstage|afstudeerstage|duales|ausbildung|fachinformatiker)\b/i.test(titleLower)) {
+    return "other";
+  }
   if (/\b(stage|pfe|ingénieur|alternant|alternance)\b/i.test(titleLower)) return "fr";
   if (/\b(praktikum|praktikant|werkstudent|abschlussarbeit)\b/i.test(titleLower)) return "de";
   if (/\b(stagiair|afstudeerstage)\b/i.test(titleLower)) return "nl";
@@ -365,6 +368,13 @@ export function isTechAiDomain(
     /\bhelpdesk\b/i,
     /\boffice manager\b/i,
     /\badministrat(?:ion|if|ive)\b/i,
+    /\bsap\b/i,
+    /\babap\b/i,
+    /\bmainframe\b/i,
+    /\bdigital content\b/i,
+    /\bcontent management\b/i,
+    /\bux research\b/i,
+    /\binternships in bali\b/i,
   ];
 
   for (const regex of nonTechBlacklist) {

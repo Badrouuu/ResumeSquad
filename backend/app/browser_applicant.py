@@ -68,17 +68,20 @@ def load_profile() -> dict:
                 parts = basics.get("name", "Badroudine Bacar").split()
                 first_name = parts[0] if parts else "Badroudine"
                 last_name = " ".join(parts[1:]) if len(parts) > 1 else "Bacar"
+                raw_phone = basics.get("phone", "+33 7 67 56 07 86").strip()
+                if raw_phone.startswith("0") and len(raw_phone.replace(" ", "")) == 10:
+                    raw_phone = "+33 " + raw_phone[1:]
                 return {
                     "first_name": first_name,
                     "last_name": last_name,
                     "full_name": basics.get("name", "Badroudine Bacar"),
                     "email": basics.get("email", "badroudinebacar@gmail.com"),
-                    "phone": basics.get("phone", "+33 6 12 34 56 78"),
-                    "location": basics.get("location", "France (Mobilité Suisse, Luxembourg, Belgique)"),
+                    "phone": raw_phone,
+                    "location": basics.get("location", "France (Full EU & Switzerland Mobility)"),
                     "linkedin": basics.get("linkedin", "https://www.linkedin.com/in/badroudine-bacar/"),
                     "github": basics.get("github", "https://github.com/Badrouuu"),
-                    "school": "EILCO (École d'Ingénieurs du Littoral Côte d'Opale)",
-                    "degree": "Diplôme d'Ingénieur Informatique — Spécialité IA & Machine Learning",
+                    "school": "EILCO (Graduate School of Engineering)",
+                    "degree": "MSc / Engineering Degree in Computer Science — AI Track",
                     "summary": basics.get("summary", ""),
                 }
         except Exception as e:
@@ -89,21 +92,32 @@ def load_profile() -> dict:
         "last_name": "Bacar",
         "full_name": "Badroudine Bacar",
         "email": "badroudinebacar@gmail.com",
-        "phone": "+33 6 12 34 56 78",
-        "location": "France (Mobilité Suisse, Luxembourg, Belgique)",
+        "phone": "+33 7 67 56 07 86",
+        "location": "France (Full EU & Switzerland Mobility)",
         "linkedin": "https://www.linkedin.com/in/badroudine-bacar/",
         "github": "https://github.com/Badrouuu",
         "school": "EILCO",
-        "degree": "Diplôme d'Ingénieur en Informatique — Parcours IA",
-        "summary": "Élève-Ingénieur en IA, Machine Learning et Vision par Ordinateur à l'EILCO.",
+        "degree": "MSc / Engineering Degree in Computer Science — AI Track",
+        "summary": "Final-year AI & Machine Learning MSc Engineering Student at EILCO.",
     }
 
 
 def ensure_cv_pdf(page: Page, profile: dict) -> Path:
-    """Garantit l'existence d'un CV PDF élégant pour le téléversement."""
+    """Garantit l'existence d'un CV PDF 1-page A4 en anglais à jour pour le téléversement."""
     cv_path = OUTPUT_DIR / "CV_Badroudine_Bacar.pdf"
     if cv_path.exists() and cv_path.stat().st_size > 1000:
         return cv_path
+
+    try:
+        from app.linkedin_automation.gemini_agent import GeminiCoverLetterGenerator
+        gen = GeminiCoverLetterGenerator()
+        d = gen._fallback_cv_data("AI Machine Learning Computer Vision PyTorch FastAPI Docker", "AI & Machine Learning Engineer Intern", "Target", "en")
+        gen.export_tailored_cv_pdf(d, str(cv_path), "en")
+        if cv_path.exists() and cv_path.stat().st_size > 1000:
+            print(f"✅ CV PDF A4 généré : {cv_path}")
+            return cv_path
+    except Exception:
+        pass
 
     print("📄 Génération instantanée d'un CV PDF au format A4 exécutif...")
     html_content = f"""<!DOCTYPE html>
@@ -369,11 +383,19 @@ def prompt_operator_decision(
 
 
 def fill_input(page: Page, selectors: list, value: str, field_name: str, filled_list: list) -> bool:
-    """Tente de trouver et remplir un champ de saisie texte."""
+    """Tente de trouver et remplir un champ de saisie texte (en excluant les barres de recherche/filtres)."""
     for sel in selectors:
         try:
             locator = page.locator(sel).first
             if locator.count() > 0 and locator.is_visible():
+                is_search_or_nav = locator.evaluate("""el => {
+                    const attr = ((el.name || '') + ' ' + (el.id || '') + ' ' + (el.placeholder || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+                    if (/search|keyword|query|filter|alert|recherch/.test(attr)) return true;
+                    if (el.closest('header, nav, [role="search"], form[action*="search" i]')) return true;
+                    return false;
+                }""")
+                if is_search_or_nav:
+                    continue
                 locator.click(timeout=1500)
                 locator.fill(value, timeout=2000)
                 filled_list.append({"label": field_name, "value": value})
@@ -589,16 +611,32 @@ def run_browser_applicant(
             except Exception:
                 continue
 
-        # Détection rapide de barrière de compte / mot de passe / captcha / Workday
+        clean_comp = "".join(c for c in company if c.isalnum() or c in ("-", "_")).lower() or "company"
+        cv_filename_early = os.path.basename(str(cv_pdf_path)) if cv_pdf_path else "CV_Badroudine_Bacar.pdf"
+
+        # Détection rapide de barrière de compte / mot de passe / captcha / Workday / Postuler par email
         is_barrier = False
         barrier_reason = ""
+        body_text_lower = ""
+        try:
+            body_text_lower = page.inner_text("body").lower() if page.locator("body").count() > 0 else ""
+        except Exception:
+            pass
+
         if page.locator('input[type="password"]').count() > 0:
             is_barrier = True
             barrier_reason = "Création de compte / Mot de passe obligatoire (Workday ou portail sécurisé)"
         elif page.locator('iframe[src*="recaptcha"], iframe[src*="hcaptcha"], div.g-recaptcha, div.h-captcha').count() > 0:
             is_barrier = True
             barrier_reason = "Captcha tiers détecté"
-        elif "create account" in (page.inner_text("body").lower() if page.locator("body").count() > 0 else ""):
+        elif "postuler par e-mail" in body_text_lower or "apply by email" in body_text_lower or page.locator('a[href^="mailto:"]').count() > 0:
+            import re as _re
+            mail_m = _re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", body_text_lower)
+            found_mail = mail_m.group(0) if mail_m else "adresse recruteur"
+            if page.locator('input[type="file"]').count() == 0:
+                is_barrier = True
+                barrier_reason = f"Postulation par e-mail directe requise ({found_mail})"
+        elif "create account" in body_text_lower:
             is_barrier = True
             barrier_reason = "Création de compte requise"
 
@@ -622,6 +660,7 @@ def run_browser_applicant(
                         portal_url=page.url,
                         reason=barrier_reason,
                         screenshot_path=str(barrier_screenshot),
+                        cv_name=cv_filename_early,
                     )
                 except Exception as de:
                     print(f"   ℹ️ Note Discord: {de}")
@@ -878,29 +917,77 @@ def run_browser_applicant(
         result_status = "valide_non_soumis"
         post_screenshot_path = None
 
-        if should_submit:
+        if should_submit and len(filled_fields) >= 2:
             print("\n🚀 Clic sur le bouton de soumission finale...")
             submit_selectors = [
-                'button[type="submit"]',
                 'button:has-text("Submit Application")',
                 'button:has-text("Submit application")',
                 'button:has-text("Envoyer la candidature")',
-                'button:has-text("Postuler")',
                 'button:has-text("Soumettre")',
+                'button[type="submit"]',
                 'input[type="submit"]',
             ]
             submitted = False
+            clicked_btn = None
+            pre_submit_url = page.url
+
             for sel in submit_selectors:
                 try:
-                    loc = page.locator(sel).first
-                    if loc.count() > 0 and loc.is_visible():
+                    candidates = page.locator(sel).all()
+                    for loc in candidates:
+                        if not loc.is_visible():
+                            continue
+                        is_bad_btn = loc.evaluate("""el => {
+                            const txt = ((el.innerText || '') + ' ' + (el.value || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+                            if (/search|filter|recherch|login|sign in|alert|cookie|accept|decline/.test(txt)) return true;
+                            if (el.closest('header, nav, [role="search"], form[action*="search" i]')) return true;
+                            return false;
+                        }""")
+                        if is_bad_btn:
+                            continue
                         print(f"   👉 Clic sur : {sel}")
                         loc.click(timeout=5000)
+                        clicked_btn = loc
                         submitted = True
                         time.sleep(3.5)
                         break
+                    if submitted:
+                        break
                 except Exception:
                     continue
+
+            # Vérification post-soumission stricte : pas d'erreurs de validation rouges ni de formulaire bloqué
+            post_fail_reason = ""
+            if submitted:
+                try:
+                    has_invalid = page.evaluate("""() => {
+                        const invalids = document.querySelectorAll('input:invalid, textarea:invalid, select:invalid, [aria-invalid="true"]');
+                        for (const el of invalids) {
+                            if (el.offsetParent !== null) return true;
+                        }
+                        return false;
+                    }""")
+                    post_body = (page.inner_text("body") or "").lower()
+                    error_phrases = [
+                        "enter a valid international phone",
+                        "veuillez renseigner ce champ",
+                        "is required",
+                        "please fill in",
+                        "ce champ est obligatoire",
+                        "invalid phone number",
+                    ]
+                    matched_err = next((ep for ep in error_phrases if ep in post_body), None)
+
+                    if has_invalid or matched_err:
+                        submitted = False
+                        post_fail_reason = f"Erreur de validation du formulaire ({matched_err or 'champs obligatoires manquants'})"
+                    elif page.url == pre_submit_url and clicked_btn is not None:
+                        confirm_words = ["thank you", "application received", "application submitted", "successfully submitted", "candidature envoyée", "merci pour votre candidature"]
+                        if not any(cw in post_body for cw in confirm_words) and page.locator('input[type="file"]').count() > 0:
+                            submitted = False
+                            post_fail_reason = "Formulaire toujours affiché après clic (soumission non confirmée)"
+                except Exception:
+                    pass
 
             if submitted:
                 result_status = "candidature_envoyee"
@@ -930,8 +1017,14 @@ def run_browser_applicant(
                     except Exception:
                         pass
             else:
-                fail_reason = "Bouton de soumission introuvable ou compte requis (action manuelle)"
+                fail_reason = post_fail_reason or "Bouton de soumission introuvable ou compte requis (action manuelle)"
                 print(f"⚠️ {fail_reason}. Envoi de l'alerte Discord avec lien direct...")
+                fail_shot = SCREENSHOTS_DIR / f"failed_submit_{clean_comp}_{timestamp}.png"
+                try:
+                    page.screenshot(path=str(fail_shot), full_page=True)
+                    screenshot_path = fail_shot
+                except Exception:
+                    pass
                 if webhook_url:
                     try:
                         from app.linkedin_automation.discord_notifier import DiscordNotifier
@@ -950,7 +1043,27 @@ def run_browser_applicant(
                         print(f"   ℹ️ Note Discord: {de}")
                 time.sleep(2)
         else:
-            print(f"🛡️ Envoi annulé. La candidature n'a pas été soumise.")
+            if should_submit and len(filled_fields) < 2:
+                fail_reason = f"Trop peu de champs détectés ({len(filled_fields)} champ) : action manuelle requise sur le portail"
+                print(f"⚠️ {fail_reason}")
+                if webhook_url:
+                    try:
+                        from app.linkedin_automation.discord_notifier import DiscordNotifier
+                        dn = DiscordNotifier(webhook_url=webhook_url)
+                        dn.notify_manual_action_required(
+                            company=company,
+                            title=title,
+                            location="",
+                            job_url=url,
+                            portal_url=page.url,
+                            reason=fail_reason,
+                            screenshot_path=str(screenshot_path),
+                            cv_name=cv_filename,
+                        )
+                    except Exception:
+                        pass
+            else:
+                print(f"🛡️ Envoi annulé. La candidature n'a pas été soumise.")
 
         if not headless and not should_submit:
             print("💡 La fenêtre de navigation reste ouverte 10 secondes pour consultation...")
