@@ -595,7 +595,7 @@ class LinkedInBrowserAgent:
         encoded_kw = urllib.parse.quote(keywords)
         encoded_loc = urllib.parse.quote(location)
         al_param = "&f_AL=true" if easy_apply_only else ""
-        ea_param = "&f_EA=true" if under_10_applicants else ""
+        ea_param = "&f_EA=true" if (under_10_applicants and max_applicants_threshold <= 10) else ""
 
         # Paramètre temporel LinkedIn (24h = r86400, semaine = r604800)
         tpr_param = ""
@@ -762,46 +762,64 @@ class LinkedInBrowserAgent:
                         print(f"   🚫 [Filtre Concurrence] Écartée dès la recherche : {reported_count} candidats/clics (> {max_applicants_threshold}).")
                         continue
 
-                lines = [
+                raw_lines = [
                     l.strip()
                     for l in full_text.split("\n")
-                    if l.strip() and not l.strip().startswith("Consulté") and not l.strip().startswith("Promu")
+                    if l.strip() and not l.strip().startswith("Consulté") and not l.strip().startswith("Promu") and not l.strip().startswith("Viewed") and not l.strip().startswith("Promoted")
                 ]
+                lines = []
+                for l in raw_lines:
+                    clean_l = re.sub(r"\s*\((?:offre d’emploi vérifiée|verified job)\)", "", l, flags=re.IGNORECASE).strip()
+                    if clean_l and clean_l not in lines:
+                        lines.append(clean_l)
 
                 # Titre précis
                 clean_title = ""
                 try:
                     title_elem = card.locator(".job-card-list__title--link, a.job-card-container__link, [data-control-name='job_card_title'], strong").first
                     if title_elem.count() > 0:
-                        clean_title = title_elem.inner_text().strip()
+                        clean_title = re.sub(r"\s*\((?:offre d’emploi vérifiée|verified job)\)", "", title_elem.inner_text().strip(), flags=re.IGNORECASE).strip()
                 except Exception:
                     pass
                 if not clean_title:
                     raw_title = lines[0] if lines else "Poste IA / Data"
-                    clean_title = re.sub(r"^(Sélectionné,\s*|Nouveau\s*|Recherche\s*)", "", raw_title, flags=re.IGNORECASE)
-                    clean_title = re.sub(r"\(offre d’emploi vérifiée\)", "", clean_title, flags=re.IGNORECASE).strip()
+                    clean_title = re.sub(r"^(Sélectionné,\s*|Nouveau\s*|Recherche\s*)", "", raw_title, flags=re.IGNORECASE).strip()
 
                 # Entreprise précise
                 company = ""
                 try:
                     comp_elem = card.locator(".artdeco-entity-lockup__subtitle, .job-card-container__primary-description, [class*='company-name']").first
                     if comp_elem.count() > 0:
-                        company = comp_elem.inner_text().strip()
+                        cand_comp = comp_elem.inner_text().strip()
+                        if cand_comp and cand_comp.lower() != clean_title.lower():
+                            company = cand_comp
                 except Exception:
                     pass
                 if not company:
-                    company = lines[1] if len(lines) > 1 else "Entreprise Internationale"
+                    for l in lines[1:]:
+                        if l.lower() != clean_title.lower():
+                            company = l
+                            break
+                    if not company:
+                        company = "Entreprise Internationale"
 
                 # Localisation précise
                 loc = ""
                 try:
                     loc_elem = card.locator(".artdeco-entity-lockup__caption, .job-card-container__metadata-item, [class*='job-card-container__metadata']").first
                     if loc_elem.count() > 0:
-                        loc = loc_elem.inner_text().strip()
+                        cand_loc = loc_elem.inner_text().strip()
+                        if cand_loc and cand_loc.lower() != company.lower() and cand_loc.lower() != clean_title.lower():
+                            loc = cand_loc
                 except Exception:
                     pass
                 if not loc:
-                    loc = lines[2] if len(lines) > 2 else location
+                    for l in lines[2:]:
+                        if l.lower() != company.lower() and l.lower() != clean_title.lower():
+                            loc = l
+                            break
+                    if not loc:
+                        loc = location
 
                 # 3. Filtre EILCO Mobilité Internationale (Interdiction de postuler en France)
                 if exclude_france and (is_france_location(loc) or is_france_location(clean_title)):
@@ -1031,20 +1049,30 @@ class LinkedInBrowserAgent:
                         job["title"] = t
                         break
 
-            # 2. Entreprise exacte
+            # 2. Entreprise exacte (priorité aux liens /company/ qui pointent toujours vers l'employeur réel)
             for sel in [
                 ".job-details-jobs-unified-top-card__company-name a",
                 ".job-details-jobs-unified-top-card__company-name",
+                "main a[href*='/company/']",
+                "a[href*='/company/']",
                 "a.topcard__org-name-link",
                 ".jobs-unified-top-card__company-name a",
                 ".jobs-unified-top-card__company-name",
             ]:
-                elem = self.page.locator(sel).first
-                if elem.is_visible():
-                    c = elem.inner_text().strip()
-                    if c and 1 < len(c) < 80 and c != job.get("title") and not any(w in c.lower() for w in ("intern", "stage", "engineer", "poste", "thesis")):
-                        job["company"] = c
-                        break
+                elems = self.page.locator(sel).all()
+                matched_comp = False
+                for elem in elems[:5]:
+                    try:
+                        if elem.is_visible():
+                            c = elem.inner_text().strip()
+                            if c and 1 < len(c) < 80 and c.lower() != (job.get("title") or "").lower() and not any(w in c.lower() for w in ("intern", "stage", "engineer", "poste", "thesis", "developer")):
+                                job["company"] = c
+                                matched_comp = True
+                                break
+                    except Exception:
+                        continue
+                if matched_comp:
+                    break
 
             # 3. Localisation exacte
             for sel in [
@@ -1334,7 +1362,32 @@ class LinkedInBrowserAgent:
 
             # D. Upload du CV ou de la Lettre PDF + Vérification stricte de sélection radio
             file_inputs = (modal or self.page).locator("input[type='file']").all()
+            if not file_inputs:
+                file_inputs = self.page.locator("dialog input[type='file'], .artdeco-modal input[type='file'], input[type='file']").all()
             expected_cv_base = os.path.basename(cv_pdf_path) if cv_pdf_path else ""
+
+            # Fallback FileChooser si LinkedIn masque l'<input type='file'> derrière un bouton 'Importer un CV' / 'Upload resume'
+            if not file_inputs and cv_pdf_path and os.path.exists(cv_pdf_path):
+                try:
+                    m_txt_low = (modal or self.page).inner_text().lower()
+                    t_base = os.path.basename(cv_pdf_path)
+                    t_prefix = t_base[:20].lower()
+                    if any(w in m_txt_low for w in ("resume", "importer un cv", "upload resume", "téléversez", "cv")) and t_prefix not in m_txt_low:
+                        up_btn = (modal or self.page).locator(
+                            "button:has-text('Importer un CV'), label:has-text('Importer un CV'), button:has-text('Upload resume'), label:has-text('Upload resume'), button[aria-label*='resume' i], button[aria-label*='cv' i]"
+                        ).first
+                        if up_btn.count() > 0 and up_btn.is_visible():
+                            with self.page.expect_file_chooser(timeout=4000) as fc_info:
+                                up_btn.click(timeout=3000)
+                            fc_info.value.set_files(cv_pdf_path)
+                            print(f"      📎 Upload via FileChooser : {t_base}...")
+                            for _ in range(12):
+                                time.sleep(0.5)
+                                if t_prefix in (modal or self.page).inner_text().lower():
+                                    break
+                except Exception:
+                    pass
+
             for f_in in file_inputs:
                 try:
                     p_text = (f_in.locator("xpath=..").inner_text() or "").lower()
@@ -1595,9 +1648,10 @@ class LinkedInBrowserAgent:
             ).first
 
             if submit_btn.is_visible():
-                # Garde-fou anti-erreur CV : vérifier qu'un CV d'une autre entreprise n'est pas coché par erreur
+                # Garde-fou anti-erreur CV : vérifier sur les radios ET sur le texte de l'écran Récapitulatif (4/4)
                 if expected_cv_base:
                     expected_prefix = expected_cv_base[:18].lower()
+                    wrong_cv_detected = ""
                     try:
                         checked_radios = (modal or self.page).locator("input[type='radio']:checked").all()
                         for cr in checked_radios:
@@ -1607,20 +1661,31 @@ class LinkedInBrowserAgent:
                             except Exception:
                                 pass
                             if "cv_badroudine_bacar_" in c_txt and expected_prefix not in c_txt:
-                                print(f"   🛑 [Garde-fou CV] LinkedIn a gardé un ancien CV sélectionné ({c_txt.splitlines()[0][:40]}) au lieu de {expected_cv_base}. Annulation par sécurité !")
-                                timestamp = time.strftime("%Y%m%d_%H%M%S")
-                                clean_comp = "".join(c for c in company if c.isalnum() or c in ('_', '-'))
-                                screenshot_path = os.path.join(screenshots_dir, f"linkedin_easyapply_wrongcv_{clean_comp}_{timestamp}.png")
-                                self.page.screenshot(path=screenshot_path, full_page=True)
-                                self._dismiss_modal()
-                                return {
-                                    "success": False,
-                                    "status": "action_manuelle_requise",
-                                    "screenshot": screenshot_path,
-                                    "error": f"CV cible non sélectionné sur Easy Apply (ancien CV détecté au lieu de {expected_cv_base})",
-                                }
+                                wrong_cv_detected = c_txt.splitlines()[0][:45]
+                                break
+
+                        if not wrong_cv_detected:
+                            import re as _re_cv
+                            review_txt = (modal or self.page).inner_text().lower()
+                            cv_mentions = _re_cv.findall(r"cv_badroudine_bacar_[a-z0-9_]+", review_txt)
+                            if cv_mentions and expected_prefix not in review_txt:
+                                wrong_cv_detected = cv_mentions[0]
                     except Exception:
                         pass
+
+                    if wrong_cv_detected:
+                        print(f"   🛑 [Garde-fou CV] LinkedIn affiche un ancien CV ({wrong_cv_detected}) au lieu de {expected_cv_base}. Annulation par sécurité !")
+                        timestamp = time.strftime("%Y%m%d_%H%M%S")
+                        clean_comp = "".join(c for c in company if c.isalnum() or c in ('_', '-'))
+                        screenshot_path = os.path.join(screenshots_dir, f"linkedin_easyapply_wrongcv_{clean_comp}_{timestamp}.png")
+                        self.page.screenshot(path=screenshot_path, full_page=True)
+                        self._dismiss_modal()
+                        return {
+                            "success": False,
+                            "status": "action_manuelle_requise",
+                            "screenshot": screenshot_path,
+                            "error": f"CV cible non sélectionné sur Easy Apply ({wrong_cv_detected} au lieu de {expected_cv_base})",
+                        }
 
                 print("   🎯 Écran final de vérification atteint !")
                 # Capture d'écran pré-soumission

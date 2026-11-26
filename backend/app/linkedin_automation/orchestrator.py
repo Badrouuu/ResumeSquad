@@ -32,14 +32,14 @@ from .discord_notifier import DiscordNotifier
 # Ordre strict de priorité des domaines d'opportunités (Demandé par l'utilisateur) :
 # 1. IA -> 2. Agentic -> 3. Computer Vision -> 4. ML -> 5. Cloud -> 6. Software Eng -> 7. Full Stack / Backend -> 8. Data
 DOMAIN_PRIORITIES = [
-    {"prio": 1, "domain": "IA / Intelligence Artificielle", "kw": '"Artificial Intelligence" Intern English'},
-    {"prio": 2, "domain": "Agentic AI / LLM Agents", "kw": '"Agentic" OR "AI Agents" Intern English'},
-    {"prio": 3, "domain": "Computer Vision", "kw": '"Computer Vision" Intern English'},
-    {"prio": 4, "domain": "Machine Learning & Deep Learning", "kw": '"Machine Learning" OR "Deep Learning" Intern English'},
-    {"prio": 5, "domain": "Cloud & MLOps & Déploiement", "kw": '"Cloud" OR "DevOps" OR "MLOps" Intern English'},
-    {"prio": 6, "domain": "Software Engineering (Python / C++)", "kw": '"Software Engineer" OR "Python Developer" Intern English'},
-    {"prio": 7, "domain": "Full Stack / Backend / Frontend", "kw": '"Full Stack" OR "Backend" OR "Frontend" Intern English'},
-    {"prio": 8, "domain": "Data Science & Data Engineering", "kw": '"Data Science" OR "Data Engineer" Intern English'},
+    {"prio": 1, "domain": "IA / Intelligence Artificielle", "kw": '"Artificial Intelligence" Intern'},
+    {"prio": 2, "domain": "Agentic AI / LLM Agents", "kw": '"Agentic" OR "AI Agents" OR "LLM" Intern'},
+    {"prio": 3, "domain": "Computer Vision", "kw": '"Computer Vision" OR "Image Processing" Intern'},
+    {"prio": 4, "domain": "Machine Learning & Deep Learning", "kw": '"Machine Learning" OR "Deep Learning" Intern'},
+    {"prio": 5, "domain": "Cloud & MLOps & Déploiement", "kw": '"Cloud" OR "DevOps" OR "MLOps" Intern'},
+    {"prio": 6, "domain": "Software Engineering (Python / C++)", "kw": '"Software Engineer" OR "Python Developer" Intern'},
+    {"prio": 7, "domain": "Full Stack / Backend / Frontend", "kw": '"Full Stack" OR "Backend" OR "Frontend" Intern'},
+    {"prio": 8, "domain": "Data Science & Data Engineering", "kw": '"Data Science" OR "Data Engineer" Intern'},
 ]
 
 
@@ -181,7 +181,13 @@ class LinkedInEasyApplyOrchestrator:
 
         return applied
 
-    def record_successful_application(self, job: Dict[str, Any], apply_type: str, screenshot_path: Optional[str] = None):
+    def record_successful_application(
+        self,
+        job: Dict[str, Any],
+        apply_type: str,
+        screenshot_path: Optional[str] = None,
+        cv_name: Optional[str] = None,
+    ):
         """
         Enregistre la candidature de manière atomique :
         1. Dans l'historique LinkedIn local (linkedin_applications_history.json)
